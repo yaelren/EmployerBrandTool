@@ -1,6 +1,6 @@
-# Chatooly Tool Template
+# Employer Brand Tool
 
-**Build web tools with AI assistance - No coding experience needed!**
+**Create professional employer brand materials and visual assets for recruitment and HR purposes**
 
 ## 📋 Table of Contents
 
@@ -28,11 +28,11 @@ Choose one option below:
 #### Option A: Download Without Git (Easiest for Beginners)
 **What's this?** Simply download the files like any other download - no special tools needed!
 
-1. Go to https://github.com/yaelren/chatooly-template
+1. Go to https://github.com/yaelren/EmployerBrandTool
 2. Click the green **Code** button
 3. Click **Download ZIP**
 4. Extract the ZIP to your desired folder
-5. Rename the folder from `chatooly-template-main` to your project name (e.g., `my-tool`)
+5. Rename the folder from `EmployerBrandTool-main` to your project name (e.g., `my-employer-brand-tool`)
 6. **Open this folder in your IDE** (Cursor or Visual Studio Code)
 
 #### Option B: Clone with Git (Better for Updates)
@@ -46,18 +46,18 @@ Choose one option below:
 
 **Option 1: Clone into current folder** (if you already created an empty project folder)
 ```bash
-git clone https://github.com/yaelren/chatooly-template.git .
+git clone https://github.com/yaelren/EmployerBrandTool.git .
 ```
 
 **Option 2: Clone into a new subfolder** (creates a new folder with your chosen name)
 ```bash
-git clone https://github.com/yaelren/chatooly-template.git my-tool
-cd my-tool
+git clone https://github.com/yaelren/EmployerBrandTool.git my-employer-brand-tool
+cd my-employer-brand-tool
 ```
-**Important:** Replace `my-tool` with your own project name (e.g., `fisheye-tool`, `color-picker`)
+**Important:** Replace `my-employer-brand-tool` with your own project name (e.g., `company-brand-tool`, `recruitment-assets`)
 
 **If you used Option 2:** You created a subfolder, so you need to open it:
-- In your IDE: **File → Open Folder** → Select the `my-tool` folder you just created
+- In your IDE: **File → Open Folder** → Select the `my-employer-brand-tool` folder you just created
 
 ### Step 2: Open Your Project Files
 
@@ -74,7 +74,7 @@ cd my-tool
 4. **Answer the AI's questions** and watch it build your tool!
 
 #### For Claude Code Users:
-1. **Open your terminal** in the chatooly-template folder
+1. **Open your terminal** in the EmployerBrandTool folder
 2. **Type to Claude Code:** "Let's start building a Chatooly tool"
 3. **Answer the questions** Claude Code asks you
 4. **Describe your tool idea** when prompted
@@ -150,7 +150,7 @@ http-server -p 8000
 <summary><b>Understanding the Files</b></summary>
 
 ```
-my-tool/
+my-employer-brand-tool/
 ├── START_HERE.md          # Instructions for AI
 ├── index.html             # Your tool's structure
 ├── styles.css             # How it looks
@@ -180,7 +180,7 @@ Remember: Keep visual content inside `#chatooly-canvas` div!
 - **No export button?** Check if server is running
 - **Export is blank?** Content must be in `#chatooly-canvas`
 - **Can't publish?** Must run locally first (`npm run dev`)
-- **Need help?** [Create an issue](https://github.com/yaelren/chatooly-template/issues)
+- **Need help?** [Create an issue](https://github.com/yaelren/EmployerBrandTool/issues)
 </details>
 
 ---

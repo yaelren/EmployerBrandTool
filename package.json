@@ -1,7 +1,7 @@
 {
-  "name": "chatooly-tool-template",
+  "name": "employer-brand-tool",
   "version": "1.0.0",
-  "description": "Template for creating Chatooly design tools",
+  "description": "A Chatooly tool for creating employer brand materials and visual assets",
   "author": "Yael Renous - Studio Video",
   "scripts": {
     "dev": "node scripts/dev-server.js"
