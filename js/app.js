@@ -845,15 +845,14 @@ class EmployerBrandToolPOC {
         
         console.log(`🔄 Attempting to restore ${this.savedSpotData.length} saved spots to ${this.spots.length} new spots`);
         
-        // Create a copy of saved data to track what we've used
+        // Phase 1: Try to restore spots to their original positions
         const remainingSavedSpots = [...this.savedSpotData];
         let restoredCount = 0;
         
-        // Try to match each new spot with saved data
+        // First pass: Match spots to their original positions (within 150 pixels)
         for (const newSpot of this.spots) {
             if (remainingSavedSpots.length === 0) break;
             
-            // Find the best matching saved spot based on position similarity
             let bestMatch = null;
             let bestScore = Infinity;
             let bestIndex = -1;
@@ -870,53 +869,65 @@ class EmployerBrandToolPOC {
                     Math.pow(newCenterY - savedCenterY, 2)
                 );
                 
-                // Factor in size similarity
-                const sizeDiff = Math.abs(
-                    (newSpot.width * newSpot.height) - (savedSpot.width * savedSpot.height)
-                ) / Math.max(newSpot.width * newSpot.height, savedSpot.width * savedSpot.height);
-                
-                // Combined score (lower is better)
-                const score = distance + (sizeDiff * 100);
-                
-                if (score < bestScore) {
-                    bestScore = score;
+                // Only consider close matches in first pass
+                if (distance < 150 && distance < bestScore) {
+                    bestScore = distance;
                     bestMatch = savedSpot;
                     bestIndex = index;
                 }
             });
             
-            // If we found a reasonable match (within 150 pixels), restore it
-            if (bestMatch && bestScore < 150) {
-                newSpot.setType(bestMatch.type);
-                
-                // Handle content restoration based on type
-                if (bestMatch.content) {
-                    if (bestMatch.type === 'image' && bestMatch.content.imageDataURL) {
-                        // Restore image from data URL
-                        this.restoreImageContent(newSpot, bestMatch.content);
-                    } else {
-                        // Regular content restoration
-                        newSpot.content = bestMatch.content;
-                    }
-                }
-                
-                if (bestMatch.opacity !== undefined) {
-                    newSpot.opacity = bestMatch.opacity;
-                }
-                
-                // Remove the used saved spot
+            // Restore if we found a close match
+            if (bestMatch) {
+                this.restoreSpotToNewLocation(newSpot, bestMatch);
                 remainingSavedSpots.splice(bestIndex, 1);
                 restoredCount++;
-                
-                console.log(`✅ Restored spot ${newSpot.id} with type '${bestMatch.type}' (distance: ${Math.round(bestScore)})`);
+                console.log(`✅ Restored spot ${newSpot.id} with type '${bestMatch.type}' at original position (distance: ${Math.round(bestScore)})`);
             }
+        }
+        
+        // Phase 2: Place remaining saved spots in any available spots (starting from spot 1)
+        const availableSpots = this.spots.filter(spot => spot.type === 'empty');
+        for (let i = 0; i < availableSpots.length && remainingSavedSpots.length > 0; i++) {
+            const newSpot = availableSpots[i];
+            const savedSpot = remainingSavedSpots[0]; // Take first remaining saved spot
+            
+            this.restoreSpotToNewLocation(newSpot, savedSpot);
+            remainingSavedSpots.shift(); // Remove from remaining
+            restoredCount++;
+            console.log(`✅ Restored spot ${newSpot.id} with type '${savedSpot.type}' at new position (was spot ${savedSpot.originalId})`);
         }
         
         const unrestoredCount = this.savedSpotData.length - restoredCount;
         console.log(`🎯 Restoration complete: ${restoredCount} restored, ${unrestoredCount} couldn't be matched`);
         
         if (unrestoredCount > 0) {
-            console.log('⚠️ Some saved spots could not be restored - they may be outside the new layout');
+            console.log('⚠️ Some saved spots could not be restored - no available spots remaining');
+        }
+    }
+    
+    /**
+     * Restore a saved spot to a new spot location
+     * @param {Spot} newSpot - New spot to restore to
+     * @param {Object} savedSpot - Saved spot data
+     * @private
+     */
+    restoreSpotToNewLocation(newSpot, savedSpot) {
+        newSpot.setType(savedSpot.type);
+        
+        // Handle content restoration based on type
+        if (savedSpot.content) {
+            if (savedSpot.type === 'image' && savedSpot.content.imageDataURL) {
+                // Restore image from data URL
+                this.restoreImageContent(newSpot, savedSpot.content);
+            } else {
+                // Regular content restoration
+                newSpot.content = savedSpot.content;
+            }
+        }
+        
+        if (savedSpot.opacity !== undefined) {
+            newSpot.opacity = savedSpot.opacity;
         }
     }
     
