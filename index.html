@@ -41,6 +41,11 @@
             <div class="chatooly-controls-content">
                 <!-- ========== EDIT BELOW: Add Your Tool Controls Here ========== -->
                 
+                <!-- Spot Detection at the top -->
+                <div class="chatooly-control-group">
+                    <button id="findSpots">Find Open Spots</button>
+                </div>
+                
                 <!-- Main Text Input -->
                 <div class="chatooly-control-group">
                     <label for="mainText">Main Text</label>
@@ -49,10 +54,33 @@ SPOTLIGHT
 2024</textarea>
                 </div>
                 
+                <!-- Text Color -->
+                <div class="chatooly-control-group">
+                    <label for="textColor">Text Color</label>
+                    <input type="color" id="textColor" value="#000000">
+                </div>
+                
+                <!-- Background Color -->
+                <div class="chatooly-control-group">
+                    <label for="backgroundColor">Background Color</label>
+                    <input type="color" id="backgroundColor" value="#ffffff">
+                    <label for="backgroundOpacity">Opacity: <span id="backgroundOpacityValue">100%</span></label>
+                    <input type="range" id="backgroundOpacity" min="0" max="100" step="5" value="100">
+                    <label>
+                        <input type="checkbox" id="transparentBackground">
+                        Transparent Background
+                    </label>
+                </div>
+                
+                <!-- Background Image -->
+                <div class="chatooly-control-group">
+                    <label for="backgroundImage">Background Image</label>
+                    <input type="file" id="backgroundImage" accept="image/*">
+                    <button type="button" id="clearBackgroundImage" style="display: none;">Clear Image</button>
+                </div>
                 
                 <!-- Text Mode Selection -->
                 <div class="chatooly-control-group">
-                    <h3>Text Mode</h3>
                     <label>
                         <input type="radio" name="textMode" id="fillCanvasMode" checked>
                         Fill Entire Canvas (Auto-sized)
@@ -61,24 +89,6 @@ SPOTLIGHT
                         <input type="radio" name="textMode" id="manualMode">
                         Manual Control (Can overflow)
                     </label>
-                </div>
-                
-                <!-- Canvas Padding Controls -->
-                <div class="chatooly-control-group">
-                    <h3>Canvas Padding</h3>
-                    <div class="padding-controls">
-                        <!-- Symmetrical padding controls -->
-                        <div class="padding-row">
-                            <label for="paddingHorizontal">Horizontal (L+R)</label>
-                            <input type="range" id="paddingHorizontal" min="0" max="100" value="20">
-                            <span id="paddingHorizontalValue">20px</span>
-                        </div>
-                        <div class="padding-row">
-                            <label for="paddingVertical">Vertical (T+B)</label>
-                            <input type="range" id="paddingVertical" min="0" max="100" value="20">
-                            <span id="paddingVerticalValue">20px</span>
-                        </div>
-                    </div>
                 </div>
                 
                 <!-- Manual Mode Controls (hidden in Fill Canvas mode) -->
@@ -104,7 +114,6 @@ SPOTLIGHT
                     
                     <!-- Text Positioning Controls -->
                     <div class="chatooly-control-group">
-                        <h3>Text Position</h3>
                         <div class="positioning-grid">
                             <button type="button" class="pos-btn" data-vertical="top" data-horizontal="left">↖</button>
                             <button type="button" class="pos-btn" data-vertical="top" data-horizontal="center">↑</button>
@@ -121,15 +130,9 @@ SPOTLIGHT
                 
                 <!-- Per-Line Alignment Controls -->
                 <div class="chatooly-control-group">
-                    <h3>Line Alignment</h3>
                     <div id="lineAlignmentControls">
                         <!-- Dynamically populated based on text lines -->
                     </div>
-                </div>
-                
-                <!-- Spot Detection -->
-                <div class="chatooly-control-group">
-                    <button id="findSpots">Find Open Spots</button>
                 </div>
                 
                 <div class="chatooly-control-group">
@@ -139,9 +142,26 @@ SPOTLIGHT
                 
                 <!-- Spots List -->
                 <div class="chatooly-control-group">
-                    <h3>Open Spots: <span id="spotCount">0</span></h3>
+                    <label>Open Spots: <span id="spotCount">0</span></label>
                     <div id="spotsList" class="spots-list">
-                        <!-- Dynamically populated -->
+                        <!-- Dynamically populated with expandable spot controls -->
+                    </div>
+                </div>
+                
+                <!-- Canvas Padding Controls at the bottom -->
+                <div class="chatooly-control-group">
+                    <div class="padding-controls">
+                        <!-- Symmetrical padding controls -->
+                        <div class="padding-row">
+                            <label for="paddingHorizontal">Horizontal (L+R)</label>
+                            <input type="range" id="paddingHorizontal" min="0" max="100" value="20">
+                            <span id="paddingHorizontalValue">20px</span>
+                        </div>
+                        <div class="padding-row">
+                            <label for="paddingVertical">Vertical (T+B)</label>
+                            <input type="range" id="paddingVertical" min="0" max="100" value="20">
+                            <span id="paddingVerticalValue">20px</span>
+                        </div>
                     </div>
                 </div>
                 
@@ -158,6 +178,10 @@ SPOTLIGHT
                     <button id="toggleDebug" class="debug-toggle">🐛</button>
                 </div>
                 <div id="debugContent" class="debug-content">
+                    <div class="debug-quick-actions">
+                        <button type="button" id="showAllDebug">Show All</button>
+                        <button type="button" id="hideAllDebug">Hide All</button>
+                    </div>
                     <div class="debug-checkboxes">
                         <label>
                             <input type="checkbox" id="showSpotOutlines" checked>

@@ -109,14 +109,15 @@ class Spot {
      * @param {CanvasRenderingContext2D} ctx - Canvas context
      * @param {boolean} showOutline - Whether to show outline
      * @param {boolean} showNumber - Whether to show spot number
+     * @param {HTMLImageElement} backgroundImage - Background image for mask spots
      */
-    render(ctx, showOutline = true, showNumber = true) {
+    render(ctx, showOutline = true, showNumber = true, backgroundImage = null) {
         ctx.save();
         
         // Render based on type
         switch(this.type) {
             case 'mask':
-                this.renderMask(ctx);
+                this.renderMask(ctx, backgroundImage);
                 break;
             case 'image':
                 this.renderImage(ctx);
@@ -153,27 +154,121 @@ class Spot {
     }
     
     /**
-     * Render mask spot (reveals background)
+     * Render mask spot (reveals background image through transparent area)
+     * @param {HTMLImageElement} backgroundImage - Background image to reveal
      * @private
      */
-    renderMask(ctx) {
-        // For now, just show as semi-transparent fill
-        // In full implementation, this would use composite operations
-        ctx.globalAlpha = this.opacity;
-        ctx.fillStyle = this.fillColor;
-        ctx.fillRect(this.x, this.y, this.width, this.height);
-        ctx.globalAlpha = 1.0;
+    renderMask(ctx, backgroundImage = null) {
+        // Calculate content area with padding
+        const padding = this.content?.padding || 0;
+        const contentX = this.x + padding;
+        const contentY = this.y + padding;
+        const contentWidth = this.width - (padding * 2);
+        const contentHeight = this.height - (padding * 2);
+        
+        if (backgroundImage && contentWidth > 0 && contentHeight > 0) {
+            // Create a clipping path for the mask area
+            ctx.save();
+            ctx.beginPath();
+            ctx.rect(contentX, contentY, contentWidth, contentHeight);
+            ctx.clip();
+            
+            // Draw the background image scaled to fit the canvas
+            const canvasWidth = ctx.canvas.width;
+            const canvasHeight = ctx.canvas.height;
+            ctx.drawImage(backgroundImage, 0, 0, canvasWidth, canvasHeight);
+            
+            ctx.restore();
+        } else {
+            // No background image or invalid dimensions - show placeholder
+            ctx.globalAlpha = this.opacity;
+            ctx.fillStyle = this.fillColor;
+            ctx.fillRect(this.x, this.y, this.width, this.height);
+            ctx.globalAlpha = 1.0;
+            
+            // Add mask icon placeholder
+            const iconSize = Math.min(this.width, this.height) * 0.3;
+            const iconX = this.x + (this.width - iconSize) / 2;
+            const iconY = this.y + (this.height - iconSize) / 2;
+            
+            ctx.strokeStyle = '#888';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.arc(iconX + iconSize/2, iconY + iconSize/2, iconSize/2, 0, Math.PI * 2);
+            ctx.stroke();
+            
+            // Add "M" for mask
+            ctx.fillStyle = '#888';
+            ctx.font = 'bold 14px Arial';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText('M', iconX + iconSize/2, iconY + iconSize/2);
+        }
     }
     
     /**
-     * Render image spot placeholder
+     * Render image spot with actual image content, scale, and rotation
      * @private
      */
     renderImage(ctx) {
-        // Fill with image placeholder color
-        ctx.fillStyle = this.fillColor;
-        ctx.fillRect(this.x, this.y, this.width, this.height);
+        // If no image content, show placeholder with background
+        if (!this.content || !this.content.image) {
+            ctx.fillStyle = this.fillColor;
+            ctx.fillRect(this.x, this.y, this.width, this.height);
+            this.renderImagePlaceholder(ctx);
+            return;
+        }
         
+        // Calculate content area with padding
+        const padding = this.content.padding || 0;
+        const contentX = this.x + padding;
+        const contentY = this.y + padding;
+        const contentWidth = this.width - (padding * 2);
+        const contentHeight = this.height - (padding * 2);
+        
+        if (contentWidth <= 0 || contentHeight <= 0) return;
+        
+        const image = this.content.image;
+        const scale = this.content.scale || 1;
+        const rotation = (this.content.rotation || 0) * Math.PI / 180; // Convert to radians
+        
+        // Calculate image dimensions maintaining aspect ratio
+        const imageAspect = image.width / image.height;
+        const contentAspect = contentWidth / contentHeight;
+        
+        let drawWidth, drawHeight;
+        if (imageAspect > contentAspect) {
+            // Image is wider than content area
+            drawWidth = contentWidth * scale;
+            drawHeight = (contentWidth / imageAspect) * scale;
+        } else {
+            // Image is taller than content area
+            drawWidth = (contentHeight * imageAspect) * scale;
+            drawHeight = contentHeight * scale;
+        }
+        
+        // Center the image in content area
+        const centerX = contentX + contentWidth / 2;
+        const centerY = contentY + contentHeight / 2;
+        
+        ctx.save();
+        
+        // Move to center, rotate, then move back
+        ctx.translate(centerX, centerY);
+        ctx.rotate(rotation);
+        ctx.translate(-drawWidth / 2, -drawHeight / 2);
+        
+        // Draw the image
+        ctx.drawImage(image, 0, 0, drawWidth, drawHeight);
+        
+        ctx.restore();
+    }
+    
+    /**
+     * Render image placeholder when no content
+     * @private
+     */
+    renderImagePlaceholder(ctx) {
         // Add image icon placeholder (simple rectangle with X)
         const iconSize = Math.min(this.width, this.height) * 0.3;
         const iconX = this.x + (this.width - iconSize) / 2;
@@ -193,14 +288,114 @@ class Spot {
     }
     
     /**
-     * Render text spot placeholder
+     * Render text spot with actual text content and auto-fitting
      * @private
      */
     renderText(ctx) {
-        // Fill with text placeholder color
-        ctx.fillStyle = this.fillColor;
-        ctx.fillRect(this.x, this.y, this.width, this.height);
+        // If no text content, show placeholder with background
+        if (!this.content || !this.content.text) {
+            ctx.fillStyle = this.fillColor;
+            ctx.fillRect(this.x, this.y, this.width, this.height);
+            this.renderTextPlaceholder(ctx);
+            return;
+        }
         
+        // Calculate content area with padding
+        const padding = this.content.padding || 0;
+        const contentX = this.x + padding;
+        const contentY = this.y + padding;
+        const contentWidth = this.width - (padding * 2);
+        const contentHeight = this.height - (padding * 2);
+        
+        if (contentWidth <= 0 || contentHeight <= 0) return;
+        
+        // Set up text properties
+        const textColor = this.content.color || '#000000';
+        const textAlign = this.content.textAlign || 'center';
+        const styles = this.content.styles || {};
+        
+        // Build font string
+        let fontWeight = styles.bold ? 'bold' : 'normal';
+        let fontStyle = styles.italic ? 'italic' : 'normal';
+        
+        // Wrap text to fit in content area
+        const wrappedLines = this.wrapTextToFitArea(ctx, this.content.text, contentWidth, fontStyle, fontWeight);
+        
+        if (wrappedLines.length === 0) return;
+        
+        // Auto-fit font size for wrapped text
+        const fontSize = this.calculateOptimalFontSizeForLines(ctx, wrappedLines, contentWidth, contentHeight, fontStyle, fontWeight);
+        ctx.font = `${fontStyle} ${fontWeight} ${fontSize}px "Wix Madefor Display", Arial, sans-serif`;
+        ctx.fillStyle = textColor;
+        ctx.textBaseline = 'top';
+        
+        // Calculate line height and total text height
+        const lineHeight = fontSize * 1.2;
+        const totalTextHeight = wrappedLines.length * lineHeight;
+        const startY = contentY + (contentHeight - totalTextHeight) / 2;
+        
+        // Render each line
+        wrappedLines.forEach((line, index) => {
+            const lineY = startY + index * lineHeight;
+            
+            // Calculate text position based on alignment
+            let textX;
+            switch (textAlign) {
+                case 'left':
+                    textX = contentX;
+                    ctx.textAlign = 'left';
+                    break;
+                case 'right':
+                    textX = contentX + contentWidth;
+                    ctx.textAlign = 'right';
+                    break;
+                case 'center':
+                default:
+                    textX = contentX + contentWidth / 2;
+                    ctx.textAlign = 'center';
+                    break;
+            }
+            
+            // Render text with optional underline
+            if (styles.underline) {
+                // Measure text for underline
+                const metrics = ctx.measureText(line);
+                const underlineY = lineY + fontSize;
+                let underlineX, underlineWidth;
+                
+                switch (textAlign) {
+                    case 'left':
+                        underlineX = textX;
+                        underlineWidth = metrics.width;
+                        break;
+                    case 'right':
+                        underlineX = textX - metrics.width;
+                        underlineWidth = metrics.width;
+                        break;
+                    case 'center':
+                    default:
+                        underlineX = textX - metrics.width / 2;
+                        underlineWidth = metrics.width;
+                        break;
+                }
+                
+                ctx.beginPath();
+                ctx.moveTo(underlineX, underlineY);
+                ctx.lineTo(underlineX + underlineWidth, underlineY);
+                ctx.strokeStyle = textColor;
+                ctx.lineWidth = Math.max(1, fontSize * 0.05);
+                ctx.stroke();
+            }
+            
+            ctx.fillText(line, textX, lineY);
+        });
+    }
+    
+    /**
+     * Render text placeholder when no content
+     * @private
+     */
+    renderTextPlaceholder(ctx) {
         // Add text lines placeholder
         ctx.strokeStyle = '#FFA500';
         ctx.lineWidth = 2;
@@ -217,6 +412,125 @@ class Spot {
             ctx.lineTo(this.x + lineWidth, y);
             ctx.stroke();
         }
+    }
+    
+    /**
+     * Wrap text to fit in given width
+     * @param {CanvasRenderingContext2D} ctx - Canvas context
+     * @param {string} text - Text to wrap
+     * @param {number} maxWidth - Maximum width
+     * @param {string} fontStyle - Font style (normal, italic)
+     * @param {string} fontWeight - Font weight (normal, bold)
+     * @returns {Array} Array of wrapped lines
+     * @private
+     */
+    wrapTextToFitArea(ctx, text, maxWidth, fontStyle = 'normal', fontWeight = 'normal') {
+        // Start with a reasonable font size for measurement
+        const testFontSize = 16;
+        ctx.font = `${fontStyle} ${fontWeight} ${testFontSize}px "Wix Madefor Display", Arial, sans-serif`;
+        
+        const words = text.split(' ');
+        const lines = [];
+        let currentLine = '';
+        
+        for (const word of words) {
+            const testLine = currentLine ? `${currentLine} ${word}` : word;
+            const metrics = ctx.measureText(testLine);
+            
+            if (metrics.width > maxWidth && currentLine) {
+                lines.push(currentLine);
+                currentLine = word;
+            } else {
+                currentLine = testLine;
+            }
+        }
+        
+        if (currentLine) {
+            lines.push(currentLine);
+        }
+        
+        return lines.length > 0 ? lines : [text]; // Fallback to original text if wrapping fails
+    }
+    
+    /**
+     * Calculate optimal font size for multiple lines
+     * @param {CanvasRenderingContext2D} ctx - Canvas context
+     * @param {Array} lines - Array of text lines
+     * @param {number} maxWidth - Maximum width
+     * @param {number} maxHeight - Maximum height
+     * @param {string} fontStyle - Font style (normal, italic)
+     * @param {string} fontWeight - Font weight (normal, bold)
+     * @returns {number} Optimal font size
+     * @private
+     */
+    calculateOptimalFontSizeForLines(ctx, lines, maxWidth, maxHeight, fontStyle = 'normal', fontWeight = 'normal') {
+        let fontSize = Math.min(maxHeight / lines.length * 0.8, 72);
+        const minFontSize = 8;
+        
+        ctx.save();
+        
+        while (fontSize > minFontSize) {
+            ctx.font = `${fontStyle} ${fontWeight} ${fontSize}px "Wix Madefor Display", Arial, sans-serif`;
+            
+            // Check if all lines fit width
+            let allLinesFit = true;
+            let maxLineWidth = 0;
+            
+            for (const line of lines) {
+                const metrics = ctx.measureText(line);
+                maxLineWidth = Math.max(maxLineWidth, metrics.width);
+                if (metrics.width > maxWidth) {
+                    allLinesFit = false;
+                    break;
+                }
+            }
+            
+            // Check if total height fits
+            const lineHeight = fontSize * 1.2;
+            const totalHeight = lines.length * lineHeight;
+            
+            if (allLinesFit && totalHeight <= maxHeight) {
+                ctx.restore();
+                return fontSize;
+            }
+            
+            fontSize -= 2;
+        }
+        
+        ctx.restore();
+        return minFontSize;
+    }
+    
+    /**
+     * Calculate optimal font size to fit text in given area (legacy method for backward compatibility)
+     * @param {CanvasRenderingContext2D} ctx - Canvas context
+     * @param {string} text - Text to fit
+     * @param {number} maxWidth - Maximum width
+     * @param {number} maxHeight - Maximum height
+     * @returns {number} Optimal font size
+     * @private
+     */
+    calculateOptimalFontSize(ctx, text, maxWidth, maxHeight) {
+        let fontSize = Math.min(maxHeight * 0.8, 72); // Start with reasonable size
+        const minFontSize = 8;
+        
+        ctx.save();
+        
+        while (fontSize > minFontSize) {
+            ctx.font = `${fontSize}px "Wix Madefor Display", Arial, sans-serif`;
+            const metrics = ctx.measureText(text);
+            
+            // Check if text fits both width and height
+            if (metrics.width <= maxWidth && fontSize <= maxHeight * 0.8) {
+                ctx.restore();
+                return fontSize;
+            }
+            
+            fontSize -= 2;
+        }
+        
+        ctx.restore();
+        return minFontSize;
     }
     
     /**

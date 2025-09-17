@@ -67,6 +67,13 @@ class EmployerBrandToolPOC {
     cacheUIElements() {
         const requiredElements = {
             mainText: 'mainText',
+            textColor: 'textColor',
+            backgroundColor: 'backgroundColor',
+            backgroundOpacity: 'backgroundOpacity',
+            backgroundOpacityValue: 'backgroundOpacityValue',
+            transparentBackground: 'transparentBackground',
+            backgroundImage: 'backgroundImage',
+            clearBackgroundImage: 'clearBackgroundImage',
             fontSize: 'fontSize',
             fontSizeValue: 'fontSizeValue',
             lineSpacing: 'lineSpacing',
@@ -82,6 +89,8 @@ class EmployerBrandToolPOC {
             lineAlignmentControls: 'lineAlignmentControls',
             toggleDebug: 'toggleDebug',
             debugContent: 'debugContent',
+            showAllDebug: 'showAllDebug',
+            hideAllDebug: 'hideAllDebug',
             minSpotSize: 'minSpotSize',
             findSpots: 'findSpots',
             showSpotOutlines: 'showSpotOutlines',
@@ -110,6 +119,40 @@ class EmployerBrandToolPOC {
         // Text input changes
         this.elements.mainText.addEventListener('input', () => {
             this.onTextChanged();
+        });
+        
+        // Text color changes
+        this.elements.textColor.addEventListener('input', () => {
+            const color = this.elements.textColor.value;
+            this.textEngine.updateConfig({ color });
+            this.render();
+        });
+        
+        // Background color changes
+        this.elements.backgroundColor.addEventListener('input', () => {
+            this.updateBackgroundColor();
+        });
+        
+        // Background opacity changes
+        this.elements.backgroundOpacity.addEventListener('input', () => {
+            const opacity = parseInt(this.elements.backgroundOpacity.value);
+            this.elements.backgroundOpacityValue.textContent = opacity + '%';
+            this.updateBackgroundColor();
+        });
+        
+        // Transparent background toggle
+        this.elements.transparentBackground.addEventListener('change', () => {
+            this.updateBackgroundColor();
+        });
+        
+        // Background image upload
+        this.elements.backgroundImage.addEventListener('change', (e) => {
+            this.handleBackgroundImageUpload(e);
+        });
+        
+        // Clear background image
+        this.elements.clearBackgroundImage.addEventListener('click', () => {
+            this.clearBackgroundImage();
         });
         
         // Font size changes
@@ -167,6 +210,23 @@ class EmployerBrandToolPOC {
         // Debug panel toggle
         this.elements.toggleDebug.addEventListener('click', () => {
             this.elements.debugContent.classList.toggle('show');
+        });
+        
+        // Debug quick actions
+        this.elements.showAllDebug.addEventListener('click', () => {
+            this.elements.showSpotOutlines.checked = true;
+            this.elements.showSpotNumbers.checked = true;
+            this.elements.showTextBounds.checked = true;
+            this.elements.showPadding.checked = true;
+            this.updateDebugOptions();
+        });
+        
+        this.elements.hideAllDebug.addEventListener('click', () => {
+            this.elements.showSpotOutlines.checked = false;
+            this.elements.showSpotNumbers.checked = false;
+            this.elements.showTextBounds.checked = false;
+            this.elements.showPadding.checked = false;
+            this.updateDebugOptions();
         });
         
         // Text positioning controls (manual mode only)
@@ -396,6 +456,81 @@ class EmployerBrandToolPOC {
         this.onTextChanged();
     }
     
+    /**
+     * Update background color with opacity
+     * @private
+     */
+    updateBackgroundColor() {
+        const isTransparent = this.elements.transparentBackground.checked;
+        
+        if (isTransparent) {
+            this.canvasManager.setBackgroundColor('transparent');
+        } else {
+            const hexColor = this.elements.backgroundColor.value;
+            const opacity = parseInt(this.elements.backgroundOpacity.value);
+            
+            if (opacity === 100) {
+                // Fully opaque, use hex color
+                this.canvasManager.setBackgroundColor(hexColor);
+            } else {
+                // Convert hex to RGBA with opacity
+                const rgbaColor = this.hexToRgba(hexColor, opacity / 100);
+                this.canvasManager.setBackgroundColor(rgbaColor);
+            }
+        }
+        
+        this.render();
+    }
+    
+    /**
+     * Convert hex color to RGBA
+     * @param {string} hex - Hex color (#ffffff)
+     * @param {number} alpha - Alpha value (0-1)
+     * @returns {string} RGBA color string
+     * @private
+     */
+    hexToRgba(hex, alpha) {
+        const r = parseInt(hex.slice(1, 3), 16);
+        const g = parseInt(hex.slice(3, 5), 16);
+        const b = parseInt(hex.slice(5, 7), 16);
+        return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+    }
+    
+    /**
+     * Handle background image upload
+     * @param {Event} event - File input change event
+     * @private
+     */
+    handleBackgroundImageUpload(event) {
+        const file = event.target.files[0];
+        if (!file) return;
+        
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            const img = new Image();
+            img.onload = () => {
+                this.canvasManager.setBackgroundImage(img);
+                this.elements.clearBackgroundImage.style.display = 'inline-block';
+                this.render();
+                console.log('✅ Background image loaded');
+            };
+            img.src = e.target.result;
+        };
+        reader.readAsDataURL(file);
+    }
+    
+    /**
+     * Clear background image
+     * @private
+     */
+    clearBackgroundImage() {
+        this.canvasManager.setBackgroundImage(null);
+        this.elements.backgroundImage.value = '';
+        this.elements.clearBackgroundImage.style.display = 'none';
+        this.render();
+        console.log('🗑️ Background image cleared');
+    }
+    
     
     
     /**
@@ -442,18 +577,9 @@ class EmployerBrandToolPOC {
             this.spots = this.spotDetector.detect(canvas, textBounds, padding);
             const endTime = performance.now();
             
-            // Log results
-            const detectionTime = Math.round(endTime - startTime);
-            console.log(`✅ Found ${this.spots.length} spots in ${detectionTime}ms`);
-            
             // Update UI
             this.updateSpotsUI();
             this.render();
-            
-            // Log debug info
-            if (this.spotDetector.debugging) {
-                console.log('Debug info:', this.spotDetector.getDebugInfo());
-            }
             
         } catch (error) {
             console.error('❌ Spot detection failed:', error);
@@ -490,12 +616,30 @@ class EmployerBrandToolPOC {
         item.className = 'spot-item';
         item.dataset.spotId = spot.id;
         
-        // Spot number
-        const number = document.createElement('span');
-        number.className = 'spot-number';
-        number.textContent = spot.id.toString();
+        // Main spot header with improved readability
+        const header = document.createElement('div');
+        header.className = 'spot-header';
         
-        // Type selector
+        // Left section: Spot info
+        const infoSection = document.createElement('div');
+        infoSection.className = 'spot-info';
+        
+        // Spot number with label
+        const numberLabel = document.createElement('div');
+        numberLabel.className = 'spot-number-label';
+        numberLabel.innerHTML = `<strong>Spot ${spot.id}</strong>`;
+        
+        infoSection.appendChild(numberLabel);
+        
+        // Right section: Controls
+        const controlsSection = document.createElement('div');
+        controlsSection.className = 'spot-controls-section';
+        
+        // Type selector with label
+        const typeLabel = document.createElement('label');
+        typeLabel.className = 'spot-type-label';
+        typeLabel.textContent = 'Type:';
+        
         const typeSelect = document.createElement('select');
         typeSelect.className = 'spot-type-select';
         
@@ -514,22 +658,263 @@ class EmployerBrandToolPOC {
             typeSelect.appendChild(option);
         });
         
-        // Handle type changes
-        typeSelect.addEventListener('change', () => {
-            this.onSpotTypeChanged(spot.id, typeSelect.value);
+        // Expand/collapse button
+        const toggleBtn = document.createElement('button');
+        toggleBtn.type = 'button';
+        toggleBtn.className = 'spot-toggle';
+        toggleBtn.textContent = '▼ Settings';
+        
+        controlsSection.appendChild(typeLabel);
+        controlsSection.appendChild(typeSelect);
+        controlsSection.appendChild(toggleBtn);
+        
+        // Assemble header
+        header.appendChild(infoSection);
+        header.appendChild(controlsSection);
+        
+        // Expandable controls container
+        const controls = document.createElement('div');
+        controls.className = 'spot-controls';
+        controls.style.display = 'none';
+        
+        // Create type-specific controls
+        this.createSpotTypeControls(spot, controls);
+        
+        // Toggle functionality
+        toggleBtn.addEventListener('click', () => {
+            const isOpen = controls.style.display !== 'none';
+            controls.style.display = isOpen ? 'none' : 'block';
+            toggleBtn.textContent = isOpen ? '▶ Settings' : '▼ Settings';
         });
         
-        // Size display
-        const size = document.createElement('span');
-        size.className = 'spot-size';
-        size.textContent = `${Math.round(spot.width)}×${Math.round(spot.height)}`;
+        // Handle type changes
+        typeSelect.addEventListener('change', () => {
+            spot.setType(typeSelect.value);
+            this.createSpotTypeControls(spot, controls);
+            this.render();
+        });
         
         // Assemble item
-        item.appendChild(number);
-        item.appendChild(typeSelect);
-        item.appendChild(size);
+        item.appendChild(header);
+        item.appendChild(controls);
         
         return item;
+    }
+    
+    /**
+     * Create type-specific controls for a spot
+     * @param {Spot} spot - Spot object
+     * @param {HTMLElement} container - Container for controls
+     * @private
+     */
+    createSpotTypeControls(spot, container) {
+        // Clear existing controls
+        container.innerHTML = '';
+        
+        // Add padding control for all non-empty spot types
+        if (spot.type !== 'empty') {
+            this.createSpotPaddingControl(spot, container);
+        }
+        
+        switch (spot.type) {
+            case 'text':
+                this.createTextSpotControls(spot, container);
+                break;
+            case 'image':
+                this.createImageSpotControls(spot, container);
+                break;
+            case 'mask':
+                this.createMaskSpotControls(spot, container);
+                break;
+            case 'empty':
+            default:
+                // No controls for empty spots
+                break;
+        }
+    }
+    
+    /**
+     * Create spot padding control
+     * @param {Spot} spot - Spot object
+     * @param {HTMLElement} container - Container for controls
+     * @private
+     */
+    createSpotPaddingControl(spot, container) {
+        const paddingDiv = document.createElement('div');
+        paddingDiv.className = 'spot-padding-control';
+        paddingDiv.innerHTML = `
+            <label>Padding: <span class="padding-value">${spot.content?.padding || 0}px</span></label>
+            <input type="range" class="spot-padding" min="0" max="50" step="1" value="${spot.content?.padding || 0}">
+        `;
+        
+        const paddingSlider = paddingDiv.querySelector('.spot-padding');
+        paddingSlider.addEventListener('input', () => {
+            const value = parseInt(paddingSlider.value);
+            paddingDiv.querySelector('.padding-value').textContent = value + 'px';
+            this.updateSpotPadding(spot, value);
+        });
+        
+        container.appendChild(paddingDiv);
+    }
+    
+    /**
+     * Create text spot controls
+     * @param {Spot} spot - Spot object
+     * @param {HTMLElement} container - Container for controls
+     * @private
+     */
+    createTextSpotControls(spot, container) {
+        // Text input
+        const textInput = document.createElement('textarea');
+        textInput.className = 'spot-text-input';
+        textInput.placeholder = 'Enter text...';
+        textInput.value = spot.content?.text || '';
+        textInput.rows = 2;
+        
+        // Text alignment
+        const alignmentDiv = document.createElement('div');
+        alignmentDiv.className = 'spot-text-alignment';
+        
+        const alignments = [
+            { value: 'left', label: 'L' },
+            { value: 'center', label: 'C' },
+            { value: 'right', label: 'R' }
+        ];
+        
+        alignments.forEach(align => {
+            const btn = document.createElement('button');
+            btn.type = 'button';
+            btn.className = 'align-btn';
+            btn.textContent = align.label;
+            btn.dataset.align = align.value;
+            
+            if (align.value === (spot.content?.textAlign || 'center')) {
+                btn.classList.add('active');
+            }
+            
+            btn.addEventListener('click', () => {
+                alignmentDiv.querySelectorAll('.align-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                this.updateSpotTextAlignment(spot, align.value);
+            });
+            
+            alignmentDiv.appendChild(btn);
+        });
+        
+        // Text styling
+        const stylingDiv = document.createElement('div');
+        stylingDiv.className = 'spot-text-styling';
+        
+        const styles = [
+            { key: 'bold', label: 'B' },
+            { key: 'italic', label: 'I' },
+            { key: 'underline', label: 'U' }
+        ];
+        
+        styles.forEach(style => {
+            const btn = document.createElement('button');
+            btn.type = 'button';
+            btn.className = 'style-btn';
+            btn.textContent = style.label;
+            btn.dataset.style = style.key;
+            
+            if (spot.content?.styles?.[style.key]) {
+                btn.classList.add('active');
+            }
+            
+            btn.addEventListener('click', () => {
+                btn.classList.toggle('active');
+                this.toggleSpotTextStyle(spot, style.key);
+            });
+            
+            stylingDiv.appendChild(btn);
+        });
+        
+        // Text color
+        const colorInput = document.createElement('input');
+        colorInput.type = 'color';
+        colorInput.className = 'spot-text-color';
+        colorInput.value = spot.content?.color || '#000000';
+        
+        // Event listeners
+        textInput.addEventListener('input', () => {
+            this.updateSpotText(spot, textInput.value);
+        });
+        
+        colorInput.addEventListener('input', () => {
+            this.updateSpotTextColor(spot, colorInput.value);
+        });
+        
+        // Assemble controls
+        container.appendChild(textInput);
+        container.appendChild(alignmentDiv);
+        container.appendChild(stylingDiv);
+        container.appendChild(colorInput);
+    }
+    
+    /**
+     * Create image spot controls
+     * @param {Spot} spot - Spot object
+     * @param {HTMLElement} container - Container for controls
+     * @private
+     */
+    createImageSpotControls(spot, container) {
+        // Image upload
+        const imageInput = document.createElement('input');
+        imageInput.type = 'file';
+        imageInput.accept = 'image/*';
+        imageInput.className = 'spot-image-input';
+        
+        // Scale control
+        const scaleDiv = document.createElement('div');
+        scaleDiv.innerHTML = `
+            <label>Scale: <span class="scale-value">${(spot.content?.scale || 1).toFixed(2)}</span></label>
+            <input type="range" class="spot-scale" min="0.1" max="3" step="0.1" value="${spot.content?.scale || 1}">
+        `;
+        
+        // Rotation control
+        const rotationDiv = document.createElement('div');
+        rotationDiv.innerHTML = `
+            <label>Rotation: <span class="rotation-value">${spot.content?.rotation || 0}°</span></label>
+            <input type="range" class="spot-rotation" min="0" max="360" step="5" value="${spot.content?.rotation || 0}">
+        `;
+        
+        // Event listeners
+        imageInput.addEventListener('change', (e) => {
+            this.handleSpotImageUpload(spot, e);
+        });
+        
+        const scaleSlider = scaleDiv.querySelector('.spot-scale');
+        scaleSlider.addEventListener('input', () => {
+            const value = parseFloat(scaleSlider.value);
+            scaleDiv.querySelector('.scale-value').textContent = value.toFixed(2);
+            this.updateSpotImageScale(spot, value);
+        });
+        
+        const rotationSlider = rotationDiv.querySelector('.spot-rotation');
+        rotationSlider.addEventListener('input', () => {
+            const value = parseInt(rotationSlider.value);
+            rotationDiv.querySelector('.rotation-value').textContent = value + '°';
+            this.updateSpotImageRotation(spot, value);
+        });
+        
+        // Assemble controls
+        container.appendChild(imageInput);
+        container.appendChild(scaleDiv);
+        container.appendChild(rotationDiv);
+    }
+    
+    /**
+     * Create mask spot controls
+     * @param {Spot} spot - Spot object
+     * @param {HTMLElement} container - Container for controls
+     * @private
+     */
+    createMaskSpotControls(spot, container) {
+        const info = document.createElement('div');
+        info.className = 'spot-mask-info';
+        info.textContent = 'Mask reveals background image through transparent area';
+        container.appendChild(info);
     }
     
     /**
@@ -545,6 +930,116 @@ class EmployerBrandToolPOC {
             console.log(`Changed spot ${spotId} to type: ${newType}`);
             this.render();
         }
+    }
+    
+    /**
+     * Update spot padding
+     * @param {Spot} spot - Spot object
+     * @param {number} padding - Padding value in pixels
+     * @private
+     */
+    updateSpotPadding(spot, padding) {
+        if (!spot.content) spot.content = {};
+        spot.content.padding = padding;
+        this.render();
+        console.log(`Updated spot ${spot.id} padding: ${padding}px`);
+    }
+    
+    /**
+     * Update spot text content
+     * @param {Spot} spot - Spot object
+     * @param {string} text - New text content
+     * @private
+     */
+    updateSpotText(spot, text) {
+        if (!spot.content) spot.content = {};
+        spot.content.text = text;
+        this.render();
+    }
+    
+    /**
+     * Update spot text alignment
+     * @param {Spot} spot - Spot object
+     * @param {string} alignment - Text alignment (left, center, right)
+     * @private
+     */
+    updateSpotTextAlignment(spot, alignment) {
+        if (!spot.content) spot.content = {};
+        spot.content.textAlign = alignment;
+        this.render();
+    }
+    
+    /**
+     * Toggle spot text style
+     * @param {Spot} spot - Spot object
+     * @param {string} style - Style to toggle (bold, italic, underline)
+     * @private
+     */
+    toggleSpotTextStyle(spot, style) {
+        if (!spot.content) spot.content = {};
+        if (!spot.content.styles) spot.content.styles = {};
+        spot.content.styles[style] = !spot.content.styles[style];
+        this.render();
+    }
+    
+    /**
+     * Update spot text color
+     * @param {Spot} spot - Spot object
+     * @param {string} color - New text color
+     * @private
+     */
+    updateSpotTextColor(spot, color) {
+        if (!spot.content) spot.content = {};
+        spot.content.color = color;
+        this.render();
+    }
+    
+    /**
+     * Handle spot image upload
+     * @param {Spot} spot - Spot object
+     * @param {Event} event - File input event
+     * @private
+     */
+    handleSpotImageUpload(spot, event) {
+        const file = event.target.files[0];
+        if (!file) return;
+        
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            const img = new Image();
+            img.onload = () => {
+                if (!spot.content) spot.content = {};
+                spot.content.image = img;
+                this.render();
+                console.log(`✅ Image loaded for spot ${spot.id}`);
+            };
+            img.src = e.target.result;
+        };
+        reader.readAsDataURL(file);
+    }
+    
+    /**
+     * Update spot image scale
+     * @param {Spot} spot - Spot object
+     * @param {number} scale - New scale value
+     * @private
+     */
+    updateSpotImageScale(spot, scale) {
+        if (!spot.content) spot.content = {};
+        spot.content.scale = scale;
+        this.render();
+    }
+    
+    /**
+     * Update spot image rotation
+     * @param {Spot} spot - Spot object
+     * @param {number} rotation - New rotation value in degrees
+     * @private
+     */
+    updateSpotImageRotation(spot, rotation) {
+        if (!spot.content) spot.content = {};
+        spot.content.rotation = rotation;
+        this.render();
     }
     
     /**
@@ -572,7 +1067,7 @@ class EmployerBrandToolPOC {
                 textLines: this.textEngine.getLinesForRender(),
                 textConfig: this.textEngine.getConfig(),
                 spots: this.spots,
-                debugInfo: this.spotDetector.debugging ? this.getDebugDisplayInfo() : null
+                debugInfo: null // Remove debug info display
             };
             
             // Render everything
@@ -583,21 +1078,6 @@ class EmployerBrandToolPOC {
         }
     }
     
-    /**
-     * Get debug information for display
-     * @returns {Object} Debug info for canvas display
-     * @private
-     */
-    getDebugDisplayInfo() {
-        const debugInfo = this.spotDetector.getDebugInfo();
-        const textStats = this.textEngine.getStatistics();
-        
-        return {
-            detectionTime: debugInfo.detectionTime,
-            spotsFound: this.spots.length,
-            textLines: textStats.totalLines
-        };
-    }
     
     /**
      * Show error message to user

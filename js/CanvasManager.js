@@ -45,9 +45,11 @@ class CanvasManager {
     clear() {
         this.ctx.clearRect(0, 0, this.width, this.height);
         
-        // Fill with background color
-        this.ctx.fillStyle = this.backgroundColor;
-        this.ctx.fillRect(0, 0, this.width, this.height);
+        // Fill with background color if not transparent
+        if (this.backgroundColor !== 'transparent') {
+            this.ctx.fillStyle = this.backgroundColor;
+            this.ctx.fillRect(0, 0, this.width, this.height);
+        }
     }
     
     /**
@@ -70,15 +72,20 @@ class CanvasManager {
      * Render background (color + optional image)
      */
     renderBackground() {
-        // Clear and fill with background color
-        this.clear();
+        // Clear the canvas first
+        this.ctx.clearRect(0, 0, this.width, this.height);
         
-        // If background image exists, draw it
+        // If background image exists, draw it first (behind background color)
         if (this.backgroundImage) {
             this.ctx.save();
-            this.ctx.globalAlpha = 0.3; // Make background image subtle
             this.ctx.drawImage(this.backgroundImage, 0, 0, this.width, this.height);
             this.ctx.restore();
+        }
+        
+        // Apply background color on top of image (if not transparent)
+        if (this.backgroundColor !== 'transparent') {
+            this.ctx.fillStyle = this.backgroundColor;
+            this.ctx.fillRect(0, 0, this.width, this.height);
         }
     }
     
@@ -190,7 +197,7 @@ class CanvasManager {
         if (!spots || spots.length === 0) return;
         
         spots.forEach(spot => {
-            spot.render(this.ctx, this.showSpotOutlines, this.showSpotNumbers);
+            spot.render(this.ctx, this.showSpotOutlines, this.showSpotNumbers, this.backgroundImage);
         });
     }
     
@@ -255,10 +262,7 @@ class CanvasManager {
             this.renderPaddingAreas(textConfig);
         }
         
-        // 5. Render debug info if available
-        if (debugInfo) {
-            this.renderDebugInfo(debugInfo);
-        }
+        // Debug info rendering disabled
     }
     
     /**
