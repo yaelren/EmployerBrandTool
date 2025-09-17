@@ -1,6 +1,26 @@
 /* Custom styles for Employer Brand Tool POC */
 /* Extends Chatooly's base styles */
 
+/* Auto-detect toggle styles */
+.auto-detect-toggle {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 14px;
+    color: var(--chatooly-text-color);
+    margin-top: 8px;
+    cursor: pointer;
+}
+
+.auto-detect-toggle input[type="checkbox"] {
+    margin: 0;
+    cursor: pointer;
+}
+
+.auto-detect-toggle:hover {
+    color: var(--chatooly-primary-color);
+}
+
 /* Make sidebar wider to accommodate all content */
 .chatooly-controls-panel {
     width: 420px !important; /* Increased from default ~300px */

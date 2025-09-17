@@ -16,6 +16,10 @@ class EmployerBrandToolPOC {
         this.savedLineAlignments = {}; // Store user's line alignment preferences
         this.savedSpotData = []; // Store spot content data for persistence
         
+        // Auto-detection settings
+        this.autoDetectSpots = true; // Enable automatic spot detection
+        this.spotDetectionTimeout = null; // Debounce timeout for spot detection
+        
         // Main text component
         this.mainTextComponent = new MainTextComponent();
         
@@ -67,6 +71,9 @@ class EmployerBrandToolPOC {
             // Update line alignment controls for initial text
             this.updateLineAlignmentControls();
             
+            // Sync auto-detect setting with UI
+            this.autoDetectSpots = this.elements.autoDetectSpots.checked;
+            
             // Initial render
             this.render();
             
@@ -114,6 +121,7 @@ class EmployerBrandToolPOC {
             hideAllDebug: 'hideAllDebug',
             minSpotSize: 'minSpotSize',
             findSpots: 'findSpots',
+            autoDetectSpots: 'autoDetectSpots',
             showSpotOutlines: 'showSpotOutlines',
             showSpotNumbers: 'showSpotNumbers',
             showTextBounds: 'showTextBounds',
@@ -347,6 +355,17 @@ class EmployerBrandToolPOC {
             this.detectSpots();
         });
         
+        // Auto-detect toggle
+        this.elements.autoDetectSpots.addEventListener('change', () => {
+            this.autoDetectSpots = this.elements.autoDetectSpots.checked;
+            console.log(`🤖 Auto-detect spots: ${this.autoDetectSpots ? 'enabled' : 'disabled'}`);
+            
+            // If enabled and we have text but no spots, trigger detection
+            if (this.autoDetectSpots && this.elements.mainText.value.trim() && this.spots.length === 0) {
+                this.autoDetectSpotsDebounced(100); // Quick detection when enabling
+            }
+        });
+        
         // Debug visualization toggles
         this.elements.showSpotOutlines.addEventListener('change', () => {
             this.updateDebugOptions();
@@ -390,6 +409,11 @@ class EmployerBrandToolPOC {
         this.updateSpotsUI();
         
         this.render();
+        
+        // Auto-detect spots after text changes (only if there's text content)
+        if (this.elements.mainText.value.trim()) {
+            this.autoDetectSpotsDebounced();
+        }
     }
     
 
@@ -968,6 +992,26 @@ class EmployerBrandToolPOC {
         };
         
         img.src = savedContent.imageDataURL;
+    }
+    
+    /**
+     * Auto-detect spots with debouncing
+     * @param {number} delay - Delay in milliseconds (default: 500ms)
+     * @private
+     */
+    autoDetectSpotsDebounced(delay = 500) {
+        if (!this.autoDetectSpots) return;
+        
+        // Clear existing timeout
+        if (this.spotDetectionTimeout) {
+            clearTimeout(this.spotDetectionTimeout);
+        }
+        
+        // Set new timeout
+        this.spotDetectionTimeout = setTimeout(() => {
+            console.log('🤖 Auto-detecting spots after text change...');
+            this.detectSpots();
+        }, delay);
     }
 
     /**
