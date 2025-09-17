@@ -246,7 +246,7 @@ class EmployerBrandToolPOC {
             this.elements.fontSizeValue.textContent = fontSize + 'px';
             this.textEngine.updateConfig({ fontSize });
             this.applySavedAlignments(); // Restore alignments after config change
-            this.render();
+            this.onTextChanged(); // Trigger auto-detection
         });
         
         // Line spacing changes
@@ -255,7 +255,7 @@ class EmployerBrandToolPOC {
             this.elements.lineSpacingValue.textContent = lineSpacing + 'px';
             this.textEngine.updateConfig({ lineSpacing });
             this.applySavedAlignments(); // Restore alignments after config change
-            this.render();
+            this.onTextChanged(); // Trigger auto-detection
         });
         
         // Mode selection
