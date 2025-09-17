@@ -178,20 +178,20 @@ class EmployerBrandToolPOC {
             this.mainTextComponent.fontWeight = this.mainTextComponent.fontWeight === 'bold' ? 'normal' : 'bold';
             const isActive = this.mainTextComponent.fontWeight === 'bold';
             this.elements.mainTextBold.classList.toggle('active', isActive);
-            this.render();
+            this.onTextChanged(); // Bold affects text width - trigger auto-detection
         });
         
         this.elements.mainTextItalic.addEventListener('click', () => {
             this.mainTextComponent.fontStyle = this.mainTextComponent.fontStyle === 'italic' ? 'normal' : 'italic';
             const isActive = this.mainTextComponent.fontStyle === 'italic';
             this.elements.mainTextItalic.classList.toggle('active', isActive);
-            this.render();
+            this.onTextChanged(); // Italic affects text width - trigger auto-detection
         });
         
         this.elements.mainTextUnderline.addEventListener('click', () => {
             this.mainTextComponent.underline = !this.mainTextComponent.underline;
             this.elements.mainTextUnderline.classList.toggle('active', this.mainTextComponent.underline);
-            this.render();
+            this.render(); // Underline doesn't affect layout - just visual
         });
         
         this.elements.mainTextHighlight.addEventListener('click', () => {
@@ -202,7 +202,7 @@ class EmployerBrandToolPOC {
             const highlightColorGroup = this.elements.mainTextHighlightColor.parentElement;
             highlightColorGroup.style.display = this.mainTextComponent.highlight ? 'block' : 'none';
             
-            this.render();
+            this.render(); // Highlight doesn't affect layout - just visual
         });
         
         // Highlight color changes
@@ -572,7 +572,7 @@ class EmployerBrandToolPOC {
         
         this.mainTextComponent.setLineAlignment(lineIndex, alignment);
         this.updateLineAlignmentControls(); // Refresh controls to show active state
-        this.render();
+        this.onTextChanged(); // Trigger auto-detection for layout change
     }
     
     /**
