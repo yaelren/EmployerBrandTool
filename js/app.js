@@ -246,7 +246,12 @@ class EmployerBrandToolPOC {
             this.elements.fontSizeValue.textContent = fontSize + 'px';
             this.textEngine.updateConfig({ fontSize });
             this.applySavedAlignments(); // Restore alignments after config change
-            this.onTextChanged(); // Trigger auto-detection
+            this.render(); // Update display immediately
+        });
+        
+        // Font size auto-detection on release
+        this.elements.fontSize.addEventListener('change', () => {
+            this.onTextChanged(); // Trigger auto-detection when slider is released
         });
         
         // Line spacing changes
@@ -255,7 +260,12 @@ class EmployerBrandToolPOC {
             this.elements.lineSpacingValue.textContent = lineSpacing + 'px';
             this.textEngine.updateConfig({ lineSpacing });
             this.applySavedAlignments(); // Restore alignments after config change
-            this.onTextChanged(); // Trigger auto-detection
+            this.render(); // Update display immediately
+        });
+        
+        // Line spacing auto-detection on release
+        this.elements.lineSpacing.addEventListener('change', () => {
+            this.onTextChanged(); // Trigger auto-detection when slider is released
         });
         
         // Mode selection
@@ -282,13 +292,25 @@ class EmployerBrandToolPOC {
         this.elements.paddingHorizontal.addEventListener('input', () => {
             const padding = parseInt(this.elements.paddingHorizontal.value);
             this.elements.paddingHorizontalValue.textContent = padding + 'px';
-            this.updateSymmetricalPadding('horizontal', padding);
+            this.updateSymmetricalPaddingDisplay('horizontal', padding); // Update display only
+        });
+        
+        // Padding auto-detection on release
+        this.elements.paddingHorizontal.addEventListener('change', () => {
+            const padding = parseInt(this.elements.paddingHorizontal.value);
+            this.updateSymmetricalPadding('horizontal', padding); // Trigger auto-detection
         });
         
         this.elements.paddingVertical.addEventListener('input', () => {
             const padding = parseInt(this.elements.paddingVertical.value);
             this.elements.paddingVerticalValue.textContent = padding + 'px';
-            this.updateSymmetricalPadding('vertical', padding);
+            this.updateSymmetricalPaddingDisplay('vertical', padding); // Update display only
+        });
+        
+        // Padding auto-detection on release  
+        this.elements.paddingVertical.addEventListener('change', () => {
+            const padding = parseInt(this.elements.paddingVertical.value);
+            this.updateSymmetricalPadding('vertical', padding); // Trigger auto-detection
         });
         
         
@@ -633,7 +655,39 @@ class EmployerBrandToolPOC {
     }
     
     /**
-     * Update symmetrical padding
+     * Update symmetrical padding display only (no auto-detection)
+     * @param {string} direction - 'horizontal' or 'vertical'
+     * @param {number} value - Padding value
+     * @private
+     */
+    updateSymmetricalPaddingDisplay(direction, value) {
+        if (direction === 'horizontal') {
+            this.textEngine.updateConfig({ 
+                paddingLeft: value, 
+                paddingRight: value 
+            });
+        } else if (direction === 'vertical') {
+            this.textEngine.updateConfig({ 
+                paddingTop: value, 
+                paddingBottom: value 
+            });
+        }
+        
+        // Update main text component padding
+        const paddingH = parseInt(this.elements.paddingHorizontal.value);
+        const paddingV = parseInt(this.elements.paddingVertical.value);
+        this.mainTextComponent.setPaddingIndividual({
+            left: paddingH,
+            right: paddingH,
+            top: paddingV,
+            bottom: paddingV
+        });
+        
+        this.render(); // Update display immediately
+    }
+    
+    /**
+     * Update symmetrical padding with auto-detection
      * @param {string} direction - 'horizontal' or 'vertical'
      * @param {number} value - Padding value
      * @private
