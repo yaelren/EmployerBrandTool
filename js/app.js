@@ -380,6 +380,11 @@ class EmployerBrandToolPOC {
         // Update line alignment controls
         this.updateLineAlignmentControls();
         
+        // Save spots before clearing when text changes
+        if (this.spots.length > 0) {
+            this.saveSpotData();
+        }
+        
         // Clear spots when text changes
         this.spots = [];
         this.updateSpotsUI();
@@ -961,8 +966,10 @@ class EmployerBrandToolPOC {
         try {
             console.log('🔍 Starting spot detection...');
             
-            // Save current spot data before regenerating
-            this.saveSpotData();
+            // Save current spot data before regenerating (only if we have spots)
+            if (this.spots.length > 0) {
+                this.saveSpotData();
+            }
             
             // Enable debugging for detection
             this.spotDetector.setDebugging(true);
