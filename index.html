@@ -15,10 +15,18 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     
     <!-- ========== EDIT THIS: Your Tool Name ========== -->
-    <title>Your Tool Name - Chatooly</title>
+    <title>Employer Brand Tool POC - Chatooly</title>
+    
+    <!-- ========== Google Fonts ========== -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Wix+Madefor+Display:wght@400..800&family=Wix+Madefor+Text:ital,wght@0,400..800;1,400..800&display=swap" rel="stylesheet">
     
     <!-- ========== DO NOT EDIT: Required CDN Styles ========== -->
     <link rel="stylesheet" href="https://yaelren.github.io/chatooly-cdn/css/unified.min.css">
+    
+    <!-- Custom styles -->
+    <link rel="stylesheet" href="style.css">
 </head>
 <body>
     <div class="chatooly-app-container">
@@ -26,20 +34,116 @@
         <div class="chatooly-controls-panel">
             <!-- ========== EDIT THIS: Your Tool Title ========== -->
             <div class="chatooly-controls-header">
-                <h1>Tool Name</h1>
-                <p>Tool description goes here</p>
+                <h1>Employer Brand Tool</h1>
+                <p>Text-driven layout with automatic spot detection</p>
             </div>
             
             <div class="chatooly-controls-content">
                 <!-- ========== EDIT BELOW: Add Your Tool Controls Here ========== -->
                 
-                <!-- Example control group -->
+                <!-- Main Text Input -->
                 <div class="chatooly-control-group">
-                    <label for="example-input">Example Control</label>
-                    <input type="text" id="example-input" placeholder="Add your controls here">
+                    <label for="mainText">Main Text</label>
+                    <textarea id="mainText" placeholder="Enter your text here...">EMPLOYEE
+SPOTLIGHT
+2024</textarea>
                 </div>
                 
-                <!-- Add more controls as needed -->
+                
+                <!-- Text Mode Selection -->
+                <div class="chatooly-control-group">
+                    <h3>Text Mode</h3>
+                    <label>
+                        <input type="radio" name="textMode" id="fillCanvasMode" checked>
+                        Fill Entire Canvas (Auto-sized)
+                    </label>
+                    <label>
+                        <input type="radio" name="textMode" id="manualMode">
+                        Manual Control (Can overflow)
+                    </label>
+                </div>
+                
+                <!-- Canvas Padding Controls -->
+                <div class="chatooly-control-group">
+                    <h3>Canvas Padding</h3>
+                    <div class="padding-controls">
+                        <!-- Symmetrical padding controls -->
+                        <div class="padding-row">
+                            <label for="paddingHorizontal">Horizontal (L+R)</label>
+                            <input type="range" id="paddingHorizontal" min="0" max="100" value="20">
+                            <span id="paddingHorizontalValue">20px</span>
+                        </div>
+                        <div class="padding-row">
+                            <label for="paddingVertical">Vertical (T+B)</label>
+                            <input type="range" id="paddingVertical" min="0" max="100" value="20">
+                            <span id="paddingVerticalValue">20px</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Manual Mode Controls (hidden in Fill Canvas mode) -->
+                <div id="manualControls" style="display: none;">
+                    <div class="chatooly-control-group">
+                        <label for="fontSize">Font Size</label>
+                        <input type="range" id="fontSize" min="20" max="200" value="48">
+                        <span id="fontSizeValue">48px</span>
+                    </div>
+                    
+                    <div class="chatooly-control-group">
+                        <label for="lineSpacing">Line Spacing</label>
+                        <input type="range" id="lineSpacing" min="0" max="50" step="1" value="10">
+                        <span id="lineSpacingValue">10px</span>
+                    </div>
+                    
+                    <div class="chatooly-control-group">
+                        <label>
+                            <input type="checkbox" id="enableWrap" checked>
+                            Enable Text Wrapping
+                        </label>
+                    </div>
+                    
+                    <!-- Text Positioning Controls -->
+                    <div class="chatooly-control-group">
+                        <h3>Text Position</h3>
+                        <div class="positioning-grid">
+                            <button type="button" class="pos-btn" data-vertical="top" data-horizontal="left">↖</button>
+                            <button type="button" class="pos-btn" data-vertical="top" data-horizontal="center">↑</button>
+                            <button type="button" class="pos-btn" data-vertical="top" data-horizontal="right">↗</button>
+                            <button type="button" class="pos-btn" data-vertical="center" data-horizontal="left">←</button>
+                            <button type="button" class="pos-btn active" data-vertical="center" data-horizontal="center">●</button>
+                            <button type="button" class="pos-btn" data-vertical="center" data-horizontal="right">→</button>
+                            <button type="button" class="pos-btn" data-vertical="bottom" data-horizontal="left">↙</button>
+                            <button type="button" class="pos-btn" data-vertical="bottom" data-horizontal="center">↓</button>
+                            <button type="button" class="pos-btn" data-vertical="bottom" data-horizontal="right">↘</button>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Per-Line Alignment Controls -->
+                <div class="chatooly-control-group">
+                    <h3>Line Alignment</h3>
+                    <div id="lineAlignmentControls">
+                        <!-- Dynamically populated based on text lines -->
+                    </div>
+                </div>
+                
+                <!-- Spot Detection -->
+                <div class="chatooly-control-group">
+                    <button id="findSpots">Find Open Spots</button>
+                </div>
+                
+                <div class="chatooly-control-group">
+                    <label for="minSpotSize">Min Spot Size (px)</label>
+                    <input type="number" id="minSpotSize" value="50" min="20" max="200">
+                </div>
+                
+                <!-- Spots List -->
+                <div class="chatooly-control-group">
+                    <h3>Open Spots: <span id="spotCount">0</span></h3>
+                    <div id="spotsList" class="spots-list">
+                        <!-- Dynamically populated -->
+                    </div>
+                </div>
                 
                 <!-- ========== END EDIT SECTION ========== -->
             </div>
@@ -47,13 +151,40 @@
         
         <!-- Right Panel: Preview/Canvas Area -->
         <div class="chatooly-preview-panel">
+            <!-- Debug Panel -->
+            <div id="debugPanel" class="debug-panel">
+                <div class="debug-header">
+                    <h4>Debug Controls</h4>
+                    <button id="toggleDebug" class="debug-toggle">🐛</button>
+                </div>
+                <div id="debugContent" class="debug-content">
+                    <div class="debug-checkboxes">
+                        <label>
+                            <input type="checkbox" id="showSpotOutlines" checked>
+                            Show Spot Outlines
+                        </label>
+                        <label>
+                            <input type="checkbox" id="showSpotNumbers" checked>
+                            Show Spot Numbers
+                        </label>
+                        <label>
+                            <input type="checkbox" id="showTextBounds">
+                            Show Text Bounds
+                        </label>
+                        <label>
+                            <input type="checkbox" id="showPadding">
+                            Show Padding Areas
+                        </label>
+                    </div>
+                </div>
+            </div>
+            
             <!-- ========== DO NOT EDIT: Required Export Container ========== -->
             <div id="chatooly-container">
                 <!-- ========== EDIT BELOW: Add Your Visual Output Here ========== -->
                 <!-- This content will be exported as PNG/Video -->
                 <!-- IMPORTANT: Your main canvas MUST have id="chatooly-canvas" -->
-                <!-- For animations: CDN automatically detects canvas animations and provides video export options -->
-                <canvas id="chatooly-canvas"></canvas>
+                <canvas id="chatooly-canvas" width="600" height="600"></canvas>
                 <!-- ========== END EDIT SECTION ========== -->
             </div>
         </div>
@@ -68,6 +199,11 @@
     <script src="js/chatooly-config.js"></script>
     
     <!-- ========== DO NOT EDIT: Your Tool Logic ========== -->
-    <script src="js/main.js"></script>
+    <!-- JavaScript files in dependency order -->
+    <script src="js/Spot.js"></script>
+    <script src="js/SpotDetector.js"></script>
+    <script src="js/TextEngine.js"></script>
+    <script src="js/CanvasManager.js"></script>
+    <script src="js/app.js"></script>
 </body>
 </html>

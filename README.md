@@ -1,188 +1,137 @@
-# Employer Brand Tool
+# Employer Brand Tool - POC
 
-**Create professional employer brand materials and visual assets for recruitment and HR purposes**
+A text-driven layout tool with automatic open-spot detection for employer branding content creation.
 
-## 📋 Table of Contents
+## 📁 Project Structure
 
-- [🚀 Quick Start (3 Simple Steps)](#-quick-start-3-simple-steps)
-  - [Step 1: Get the Template](#step-1-get-the-template)
-  - [Step 2: Open Your Project Files](#step-2-open-your-project-files)
-  - [Step 3: Start Building with AI](#step-3-start-building-with-ai)
-- [🎨 Testing Your Tool](#-testing-your-tool)
-- [💾 Saving Your Progress with Git](#-saving-your-progress-with-git)
-- [📤 Publishing Your Tool](#-publishing-your-tool)
-- [📚 Want to Know More?](#-want-to-know-more)
-  - [Manual Setup Options](#manual-setup-options)
-  - [Understanding the Files](#understanding-the-files)
-  - [Manual Editing (Advanced)](#manual-editing-advanced)
-  - [Troubleshooting](#troubleshooting)
-
----
-
-## 🚀 Quick Start (3 Simple Steps)
-
-### Step 1: Get the Template
-
-Choose one option below:
-
-#### Option A: Download Without Git (Easiest for Beginners)
-**What's this?** Simply download the files like any other download - no special tools needed!
-
-1. Go to https://github.com/yaelren/EmployerBrandTool
-2. Click the green **Code** button
-3. Click **Download ZIP**
-4. Extract the ZIP to your desired folder
-5. Rename the folder from `EmployerBrandTool-main` to your project name (e.g., `my-employer-brand-tool`)
-6. **Open this folder in your IDE** (Cursor or Visual Studio Code)
-
-#### Option B: Clone with Git (Better for Updates)
-**What's Git?** A tool that tracks changes to your code and makes it easy to save/share your work. Like Google Docs version history, but for code!
-
-1. **Create a folder** for your projects (e.g., on your Desktop or Documents)
-2. **Open that folder in your IDE** (Cursor or Visual Studio Code)
-   - File → Open Folder → Select the folder you just created
-3. **Open the terminal** in your IDE (Terminal → New Terminal)
-4. **Choose how to clone:**
-
-**Option 1: Clone into current folder** (if you already created an empty project folder)
-```bash
-git clone https://github.com/yaelren/EmployerBrandTool.git .
+```
+employer-brand-tool/
+├── index.html              # Main application entry point
+├── style.css              # Custom styles (extends Chatooly)
+├── js/                    # JavaScript modules
+│   ├── chatooly-config.js # Chatooly configuration
+│   ├── Spot.js           # Spot data model
+│   ├── SpotDetector.js   # Core detection algorithm
+│   ├── TextEngine.js     # Text parsing & measurement
+│   ├── CanvasManager.js  # Canvas rendering
+│   ├── app.js           # Main application controller
+│   └── main.js          # Legacy file (unused)
+├── docs/                 # Documentation
+│   ├── POC_SIMPLIFIED.md # Simple implementation spec
+│   └── POC_SPECIFICATION.md # Detailed spec
+├── claude-rules/         # Development rules for Claude
+└── CLAUDE.md            # Claude Code instructions
 ```
 
-**Option 2: Clone into a new subfolder** (creates a new folder with your chosen name)
+## 🚀 How to Run
+
+### Option 1: Direct Browser (Simplest)
+1. Simply open `index.html` in any modern browser
+2. No server needed for basic functionality
+
+### Option 2: Local Server (Recommended)
 ```bash
-git clone https://github.com/yaelren/EmployerBrandTool.git my-employer-brand-tool
-cd my-employer-brand-tool
-```
-**Important:** Replace `my-employer-brand-tool` with your own project name (e.g., `company-brand-tool`, `recruitment-assets`)
-
-**If you used Option 2:** You created a subfolder, so you need to open it:
-- In your IDE: **File → Open Folder** → Select the `my-employer-brand-tool` folder you just created
-
-### Step 2: Open Your Project Files
-
-1. **Open the file viewer** in your IDE to see all the files in your folder
-   - In Cursor/VS Code: Look at the left sidebar
-   - You should see your project files like `index.html`, `styles.css`, etc.
-
-### Step 3: Start Building with AI
-
-#### For Cursor Users:
-1. **Find the `START_HERE.md` file** in your file viewer
-2. **Drag and drop** the `START_HERE.md` file into the Cursor Chat window
-3. **Type:** "Let's start building" 
-4. **Answer the AI's questions** and watch it build your tool!
-
-#### For Claude Code Users:
-1. **Open your terminal** in the EmployerBrandTool folder
-2. **Type to Claude Code:** "Let's start building a Chatooly tool"
-3. **Answer the questions** Claude Code asks you
-4. **Describe your tool idea** when prompted
-5. **Watch Claude Code build** your tool automatically!
-
-Claude Code will automatically read the CLAUDE.md file and follow all the proper Chatooly development rules.
-
-## 🎨 Testing Your Tool
-
-Once AI builds your tool:
-1. Run `npm run dev` in terminal
-2. Open http://localhost:8000 in your browser
-3. Test your tool and the export button (📥)
-4. Ask AI to make any changes you want!
-
-## 💾 Saving Your Progress with Git
-
-**Good news:** Your project is already set up with Git since you cloned it from GitHub!
-
-### Save Your Work (Do This Often!)
-```bash
-git add .                   # Stage your changes
-git commit -m "What you changed"  # Save a snapshot
-git push                    # Back up to GitHub
-```
-
-That's it! No setup needed - just save and push.
-
-### When to Save?
-- ✅ After getting a feature working
-- ✅ Before trying something new
-- ✅ End of each coding session
-- ✅ Before publishing to Chatooly
-
-**Pro tip:** Think of git commits like save points in a video game - save often so you can always go back if needed!
-
-## 📤 Publishing Your Tool
-
-When you're happy with your tool:
-1. Save your work first: `git add . && git commit -m "Ready to publish"`
-2. Click the export button (📥) in bottom-right
-3. Select "📤 Publish"
-4. Enter your tool name
-5. Your tool goes live at `tools.chatooly.com/your-tool`!
-
----
-
-## 📚 Want to Know More?
-
-<details>
-<summary><b>Manual Setup Options</b></summary>
-
-### Alternative ways to start the server:
-
-**Python:**
-```bash
+# Python 3
 python3 -m http.server 8000
+
+# Python 2
+python -m SimpleHTTPServer 8000
+
+# Node.js (if you have it)
+npx serve .
 ```
 
-**Node.js:**
-```bash
-npm install -g http-server
-http-server -p 8000
+Then visit: `http://localhost:8000`
+
+## 🎯 How to Use
+
+1. **Enter Text**: Type your main text (each line can have different alignment)
+2. **Adjust Settings**: Font size, line height, minimum spot size
+3. **Find Spots**: Click "Find Open Spots" to run the algorithm
+4. **Configure Spots**: Set each spot type (Empty/Image/Text/Mask)
+5. **Debug**: Toggle visual aids to see how the algorithm works
+
+## 🧠 How It Works
+
+### Core Concept
+The text placement creates a dynamic grid structure:
+- Each line of text defines rows
+- Algorithm finds empty spaces left/right of text
+- Remaining canvas space becomes additional spots
+
+### Example
+```
+Input: "EMPLOYEE\nSPOTLIGHT\n2024"
+
+Result:
+┌────────┬─────────┬────────┐
+│ Spot 1 │EMPLOYEE │ Spot 2 │  Row 1
+├────────┴─────────┴────────┤
+│       SPOTLIGHT           │  Row 2
+├──────┬────────────────────┤
+│ 2024 │      Spot 3        │  Row 3
+├──────┴────────────────────┤
+│         Spot 4            │  Remaining space
+└───────────────────────────┘
 ```
 
-**VS Code Live Server:**
-1. Install "Live Server" extension
-2. Right-click on `index.html`
-3. Select "Open with Live Server"
-</details>
+## 🛠️ Key Features
 
-<details>
-<summary><b>Understanding the Files</b></summary>
+- ✅ **Text-Driven Layout**: Main text defines the grid structure
+- ✅ **Per-Line Alignment**: Each line can be left/center/right aligned
+- ✅ **Smart Detection**: Finds all available spaces ≥ minimum size
+- ✅ **Visual Feedback**: Numbered outlines show detected spots
+- ✅ **Spot Types**: Empty, Image, Text, or Mask (with opacity)
+- ✅ **Debug Mode**: See algorithm steps and text bounds
+- ✅ **Export Ready**: Chatooly-compliant for high-res exports
 
+## 🧪 Testing
+
+Open browser console and try:
+```javascript
+// Run automated test
+window.app.runTest()
+
+// Get current state
+window.app.getState()
+
+// Access components directly
+window.app.textEngine.getStatistics()
+window.app.spotDetector.getDebugInfo()
 ```
-my-employer-brand-tool/
-├── START_HERE.md          # Instructions for AI
-├── index.html             # Your tool's structure
-├── styles.css             # How it looks
-├── js/
-│   ├── main.js           # How it works
-│   └── chatooly-config.js # Tool settings
-└── package.json          # Project setup
-```
-</details>
 
-<details>
-<summary><b>Manual Editing (Advanced)</b></summary>
+## 📊 Algorithm Details
 
-If you want to edit files yourself:
+The `SpotDetector` uses a line-based strategy:
 
-1. **Config**: Edit `js/chatooly-config.js` for tool name and info
-2. **Controls**: Add HTML controls in `index.html`
-3. **Logic**: Write JavaScript in `js/main.js`
-4. **Styles**: Customize appearance in `styles.css`
+1. **Parse Text Lines**: Each line becomes a row
+2. **Check Horizontal Spaces**: Find empty areas left/right of text
+3. **Check Vertical Gaps**: Find spaces between text lines
+4. **Check Remaining Space**: Find areas above/below all text
+5. **Filter by Size**: Remove spots smaller than minimum
+6. **Number Sequentially**: Assign IDs for UI reference
 
-Remember: Keep visual content inside `#chatooly-canvas` div!
-</details>
+## 🔗 Chatooly Integration
 
-<details>
-<summary><b>Troubleshooting</b></summary>
+This tool is built on the Chatooly framework:
+- Uses Chatooly CSS variables for theming
+- Exports high-resolution images via CDN
+- Follows Chatooly canvas structure requirements
+- Automatic dark theme styling
 
-- **No export button?** Check if server is running
-- **Export is blank?** Content must be in `#chatooly-canvas`
-- **Can't publish?** Must run locally first (`npm run dev`)
-- **Need help?** [Create an issue](https://github.com/yaelren/EmployerBrandTool/issues)
-</details>
+## 🐛 Troubleshooting
 
----
+**No spots detected?**
+- Check minimum spot size setting
+- Ensure text isn't filling entire canvas
+- Try different text alignment
 
-**Built with ❤️ by Yael Renous - Studio Video**
+**Canvas not showing?**
+- Check browser console for errors
+- Ensure all JavaScript files loaded correctly
+- Try refreshing the page
+
+**Export not working?**
+- Chatooly CDN must be loaded
+- Canvas must have id="chatooly-canvas"
+- Check browser compatibility

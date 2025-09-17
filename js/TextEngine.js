@@ -1,0 +1,568 @@
+/**
+ * TextEngine.js - Handles text parsing, measurement, and per-line alignment
+ * Supports individual alignment for each line of text
+ */
+
+class TextEngine {
+    constructor() {
+        // Text configuration
+        this.config = {
+            fontSize: 48,
+            fontFamily: '"Wix Madefor Display", Arial, sans-serif',
+            lineSpacing: 10, // Space between lines in pixels
+            color: '#000000',
+            defaultAlignment: 'left',
+            enableWrap: true,
+            fillCanvas: false,
+            canvasWidth: 600,
+            canvasHeight: 600,
+            paddingTop: 20,
+            paddingBottom: 20,
+            paddingLeft: 20,
+            paddingRight: 20,
+            maxFontSize: 120,
+            minFontSize: 12,
+            mode: 'fillCanvas', // 'fillCanvas' or 'manual'
+            textPositionVertical: 'center', // 'top', 'center', 'bottom'
+            textPositionHorizontal: 'center' // 'left', 'center', 'right'
+        };
+        
+        // Parsed text data
+        this.rawText = '';
+        this.lines = [];
+        this.textBounds = [];
+        
+        // Canvas for text measurement
+        this.measureCanvas = document.createElement('canvas');
+        this.measureCtx = this.measureCanvas.getContext('2d');
+        
+        // Text frame (auto-sized to content)
+        this.frame = {
+            x: 50,
+            y: 50,
+            width: 0,
+            height: 0,
+            padding: 20
+        };
+    }
+    
+    /**
+     * Update text configuration
+     * @param {Object} newConfig - New configuration values
+     */
+    updateConfig(newConfig) {
+        Object.assign(this.config, newConfig);
+        
+        // Recalculate if we have text
+        if (this.rawText) {
+            this.setText(this.rawText);
+        }
+    }
+    
+    /**
+     * Set text content and parse into lines
+     * @param {string} text - Raw text content
+     */
+    setText(text) {
+        this.rawText = text;
+        
+        if (this.config.mode === 'fillCanvas') {
+            // In fill canvas mode, always enable wrapping and minimize spacing
+            this.config.enableWrap = true;
+            this.config.lineSpacing = 0; // No extra space between lines for maximum text size
+            this.optimizeFontSizeForCanvas();
+        } else if (this.config.mode === 'manual' && !this.config.enableWrap) {
+            this.optimizeFontSizeNoWrap();
+        }
+        
+        this.parseLines();
+        this.measureLines();
+        this.calculateFrame();
+        this.positionLines();
+    }
+    
+    /**
+     * Optimize font size to fill canvas with wrapping
+     * @private
+     */
+    optimizeFontSizeForCanvas() {
+        if (!this.rawText) return;
+        
+        let testFontSize = this.config.maxFontSize;
+        const step = 2;
+        const availableHeight = this.config.canvasHeight - this.config.paddingTop - this.config.paddingBottom;
+        
+        while (testFontSize >= this.config.minFontSize) {
+            // Test with this font size
+            this.measureCtx.font = `${testFontSize}px ${this.config.fontFamily}`;
+            const wrappedLines = this.wrapTextWithFontSize(this.rawText, testFontSize);
+            // Calculate total height: font size for each line + spacing between lines
+            const totalHeight = wrappedLines.length * testFontSize + (wrappedLines.length - 1) * this.config.lineSpacing;
+            
+            // Check if any line exceeds available width
+            const availableWidth = this.config.canvasWidth - this.config.paddingLeft - this.config.paddingRight;
+            let widthExceeded = false;
+            let maxLineWidth = 0;
+            
+            for (const line of wrappedLines) {
+                if (line.trim()) {
+                    const metrics = this.measureCtx.measureText(line);
+                    maxLineWidth = Math.max(maxLineWidth, metrics.width);
+                    if (metrics.width > availableWidth) {
+                        widthExceeded = true;
+                        break;
+                    }
+                }
+            }
+            
+            if (totalHeight <= availableHeight && !widthExceeded) {
+                this.config.fontSize = testFontSize;
+                return; // Found optimal size
+            }
+            
+            testFontSize -= step;
+        }
+        
+        this.config.fontSize = this.config.minFontSize;
+    }
+    
+    /**
+     * Optimize font size when wrapping is disabled
+     * @private
+     */
+    optimizeFontSizeNoWrap() {
+        if (!this.rawText) return;
+        
+        const lines = this.rawText.split('\n');
+        let testFontSize = this.config.fontSize;
+        const availableWidth = this.config.canvasWidth - this.config.paddingLeft - this.config.paddingRight;
+        
+        this.measureCtx.font = `${testFontSize}px ${this.config.fontFamily}`;
+        
+        // Find the longest line
+        let maxWidth = 0;
+        for (const line of lines) {
+            const metrics = this.measureCtx.measureText(line);
+            maxWidth = Math.max(maxWidth, metrics.width);
+        }
+        
+        // Only reduce font size if text doesn't fit width (allow height overflow in manual mode)
+        if (maxWidth > availableWidth) {
+            const widthRatio = availableWidth / maxWidth;
+            this.config.fontSize = Math.max(this.config.minFontSize, Math.floor(testFontSize * widthRatio));
+        }
+    }
+    
+    /**
+     * Wrap text to fit canvas width with specific font size
+     * @param {string} text - Text to wrap
+     * @param {number} fontSize - Font size to use for measurement
+     * @returns {Array} Array of wrapped lines
+     * @private
+     */
+    wrapTextWithFontSize(text, fontSize) {
+        if (!this.config.enableWrap) {
+            return text.split('\n');
+        }
+        
+        const inputLines = text.split('\n');
+        const wrappedLines = [];
+        
+        this.measureCtx.font = `${fontSize}px ${this.config.fontFamily}`;
+        const maxWidth = this.config.canvasWidth - this.config.paddingLeft - this.config.paddingRight;
+        
+        for (const inputLine of inputLines) {
+            if (!inputLine.trim()) {
+                wrappedLines.push('');
+                continue;
+            }
+            
+            const words = inputLine.split(' ');
+            let currentLine = '';
+            
+            for (const word of words) {
+                const testLine = currentLine ? `${currentLine} ${word}` : word;
+                const metrics = this.measureCtx.measureText(testLine);
+                
+                if (metrics.width <= maxWidth) {
+                    currentLine = testLine;
+                } else {
+                    if (currentLine) {
+                        wrappedLines.push(currentLine);
+                        currentLine = word;
+                    } else {
+                        // Single word is too long, force it anyway
+                        wrappedLines.push(word);
+                    }
+                }
+            }
+            
+            if (currentLine) {
+                wrappedLines.push(currentLine);
+            }
+        }
+        return wrappedLines;
+    }
+    
+    /**
+     * Wrap text to fit canvas width
+     * @param {string} text - Text to wrap
+     * @returns {Array} Array of wrapped lines
+     * @private
+     */
+    wrapTextToCanvas(text) {
+        return this.wrapTextWithFontSize(text, this.config.fontSize);
+    }
+    
+    /**
+     * Parse raw text into individual lines
+     * Each line can have its own alignment
+     * @private
+     */
+    parseLines() {
+        if (!this.rawText) {
+            this.lines = [];
+            return;
+        }
+        
+        let rawLines;
+        if (this.config.enableWrap) {
+            rawLines = this.wrapTextToCanvas(this.rawText);
+        } else {
+            rawLines = this.rawText.split('\n');
+        }
+        
+        this.lines = rawLines.map((text, index) => ({
+            text: text,
+            index: index,
+            alignment: this.config.defaultAlignment, // Default, can be changed per line
+            metrics: null,
+            bounds: null
+        }));
+    }
+    
+    /**
+     * Measure each line of text
+     * @private
+     */
+    measureLines() {
+        if (this.lines.length === 0) {
+            this.textBounds = [];
+            return;
+        }
+        
+        // Set up measurement context
+        const fontString = `${this.config.fontSize}px ${this.config.fontFamily}`;
+        this.measureCtx.font = fontString;
+        
+        // Line height is just the font size (the actual text height)
+        const lineHeight = this.config.fontSize;
+        this.textBounds = [];
+        
+        this.lines.forEach((line, index) => {
+            if (line.text.trim()) {
+                // Measure the text
+                const metrics = this.measureCtx.measureText(line.text);
+                
+                // Store metrics on the line object
+                line.metrics = {
+                    width: metrics.width,
+                    actualBoundingBoxLeft: metrics.actualBoundingBoxLeft || 0,
+                    actualBoundingBoxRight: metrics.actualBoundingBoxRight || metrics.width,
+                    actualBoundingBoxAscent: metrics.actualBoundingBoxAscent || this.config.fontSize * 0.8,
+                    actualBoundingBoxDescent: metrics.actualBoundingBoxDescent || this.config.fontSize * 0.2
+                };
+                
+                // Create bounds object for this line
+                // IMPORTANT: height is just font size, not affected by line spacing
+                const bounds = {
+                    text: line.text,
+                    index: index,
+                    width: metrics.width,
+                    height: this.config.fontSize, // Only font size, no line spacing
+                    actualWidth: metrics.actualBoundingBoxRight - metrics.actualBoundingBoxLeft,
+                    actualHeight: (metrics.actualBoundingBoxAscent || this.config.fontSize * 0.8) + 
+                                 (metrics.actualBoundingBoxDescent || this.config.fontSize * 0.2),
+                    x: 0, // Will be set in positionLines()
+                    y: 0, // Will be set in positionLines()
+                    alignment: line.alignment
+                };
+                
+                this.textBounds.push(bounds);
+            } else {
+                // Empty line - still takes up vertical space (font size only)
+                const bounds = {
+                    text: '',
+                    index: index,
+                    width: 0,
+                    height: this.config.fontSize, // Only font size, no line spacing
+                    actualWidth: 0,
+                    actualHeight: this.config.fontSize,
+                    x: 0,
+                    y: 0, // Will be set in positionLines()
+                    alignment: line.alignment
+                };
+                
+                this.textBounds.push(bounds);
+            }
+        });
+    }
+    
+    /**
+     * Calculate the overall text frame based on content
+     * @private
+     */
+    calculateFrame() {
+        if (this.textBounds.length === 0) {
+            this.frame.width = 0;
+            this.frame.height = 0;
+            return;
+        }
+        
+        // Find maximum width of any line
+        const maxWidth = Math.max(...this.textBounds.map(b => b.width));
+        
+        // Calculate total height with line spacing
+        const totalHeight = this.textBounds.length * this.config.fontSize + (this.textBounds.length - 1) * this.config.lineSpacing;
+        
+        // Update frame dimensions (auto-sized to content)
+        this.frame.width = maxWidth + this.frame.padding * 2;
+        this.frame.height = totalHeight + this.frame.padding * 2;
+    }
+    
+    /**
+     * Position each line within the canvas based on its alignment
+     * Alignment is relative to the entire canvas, not a text frame
+     * @private
+     */
+    positionLines() {
+        if (this.textBounds.length === 0) return;
+        
+        const canvasWidth = this.config.canvasWidth;
+        const canvasHeight = this.config.canvasHeight;
+        const fontSize = this.config.fontSize;
+        
+        // Calculate total height: font size for each line + spacing between lines
+        const totalHeight = this.textBounds.length * fontSize + (this.textBounds.length - 1) * this.config.lineSpacing;
+        
+        // Determine vertical positioning
+        let startY;
+        if (this.config.mode === 'fillCanvas') {
+            // Fill Canvas mode: always center within available space
+            const availableHeight = canvasHeight - this.config.paddingTop - this.config.paddingBottom;
+            startY = this.config.paddingTop + (availableHeight - totalHeight) / 2;
+        } else {
+            // Manual mode: use positioning preference
+            switch (this.config.textPositionVertical) {
+                case 'top':
+                    startY = this.config.paddingTop;
+                    break;
+                case 'bottom':
+                    startY = canvasHeight - this.config.paddingBottom - totalHeight;
+                    break;
+                case 'center':
+                default:
+                    startY = (canvasHeight - totalHeight) / 2;
+                    break;
+            }
+        }
+        
+        this.textBounds.forEach((bounds, index) => {
+            // Vertical position: each line at font size + line spacing
+            bounds.y = startY + index * (fontSize + this.config.lineSpacing);
+            
+            // Horizontal position based on line alignment (for individual lines)
+            switch (bounds.alignment) {
+                case 'center':
+                    bounds.x = (canvasWidth - bounds.width) / 2;
+                    break;
+                case 'right':
+                    bounds.x = canvasWidth - this.config.paddingRight - bounds.width;
+                    break;
+                case 'left':
+                default:
+                    bounds.x = this.config.paddingLeft;
+                    break;
+            }
+            
+            // Override horizontal position if overall text positioning is set (manual mode only)
+            if (this.config.mode === 'manual' && this.config.textPositionHorizontal !== 'center') {
+                const textBlockWidth = Math.max(...this.textBounds.map(b => b.width));
+                let textBlockX;
+                
+                switch (this.config.textPositionHorizontal) {
+                    case 'left':
+                        textBlockX = this.config.paddingLeft;
+                        break;
+                    case 'right':
+                        textBlockX = canvasWidth - this.config.paddingRight - textBlockWidth;
+                        break;
+                    default:
+                        textBlockX = (canvasWidth - textBlockWidth) / 2;
+                        break;
+                }
+                
+                // Adjust individual line position relative to text block
+                if (bounds.alignment === 'center') {
+                    bounds.x = textBlockX + (textBlockWidth - bounds.width) / 2;
+                } else if (bounds.alignment === 'right') {
+                    bounds.x = textBlockX + textBlockWidth - bounds.width;
+                } else {
+                    bounds.x = textBlockX;
+                }
+            }
+        });
+    }
+    
+    /**
+     * Set alignment for a specific line
+     * @param {number} lineIndex - Index of the line
+     * @param {string} alignment - 'left', 'center', or 'right'
+     */
+    setLineAlignment(lineIndex, alignment) {
+        if (lineIndex >= 0 && lineIndex < this.lines.length) {
+            this.lines[lineIndex].alignment = alignment;
+            
+            // Update bounds if they exist
+            if (this.textBounds[lineIndex]) {
+                this.textBounds[lineIndex].alignment = alignment;
+                this.positionLines(); // Recalculate positions
+            }
+        }
+    }
+    
+    /**
+     * Get text bounds for all lines (for spot detection algorithm)
+     * @returns {Array} Array of bound objects
+     */
+    getTextBounds() {
+        return this.textBounds;
+    }
+    
+    /**
+     * Get text configuration
+     * @returns {Object} Current text configuration
+     */
+    getConfig() {
+        return {...this.config};
+    }
+    
+    /**
+     * Get text frame dimensions and position
+     * @returns {Object} Frame object with x, y, width, height
+     */
+    getFrame() {
+        return {...this.frame};
+    }
+    
+    /**
+     * Set canvas dimensions (updates positioning)
+     * @param {number} width - Canvas width
+     * @param {number} height - Canvas height
+     */
+    setCanvasDimensions(width, height) {
+        this.config.canvasWidth = width;
+        this.config.canvasHeight = height;
+        this.positionLines();
+    }
+    
+    /**
+     * Get lines formatted for canvas rendering
+     * @returns {Array} Array of line objects for CanvasManager
+     */
+    getLinesForRender() {
+        return this.textBounds.map(bounds => ({
+            text: bounds.text,
+            x: bounds.x,
+            y: bounds.y,
+            width: bounds.width,
+            height: bounds.height,
+            alignment: bounds.alignment
+        }));
+    }
+    
+    /**
+     * Check if a point is within any text bounds
+     * @param {number} x - X coordinate
+     * @param {number} y - Y coordinate
+     * @returns {Object|null} Line bounds object or null
+     */
+    hitTest(x, y) {
+        for (let bounds of this.textBounds) {
+            if (x >= bounds.x && 
+                x <= bounds.x + bounds.width && 
+                y >= bounds.y && 
+                y <= bounds.y + bounds.height) {
+                return bounds;
+            }
+        }
+        return null;
+    }
+    
+    /**
+     * Get total text area (sum of all line areas)
+     * @returns {number} Total area in pixels
+     */
+    getTotalTextArea() {
+        return this.textBounds.reduce((total, bounds) => {
+            return total + (bounds.width * bounds.height);
+        }, 0);
+    }
+    
+    /**
+     * Get text statistics for debugging
+     * @returns {Object} Statistics object
+     */
+    getStatistics() {
+        return {
+            totalLines: this.lines.length,
+            nonEmptyLines: this.textBounds.filter(b => b.text.trim()).length,
+            totalArea: this.getTotalTextArea(),
+            frameWidth: this.frame.width,
+            frameHeight: this.frame.height,
+            maxLineWidth: Math.max(...this.textBounds.map(b => b.width), 0),
+            averageLineWidth: this.textBounds.length > 0 ? 
+                this.textBounds.reduce((sum, b) => sum + b.width, 0) / this.textBounds.length : 0
+        };
+    }
+    
+    /**
+     * Export text configuration and lines
+     * @returns {Object} Exportable text data
+     */
+    export() {
+        return {
+            rawText: this.rawText,
+            config: this.config,
+            lines: this.lines.map(line => ({
+                text: line.text,
+                alignment: line.alignment
+            })),
+            frame: this.frame
+        };
+    }
+    
+    /**
+     * Import text configuration and lines
+     * @param {Object} textData - Imported text data
+     */
+    import(textData) {
+        this.rawText = textData.rawText || '';
+        this.config = {...this.config, ...textData.config};
+        
+        if (textData.lines) {
+            // Set text first, then apply alignments
+            this.setText(this.rawText);
+            textData.lines.forEach((line, index) => {
+                if (line.alignment) {
+                    this.setLineAlignment(index, line.alignment);
+                }
+            });
+        }
+        
+        if (textData.frame) {
+            this.frame = {...this.frame, ...textData.frame};
+            this.positionLines();
+        }
+    }
+}
