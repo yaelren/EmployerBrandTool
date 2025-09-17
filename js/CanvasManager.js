@@ -343,15 +343,19 @@ class CanvasManager {
     setDebugOptions(options) {
         if (options.showSpotOutlines !== undefined) {
             this.showSpotOutlines = options.showSpotOutlines;
+            this.debugOptions.showSpotOutlines = options.showSpotOutlines;
         }
         if (options.showSpotNumbers !== undefined) {
             this.showSpotNumbers = options.showSpotNumbers;
+            this.debugOptions.showSpotNumbers = options.showSpotNumbers;
         }
         if (options.showTextBounds !== undefined) {
             this.showTextBounds = options.showTextBounds;
+            this.debugOptions.showTextBounds = options.showTextBounds;
         }
         if (options.showPadding !== undefined) {
             this.showPadding = options.showPadding;
+            this.debugOptions.showPadding = options.showPadding;
         }
     }
     

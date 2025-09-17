@@ -1188,7 +1188,10 @@ class EmployerBrandToolPOC {
             
             // Render all spots
             this.spots.forEach(spot => {
-                spot.render(this.canvasManager.ctx, this.canvasManager.debugOptions);
+                const showOutline = this.canvasManager.debugOptions.showSpotOutlines;
+                const showNumber = this.canvasManager.debugOptions.showSpotNumbers;
+                // Pass background image to spot render method for mask spots
+                spot.render(this.canvasManager.ctx, showOutline, showNumber, this.canvasManager.backgroundImage);
             });
             
             // Render debug overlays if enabled
