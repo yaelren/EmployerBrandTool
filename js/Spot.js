@@ -300,96 +300,55 @@ class Spot {
             return;
         }
         
-        // Calculate content area with padding
-        const padding = this.content.padding || 0;
-        const contentX = this.x + padding;
-        const contentY = this.y + padding;
-        const contentWidth = this.width - (padding * 2);
-        const contentHeight = this.height - (padding * 2);
+        // Create or update SpotTextComponent
+        if (!this.textComponent) {
+            this.textComponent = new SpotTextComponent();
+            this.textComponent.setSpotId(this.id);
+        }
         
-        if (contentWidth <= 0 || contentHeight <= 0) return;
+        // Update text component with current content
+        this.syncTextComponent();
         
-        // Set up text properties
-        const textColor = this.content.color || '#000000';
-        const textAlign = this.content.textAlign || 'center';
-        const styles = this.content.styles || {};
-        
-        // Build font string
-        let fontWeight = styles.bold ? 'bold' : 'normal';
-        let fontStyle = styles.italic ? 'italic' : 'normal';
-        
-        // Wrap text to fit in content area
-        const wrappedLines = this.wrapTextToFitArea(ctx, this.content.text, contentWidth, fontStyle, fontWeight);
-        
-        if (wrappedLines.length === 0) return;
-        
-        // Auto-fit font size for wrapped text
-        const fontSize = this.calculateOptimalFontSizeForLines(ctx, wrappedLines, contentWidth, contentHeight, fontStyle, fontWeight);
-        ctx.font = `${fontStyle} ${fontWeight} ${fontSize}px "Wix Madefor Display", Arial, sans-serif`;
-        ctx.fillStyle = textColor;
-        ctx.textBaseline = 'top';
-        
-        // Calculate line height and total text height
-        const lineHeight = fontSize * 1.2;
-        const totalTextHeight = wrappedLines.length * lineHeight;
-        const startY = contentY + (contentHeight - totalTextHeight) / 2;
-        
-        // Render each line
-        wrappedLines.forEach((line, index) => {
-            const lineY = startY + index * lineHeight;
-            
-            // Calculate text position based on alignment
-            let textX;
-            switch (textAlign) {
-                case 'left':
-                    textX = contentX;
-                    ctx.textAlign = 'left';
-                    break;
-                case 'right':
-                    textX = contentX + contentWidth;
-                    ctx.textAlign = 'right';
-                    break;
-                case 'center':
-                default:
-                    textX = contentX + contentWidth / 2;
-                    ctx.textAlign = 'center';
-                    break;
-            }
-            
-            // Render text with optional underline
-            if (styles.underline) {
-                // Measure text for underline
-                const metrics = ctx.measureText(line);
-                const underlineY = lineY + fontSize;
-                let underlineX, underlineWidth;
-                
-                switch (textAlign) {
-                    case 'left':
-                        underlineX = textX;
-                        underlineWidth = metrics.width;
-                        break;
-                    case 'right':
-                        underlineX = textX - metrics.width;
-                        underlineWidth = metrics.width;
-                        break;
-                    case 'center':
-                    default:
-                        underlineX = textX - metrics.width / 2;
-                        underlineWidth = metrics.width;
-                        break;
-                }
-                
-                ctx.beginPath();
-                ctx.moveTo(underlineX, underlineY);
-                ctx.lineTo(underlineX + underlineWidth, underlineY);
-                ctx.strokeStyle = textColor;
-                ctx.lineWidth = Math.max(1, fontSize * 0.05);
-                ctx.stroke();
-            }
-            
-            ctx.fillText(line, textX, lineY);
-        });
+        // Render using TextComponent
+        this.textComponent.render(ctx);
     }
+    
+    /**
+     * Sync SpotTextComponent with current spot content
+     * @private
+     */
+    syncTextComponent() {
+        if (!this.textComponent) return;
+        
+        // Set container bounds
+        this.textComponent.setContainer(this.x, this.y, this.width, this.height);
+        
+        // Set text content
+        this.textComponent.text = this.content.text || '';
+        
+        // Set color
+        this.textComponent.color = this.content.color || '#000000';
+        
+        // Set alignment
+        this.textComponent.alignH = this.content.textAlign || 'center';
+        this.textComponent.alignV = 'middle'; // Spots always center vertically
+        
+        // Set padding
+        const padding = this.content.padding || 1;
+        this.textComponent.setPadding(padding);
+        
+        // Set font size
+        this.textComponent.fontSize = this.content.fontSize || 'auto';
+        
+        // Set text styles
+        const styles = this.content.styles || {};
+        this.textComponent.fontWeight = styles.bold ? 'bold' : 'normal';
+        this.textComponent.fontStyle = styles.italic ? 'italic' : 'normal';
+        this.textComponent.underline = styles.underline || false;
+        this.textComponent.highlight = styles.highlight || false;
+        this.textComponent.highlightColor = this.content.highlightColor || '#ffff00';
+    }
+    
     
     /**
      * Render text placeholder when no content

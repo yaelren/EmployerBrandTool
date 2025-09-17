@@ -15,8 +15,19 @@ class EmployerBrandToolPOC {
         this.isInitialized = false;
         this.savedLineAlignments = {}; // Store user's line alignment preferences
         
+        // Main text component
+        this.mainTextComponent = new MainTextComponent();
+        
         // UI elements
         this.elements = {};
+        
+        // Spot Controllers - Object-oriented spot management
+        this.spotControllers = {
+            'empty': new EmptySpotController(this),
+            'text': new TextSpotController(this),
+            'image': new ImageSpotController(this),
+            'mask': new MaskSpotController(this)
+        };
         
         // Initialize the application
         this.initialize();
@@ -39,6 +50,15 @@ class EmployerBrandToolPOC {
                 canvasHeight: this.canvasManager.canvas.height,
                 mode: 'fillCanvas' // Set default mode
             });
+            
+            // Initialize main text component
+            this.mainTextComponent.setContainer(
+                0, 0, 
+                this.canvasManager.canvas.width, 
+                this.canvasManager.canvas.height
+            );
+            this.mainTextComponent.text = this.elements.mainText.value;
+            this.mainTextComponent.color = this.elements.textColor.value;
             
             // Set initial text
             this.textEngine.setText(this.elements.mainText.value);
@@ -98,7 +118,13 @@ class EmployerBrandToolPOC {
             showTextBounds: 'showTextBounds',
             showPadding: 'showPadding',
             spotCount: 'spotCount',
-            spotsList: 'spotsList'
+            spotsList: 'spotsList',
+            // Main text styling buttons
+            mainTextBold: 'mainTextBold',
+            mainTextItalic: 'mainTextItalic',
+            mainTextUnderline: 'mainTextUnderline',
+            mainTextHighlight: 'mainTextHighlight',
+            mainTextHighlightColor: 'mainTextHighlightColor'
         };
         
         // Cache all elements
@@ -116,16 +142,65 @@ class EmployerBrandToolPOC {
      * @private
      */
     setupEventListeners() {
+        // Tab switching
+        document.querySelectorAll('.tab-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const targetTab = e.target.dataset.tab;
+                this.switchTab(targetTab);
+            });
+        });
+        
         // Text input changes
         this.elements.mainText.addEventListener('input', () => {
+            this.mainTextComponent.text = this.elements.mainText.value;
             this.onTextChanged();
         });
         
         // Text color changes
         this.elements.textColor.addEventListener('input', () => {
             const color = this.elements.textColor.value;
-            this.textEngine.updateConfig({ color });
+            this.mainTextComponent.color = color;
             this.render();
+        });
+        
+        // Main text styling buttons
+        this.elements.mainTextBold.addEventListener('click', () => {
+            this.mainTextComponent.fontWeight = this.mainTextComponent.fontWeight === 'bold' ? 'normal' : 'bold';
+            const isActive = this.mainTextComponent.fontWeight === 'bold';
+            this.elements.mainTextBold.classList.toggle('active', isActive);
+            this.render();
+        });
+        
+        this.elements.mainTextItalic.addEventListener('click', () => {
+            this.mainTextComponent.fontStyle = this.mainTextComponent.fontStyle === 'italic' ? 'normal' : 'italic';
+            const isActive = this.mainTextComponent.fontStyle === 'italic';
+            this.elements.mainTextItalic.classList.toggle('active', isActive);
+            this.render();
+        });
+        
+        this.elements.mainTextUnderline.addEventListener('click', () => {
+            this.mainTextComponent.underline = !this.mainTextComponent.underline;
+            this.elements.mainTextUnderline.classList.toggle('active', this.mainTextComponent.underline);
+            this.render();
+        });
+        
+        this.elements.mainTextHighlight.addEventListener('click', () => {
+            this.mainTextComponent.highlight = !this.mainTextComponent.highlight;
+            this.elements.mainTextHighlight.classList.toggle('active', this.mainTextComponent.highlight);
+            
+            // Show/hide highlight color picker based on highlight state
+            const highlightColorGroup = this.elements.mainTextHighlightColor.parentElement;
+            highlightColorGroup.style.display = this.mainTextComponent.highlight ? 'block' : 'none';
+            
+            this.render();
+        });
+        
+        // Highlight color changes
+        this.elements.mainTextHighlightColor.addEventListener('input', () => {
+            this.mainTextComponent.highlightColor = this.elements.mainTextHighlightColor.value;
+            if (this.mainTextComponent.highlight) {
+                this.render();
+            }
         });
         
         // Background color changes
@@ -249,6 +324,16 @@ class EmployerBrandToolPOC {
             });
         });
         
+        // Canvas click detection for spots
+        this.canvasManager.canvas.addEventListener('click', (e) => {
+            this.handleCanvasClick(e);
+        });
+        
+        // Global keyboard shortcuts
+        document.addEventListener('keydown', (e) => {
+            this.handleGlobalKeydown(e);
+        });
+        
         
         // Minimum spot size changes
         this.elements.minSpotSize.addEventListener('input', () => {
@@ -290,9 +375,9 @@ class EmployerBrandToolPOC {
      */
     onTextChanged() {
         const text = this.elements.mainText.value;
-        this.textEngine.setText(text);
+        this.mainTextComponent.text = text;
         
-        // IMPORTANT: Apply saved alignments immediately after setText but before updateLineAlignmentControls
+        // IMPORTANT: Apply saved alignments immediately after text change but before updateLineAlignmentControls
         this.applySavedAlignments();
         
         // Update line alignment controls
@@ -306,20 +391,70 @@ class EmployerBrandToolPOC {
     }
     
     /**
+     * Apply stored alignments by mapping content keys to current line indices
+     * @private
+     */
+    applyStoredAlignments() {
+        // Get current lines to map content to indices
+        const ctx = this.canvasManager.ctx;
+        ctx.save();
+        
+        let fontSize = this.mainTextComponent.fontSize;
+        if (fontSize === 'auto') {
+            fontSize = this.mainTextComponent.calculateAutoFontSize(ctx);
+        }
+        
+        ctx.font = this.mainTextComponent.getFontString(fontSize);
+        const availableWidth = this.mainTextComponent.getAvailableWidth();
+        const lines = this.mainTextComponent.wrapTextToLines(ctx, this.mainTextComponent.text, availableWidth, fontSize);
+        
+        ctx.restore();
+        
+        // Clear existing line alignments and apply stored ones
+        this.mainTextComponent.lineAlignments = {};
+        
+        lines.forEach((line, index) => {
+            if (line.trim()) {
+                const lineKey = line.trim();
+                const savedAlignment = this.savedLineAlignments[lineKey];
+                if (savedAlignment) {
+                    this.mainTextComponent.setLineAlignment(index, savedAlignment);
+                }
+            }
+        });
+    }
+
+    /**
      * Apply saved alignments to current text lines
      * @private
      */
     applySavedAlignments() {
-        const textBounds = this.textEngine.getTextBounds();
+        // Sync main text component first
+        this.syncMainTextComponent();
         
-        textBounds.forEach((bounds, index) => {
-            if (bounds.text.trim()) {
-                const lineKey = bounds.text.trim();
+        // Get lines from main text component
+        const ctx = this.canvasManager.ctx;
+        ctx.save();
+        
+        let fontSize = this.mainTextComponent.fontSize;
+        if (fontSize === 'auto') {
+            fontSize = this.mainTextComponent.calculateAutoFontSize(ctx);
+        }
+        
+        ctx.font = this.mainTextComponent.getFontString(fontSize);
+        const availableWidth = this.mainTextComponent.getAvailableWidth();
+        const lines = this.mainTextComponent.wrapTextToLines(ctx, this.mainTextComponent.text, availableWidth, fontSize);
+        
+        ctx.restore();
+        
+        lines.forEach((line, index) => {
+            if (line.trim()) {
+                const lineKey = line.trim();
                 const savedAlignment = this.savedLineAlignments[lineKey];
                 
                 if (savedAlignment) {
                     console.log(`🔄 Restoring alignment for "${lineKey}": ${savedAlignment}`);
-                    this.textEngine.setLineAlignment(index, savedAlignment);
+                    this.mainTextComponent.setLineAlignment(index, savedAlignment);
                 }
             }
         });
@@ -331,22 +466,39 @@ class EmployerBrandToolPOC {
      */
     updateLineAlignmentControls() {
         const container = this.elements.lineAlignmentControls;
-        const textBounds = this.textEngine.getTextBounds();
+        
+        // Sync main text component first
+        this.syncMainTextComponent();
+        
+        // Get lines from main text component
+        const ctx = this.canvasManager.ctx;
+        ctx.save();
+        
+        let fontSize = this.mainTextComponent.fontSize;
+        if (fontSize === 'auto') {
+            fontSize = this.mainTextComponent.calculateAutoFontSize(ctx);
+        }
+        
+        ctx.font = this.mainTextComponent.getFontString(fontSize);
+        const availableWidth = this.mainTextComponent.getAvailableWidth();
+        const lines = this.mainTextComponent.wrapTextToLines(ctx, this.mainTextComponent.text, availableWidth, fontSize);
+        
+        ctx.restore();
         
         // Clear existing controls
         container.innerHTML = '';
         
         // Create alignment control for each line
-        textBounds.forEach((bounds, index) => {
-            if (!bounds.text.trim()) return; // Skip empty lines
+        lines.forEach((line, index) => {
+            if (!line.trim()) return; // Skip empty lines
             
-            // Use the current alignment from bounds (already applied by applySavedAlignments)
-            const currentAlignment = bounds.alignment;
+            // Get the current alignment from MainTextComponent
+            const currentAlignment = this.mainTextComponent.getLineAlignment(index);
             
             const lineControl = document.createElement('div');
             lineControl.className = 'line-alignment-control';
             lineControl.innerHTML = `
-                <label>Line ${index + 1}: "${bounds.text}"</label>
+                <label>Line ${index + 1}: "${line}"</label>
                 <div class="alignment-buttons">
                     <button type="button" class="align-btn ${currentAlignment === 'left' ? 'active' : ''}" 
                             data-line="${index}" data-align="left">L</button>
@@ -377,19 +529,35 @@ class EmployerBrandToolPOC {
      * @private
      */
     setLineAlignment(lineIndex, alignment) {
-        // Get the text bounds to identify the line
-        const textBounds = this.textEngine.getTextBounds();
-        const lineBounds = textBounds[lineIndex];
+        // Sync main text component first
+        this.syncMainTextComponent();
         
-        if (lineBounds && lineBounds.text.trim()) {
+        // Get lines from main text component
+        const ctx = this.canvasManager.ctx;
+        ctx.save();
+        
+        let fontSize = this.mainTextComponent.fontSize;
+        if (fontSize === 'auto') {
+            fontSize = this.mainTextComponent.calculateAutoFontSize(ctx);
+        }
+        
+        ctx.font = this.mainTextComponent.getFontString(fontSize);
+        const availableWidth = this.mainTextComponent.getAvailableWidth();
+        const lines = this.mainTextComponent.wrapTextToLines(ctx, this.mainTextComponent.text, availableWidth, fontSize);
+        
+        ctx.restore();
+        
+        const line = lines[lineIndex];
+        
+        if (line && line.trim()) {
             // Save the alignment preference for this line content
-            const lineKey = lineBounds.text.trim();
+            const lineKey = line.trim();
             this.savedLineAlignments[lineKey] = alignment;
             
             console.log(`💾 Saved alignment for "${lineKey}": ${alignment}`);
         }
         
-        this.textEngine.setLineAlignment(lineIndex, alignment);
+        this.mainTextComponent.setLineAlignment(lineIndex, alignment);
         this.updateLineAlignmentControls(); // Refresh controls to show active state
         this.render();
     }
@@ -433,6 +601,44 @@ class EmployerBrandToolPOC {
         }
         
         this.onTextChanged();
+    }
+    
+    /**
+     * Switch between tabs
+     * @param {string} tabName - Tab to switch to
+     * @private
+     */
+    switchTab(tabName) {
+        // Remove active class from all tabs and content
+        document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+        document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+        
+        // Add active class to selected tab
+        const activeTabBtn = document.querySelector(`[data-tab="${tabName}"]`);
+        if (activeTabBtn) {
+            activeTabBtn.classList.add('active');
+        }
+        
+        // Show corresponding content
+        let contentId;
+        switch(tabName) {
+            case 'mainText':
+                contentId = 'mainTextTab';
+                break;
+            case 'canvas':
+                contentId = 'canvasTab';
+                break;
+            case 'spots':
+                contentId = 'spotsTab';
+                break;
+        }
+        
+        const activeContent = document.getElementById(contentId);
+        if (activeContent) {
+            activeContent.classList.add('active');
+        }
+        
+        console.log(`🔄 Switched to ${tabName} tab`);
     }
     
     /**
@@ -559,17 +765,19 @@ class EmployerBrandToolPOC {
             // Enable debugging for detection
             this.spotDetector.setDebugging(true);
             
-            // Get current text bounds
-            const textBounds = this.textEngine.getTextBounds();
+            // Sync main text component first
+            this.syncMainTextComponent();
+            
+            // Get current text bounds from MainTextComponent
+            const textBounds = this.getTextBoundsFromMainComponent();
             const canvas = this.canvasManager.getDimensions();
-            const config = this.textEngine.getConfig();
             
             // Prepare padding info for spot detector
             const padding = {
-                top: config.paddingTop,
-                bottom: config.paddingBottom,
-                left: config.paddingLeft,
-                right: config.paddingRight
+                top: this.mainTextComponent.paddingTop,
+                bottom: this.mainTextComponent.paddingBottom,
+                left: this.mainTextComponent.paddingLeft,
+                right: this.mainTextComponent.paddingRight
             };
             
             // Run detection algorithm
@@ -585,6 +793,94 @@ class EmployerBrandToolPOC {
             console.error('❌ Spot detection failed:', error);
             this.showError('Spot detection failed. Please try again.');
         }
+    }
+    
+    /**
+     * Get text bounds from MainTextComponent for spot detection
+     * @returns {Array} Array of text bounds
+     * @private
+     */
+    getTextBoundsFromMainComponent() {
+        if (!this.mainTextComponent.text.trim()) {
+            return [];
+        }
+        
+        const ctx = this.canvasManager.ctx;
+        ctx.save();
+        
+        // Get font size
+        let fontSize = this.mainTextComponent.fontSize;
+        if (fontSize === 'auto') {
+            fontSize = this.mainTextComponent.calculateAutoFontSize(ctx);
+        }
+        
+        // Set font for measurement
+        ctx.font = this.mainTextComponent.getFontString(fontSize);
+        
+        // Get text lines
+        const availableWidth = this.mainTextComponent.getAvailableWidth();
+        const lines = this.mainTextComponent.wrapTextToLines(ctx, this.mainTextComponent.text, availableWidth, fontSize);
+        
+        // Calculate line positions using TextComponent's actual rendering logic
+        const lineHeight = fontSize;
+        const totalHeight = lines.length * lineHeight + (lines.length - 1) * this.mainTextComponent.lineSpacing;
+        const position = this.mainTextComponent.calculateTextPosition(availableWidth, totalHeight);
+        
+        // Create bounds for each line
+        const textBounds = [];
+        lines.forEach((line, index) => {
+            if (!line.trim()) return;
+            
+            const lineY = position.y + index * (lineHeight + this.mainTextComponent.lineSpacing);
+            const lineAlign = this.mainTextComponent.getLineAlignment(index);
+            
+            // Calculate line X based on alignment
+            let lineX;
+            const contentX = this.mainTextComponent.containerX + this.mainTextComponent.paddingLeft;
+            
+            switch (lineAlign) {
+                case 'left':
+                    lineX = contentX;
+                    break;
+                case 'right':
+                    lineX = contentX + availableWidth;
+                    break;
+                case 'center':
+                default:
+                    lineX = contentX + availableWidth / 2;
+                    break;
+            }
+            
+            // Measure the line
+            const metrics = ctx.measureText(line);
+            
+            // Calculate actual bounds based on alignment
+            let boundX;
+            switch (lineAlign) {
+                case 'left':
+                    boundX = lineX;
+                    break;
+                case 'right':
+                    boundX = lineX - metrics.width;
+                    break;
+                case 'center':
+                default:
+                    boundX = lineX - metrics.width / 2;
+                    break;
+            }
+            
+            textBounds.push({
+                x: boundX,
+                y: lineY,
+                width: metrics.width,
+                height: fontSize,
+                text: line,
+                line: line // Keep both for compatibility
+            });
+        });
+        
+        ctx.restore();
+        return textBounds;
     }
     
     /**
@@ -668,6 +964,11 @@ class EmployerBrandToolPOC {
         controlsSection.appendChild(typeSelect);
         controlsSection.appendChild(toggleBtn);
         
+        // Prevent clicks on header from interfering with controls
+        header.addEventListener('click', (e) => {
+            e.stopPropagation();
+        });
+        
         // Assemble header
         header.appendChild(infoSection);
         header.appendChild(controlsSection);
@@ -680,15 +981,22 @@ class EmployerBrandToolPOC {
         // Create type-specific controls
         this.createSpotTypeControls(spot, controls);
         
+        // Prevent clicks inside controls from closing the section
+        controls.addEventListener('click', (e) => {
+            e.stopPropagation();
+        });
+        
         // Toggle functionality
-        toggleBtn.addEventListener('click', () => {
+        toggleBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
             const isOpen = controls.style.display !== 'none';
             controls.style.display = isOpen ? 'none' : 'block';
             toggleBtn.textContent = isOpen ? '▶ Settings' : '▼ Settings';
         });
         
         // Handle type changes
-        typeSelect.addEventListener('change', () => {
+        typeSelect.addEventListener('change', (e) => {
+            e.stopPropagation();
             spot.setType(typeSelect.value);
             this.createSpotTypeControls(spot, controls);
             this.render();
@@ -711,211 +1019,18 @@ class EmployerBrandToolPOC {
         // Clear existing controls
         container.innerHTML = '';
         
-        // Add padding control for all non-empty spot types
+        // Use appropriate controller for the spot type
+        const controller = this.spotControllers[spot.type];
+        if (controller) {
+            controller.createControls(spot, container, 'sidebar');
+        }
+        
+        // Add padding control for all non-empty spot types (after type-specific controls)
         if (spot.type !== 'empty') {
-            this.createSpotPaddingControl(spot, container);
-        }
-        
-        switch (spot.type) {
-            case 'text':
-                this.createTextSpotControls(spot, container);
-                break;
-            case 'image':
-                this.createImageSpotControls(spot, container);
-                break;
-            case 'mask':
-                this.createMaskSpotControls(spot, container);
-                break;
-            case 'empty':
-            default:
-                // No controls for empty spots
-                break;
+            controller.createPaddingControl(spot, container, 'sidebar');
         }
     }
     
-    /**
-     * Create spot padding control
-     * @param {Spot} spot - Spot object
-     * @param {HTMLElement} container - Container for controls
-     * @private
-     */
-    createSpotPaddingControl(spot, container) {
-        const paddingDiv = document.createElement('div');
-        paddingDiv.className = 'spot-padding-control';
-        paddingDiv.innerHTML = `
-            <label>Padding: <span class="padding-value">${spot.content?.padding || 0}px</span></label>
-            <input type="range" class="spot-padding" min="0" max="50" step="1" value="${spot.content?.padding || 0}">
-        `;
-        
-        const paddingSlider = paddingDiv.querySelector('.spot-padding');
-        paddingSlider.addEventListener('input', () => {
-            const value = parseInt(paddingSlider.value);
-            paddingDiv.querySelector('.padding-value').textContent = value + 'px';
-            this.updateSpotPadding(spot, value);
-        });
-        
-        container.appendChild(paddingDiv);
-    }
-    
-    /**
-     * Create text spot controls
-     * @param {Spot} spot - Spot object
-     * @param {HTMLElement} container - Container for controls
-     * @private
-     */
-    createTextSpotControls(spot, container) {
-        // Text input
-        const textInput = document.createElement('textarea');
-        textInput.className = 'spot-text-input';
-        textInput.placeholder = 'Enter text...';
-        textInput.value = spot.content?.text || '';
-        textInput.rows = 2;
-        
-        // Text alignment
-        const alignmentDiv = document.createElement('div');
-        alignmentDiv.className = 'spot-text-alignment';
-        
-        const alignments = [
-            { value: 'left', label: 'L' },
-            { value: 'center', label: 'C' },
-            { value: 'right', label: 'R' }
-        ];
-        
-        alignments.forEach(align => {
-            const btn = document.createElement('button');
-            btn.type = 'button';
-            btn.className = 'align-btn';
-            btn.textContent = align.label;
-            btn.dataset.align = align.value;
-            
-            if (align.value === (spot.content?.textAlign || 'center')) {
-                btn.classList.add('active');
-            }
-            
-            btn.addEventListener('click', () => {
-                alignmentDiv.querySelectorAll('.align-btn').forEach(b => b.classList.remove('active'));
-                btn.classList.add('active');
-                this.updateSpotTextAlignment(spot, align.value);
-            });
-            
-            alignmentDiv.appendChild(btn);
-        });
-        
-        // Text styling
-        const stylingDiv = document.createElement('div');
-        stylingDiv.className = 'spot-text-styling';
-        
-        const styles = [
-            { key: 'bold', label: 'B' },
-            { key: 'italic', label: 'I' },
-            { key: 'underline', label: 'U' }
-        ];
-        
-        styles.forEach(style => {
-            const btn = document.createElement('button');
-            btn.type = 'button';
-            btn.className = 'style-btn';
-            btn.textContent = style.label;
-            btn.dataset.style = style.key;
-            
-            if (spot.content?.styles?.[style.key]) {
-                btn.classList.add('active');
-            }
-            
-            btn.addEventListener('click', () => {
-                btn.classList.toggle('active');
-                this.toggleSpotTextStyle(spot, style.key);
-            });
-            
-            stylingDiv.appendChild(btn);
-        });
-        
-        // Text color
-        const colorInput = document.createElement('input');
-        colorInput.type = 'color';
-        colorInput.className = 'spot-text-color';
-        colorInput.value = spot.content?.color || '#000000';
-        
-        // Event listeners
-        textInput.addEventListener('input', () => {
-            this.updateSpotText(spot, textInput.value);
-        });
-        
-        colorInput.addEventListener('input', () => {
-            this.updateSpotTextColor(spot, colorInput.value);
-        });
-        
-        // Assemble controls
-        container.appendChild(textInput);
-        container.appendChild(alignmentDiv);
-        container.appendChild(stylingDiv);
-        container.appendChild(colorInput);
-    }
-    
-    /**
-     * Create image spot controls
-     * @param {Spot} spot - Spot object
-     * @param {HTMLElement} container - Container for controls
-     * @private
-     */
-    createImageSpotControls(spot, container) {
-        // Image upload
-        const imageInput = document.createElement('input');
-        imageInput.type = 'file';
-        imageInput.accept = 'image/*';
-        imageInput.className = 'spot-image-input';
-        
-        // Scale control
-        const scaleDiv = document.createElement('div');
-        scaleDiv.innerHTML = `
-            <label>Scale: <span class="scale-value">${(spot.content?.scale || 1).toFixed(2)}</span></label>
-            <input type="range" class="spot-scale" min="0.1" max="3" step="0.1" value="${spot.content?.scale || 1}">
-        `;
-        
-        // Rotation control
-        const rotationDiv = document.createElement('div');
-        rotationDiv.innerHTML = `
-            <label>Rotation: <span class="rotation-value">${spot.content?.rotation || 0}°</span></label>
-            <input type="range" class="spot-rotation" min="0" max="360" step="5" value="${spot.content?.rotation || 0}">
-        `;
-        
-        // Event listeners
-        imageInput.addEventListener('change', (e) => {
-            this.handleSpotImageUpload(spot, e);
-        });
-        
-        const scaleSlider = scaleDiv.querySelector('.spot-scale');
-        scaleSlider.addEventListener('input', () => {
-            const value = parseFloat(scaleSlider.value);
-            scaleDiv.querySelector('.scale-value').textContent = value.toFixed(2);
-            this.updateSpotImageScale(spot, value);
-        });
-        
-        const rotationSlider = rotationDiv.querySelector('.spot-rotation');
-        rotationSlider.addEventListener('input', () => {
-            const value = parseInt(rotationSlider.value);
-            rotationDiv.querySelector('.rotation-value').textContent = value + '°';
-            this.updateSpotImageRotation(spot, value);
-        });
-        
-        // Assemble controls
-        container.appendChild(imageInput);
-        container.appendChild(scaleDiv);
-        container.appendChild(rotationDiv);
-    }
-    
-    /**
-     * Create mask spot controls
-     * @param {Spot} spot - Spot object
-     * @param {HTMLElement} container - Container for controls
-     * @private
-     */
-    createMaskSpotControls(spot, container) {
-        const info = document.createElement('div');
-        info.className = 'spot-mask-info';
-        info.textContent = 'Mask reveals background image through transparent area';
-        container.appendChild(info);
-    }
     
     /**
      * Handle spot type changes
@@ -1062,22 +1177,150 @@ class EmployerBrandToolPOC {
      */
     render() {
         try {
-            // Prepare render data
-            const renderData = {
-                textLines: this.textEngine.getLinesForRender(),
-                textConfig: this.textEngine.getConfig(),
-                spots: this.spots,
-                debugInfo: null // Remove debug info display
-            };
+            // Update main text component with current values
+            this.syncMainTextComponent();
             
-            // Render everything
-            this.canvasManager.render(renderData);
+            // Render canvas background
+            this.canvasManager.renderBackground();
+            
+            // Render main text using TextComponent
+            this.mainTextComponent.render(this.canvasManager.ctx);
+            
+            // Render all spots
+            this.spots.forEach(spot => {
+                spot.render(this.canvasManager.ctx, this.canvasManager.debugOptions);
+            });
+            
+            // Render debug overlays if enabled
+            if (this.canvasManager.debugOptions && 
+                (this.canvasManager.debugOptions.showSpotOutlines || 
+                 this.canvasManager.debugOptions.showSpotNumbers ||
+                 this.canvasManager.debugOptions.showTextBounds ||
+                 this.canvasManager.debugOptions.showPadding)) {
+                this.renderDebugOverlays();
+            }
             
         } catch (error) {
             console.error('❌ Render failed:', error);
         }
     }
     
+    /**
+     * Sync MainTextComponent with current UI state
+     * @private
+     */
+    syncMainTextComponent() {
+        // Update text content
+        this.mainTextComponent.text = this.elements.mainText.value;
+        
+        // Update container size and position
+        this.mainTextComponent.setContainer(
+            0, 0,
+            this.canvasManager.canvas.width,
+            this.canvasManager.canvas.height
+        );
+        
+        // Update color
+        this.mainTextComponent.color = this.elements.textColor.value;
+        
+        // Update padding
+        const paddingH = parseInt(this.elements.paddingHorizontal.value);
+        const paddingV = parseInt(this.elements.paddingVertical.value);
+        this.mainTextComponent.setPaddingIndividual({
+            left: paddingH,
+            right: paddingH,
+            top: paddingV,
+            bottom: paddingV
+        });
+        
+        // Update text mode (auto-size vs manual)
+        if (this.elements.fillCanvasMode.checked) {
+            this.mainTextComponent.fontSize = 'auto';
+        } else {
+            this.mainTextComponent.fontSize = parseInt(this.elements.fontSize.value);
+        }
+        
+        // Update line spacing
+        this.mainTextComponent.lineSpacing = parseInt(this.elements.lineSpacing.value);
+        
+        // Update wrapping
+        this.mainTextComponent.wrapText = this.elements.enableWrap.checked;
+        
+        // Update positioning for manual mode
+        if (this.elements.manualMode.checked) {
+            const activePos = document.querySelector('.pos-btn.active');
+            if (activePos) {
+                this.mainTextComponent.alignH = activePos.dataset.horizontal;
+                this.mainTextComponent.alignV = activePos.dataset.vertical;
+            }
+        } else {
+            // Fill canvas mode uses center alignment
+            this.mainTextComponent.alignH = 'center';
+            this.mainTextComponent.alignV = 'middle';
+        }
+        
+        // Apply saved line alignments by converting content keys to numeric indices
+        this.applyStoredAlignments();
+    }
+    
+    /**
+     * Render debug overlays
+     * @private
+     */
+    renderDebugOverlays() {
+        const ctx = this.canvasManager.ctx;
+        
+        // Show text bounds
+        if (this.canvasManager.debugOptions.showTextBounds) {
+            ctx.save();
+            ctx.strokeStyle = '#00ff00';
+            ctx.lineWidth = 1;
+            ctx.setLineDash([2, 2]);
+            
+            // Get actual text bounds from the MainTextComponent
+            const textBounds = this.getTextBoundsFromMainComponent();
+            
+            // Draw bounds for each line
+            textBounds.forEach(bounds => {
+                ctx.strokeRect(bounds.x, bounds.y, bounds.width, bounds.height);
+            });
+            
+            // Also draw container bounds in different color
+            ctx.strokeStyle = '#0099ff';
+            ctx.setLineDash([4, 4]);
+            ctx.strokeRect(
+                this.mainTextComponent.containerX + this.mainTextComponent.paddingLeft,
+                this.mainTextComponent.containerY + this.mainTextComponent.paddingTop,
+                this.mainTextComponent.getAvailableWidth(),
+                this.mainTextComponent.getAvailableHeight()
+            );
+            ctx.restore();
+        }
+        
+        // Show padding areas
+        if (this.canvasManager.debugOptions.showPadding) {
+            ctx.save();
+            ctx.fillStyle = 'rgba(255, 0, 0, 0.1)';
+            
+            const containerX = this.mainTextComponent.containerX;
+            const containerY = this.mainTextComponent.containerY;
+            const containerWidth = this.mainTextComponent.containerWidth;
+            const containerHeight = this.mainTextComponent.containerHeight;
+            
+            // Top padding
+            ctx.fillRect(containerX, containerY, containerWidth, this.mainTextComponent.paddingTop);
+            // Bottom padding
+            ctx.fillRect(containerX, containerY + containerHeight - this.mainTextComponent.paddingBottom, 
+                        containerWidth, this.mainTextComponent.paddingBottom);
+            // Left padding
+            ctx.fillRect(containerX, containerY, this.mainTextComponent.paddingLeft, containerHeight);
+            // Right padding
+            ctx.fillRect(containerX + containerWidth - this.mainTextComponent.paddingRight, containerY, 
+                        this.mainTextComponent.paddingRight, containerHeight);
+            
+            ctx.restore();
+        }
+    }
     
     /**
      * Show error message to user
@@ -1147,6 +1390,178 @@ class EmployerBrandToolPOC {
             };
         }
     }
+    
+    /**
+     * Handle canvas click to detect spot selection
+     * @param {MouseEvent} e - Mouse event
+     * @private
+     */
+    handleCanvasClick(e) {
+        const rect = this.canvasManager.canvas.getBoundingClientRect();
+        const canvasCoords = this.canvasManager.screenToCanvas(e.clientX, e.clientY);
+        
+        // Find clicked spot
+        const clickedSpot = this.canvasManager.findSpotAt(canvasCoords.x, canvasCoords.y, this.spots);
+        
+        if (clickedSpot) {
+            console.log(`🎯 Clicked on spot ${clickedSpot.id}`);
+            this.showSpotEditPopup(clickedSpot, e.clientX, e.clientY);
+        }
+    }
+    
+    /**
+     * Show spot edit popup
+     * @param {Spot} spot - Spot to edit
+     * @param {number} clickX - Click X position (screen coordinates)
+     * @param {number} clickY - Click Y position (screen coordinates) 
+     * @private
+     */
+    showSpotEditPopup(spot, clickX, clickY) {
+        const popup = document.getElementById('spotEditPopup');
+        const title = document.getElementById('spotPopupTitle');
+        const body = document.getElementById('spotPopupBody');
+        const closeBtn = document.getElementById('closeSpotPopup');
+        
+        // Set title
+        title.textContent = `Edit Spot ${spot.id}`;
+        
+        // Create popup content
+        this.createPopupSpotControls(spot, body);
+        
+        // Show popup
+        popup.classList.add('show');
+        
+        // Close button handler
+        const closePopup = () => {
+            popup.classList.remove('show');
+            closeBtn.removeEventListener('click', closePopup);
+            popup.removeEventListener('click', outsideClick);
+        };
+        
+        // Outside click handler
+        const outsideClick = (e) => {
+            if (e.target === popup) {
+                closePopup();
+            }
+        };
+        
+        closeBtn.addEventListener('click', closePopup);
+        popup.addEventListener('click', outsideClick);
+        
+        console.log(`📝 Opened popup for spot ${spot.id}`);
+    }
+    
+    /**
+     * Handle global keyboard shortcuts
+     * @param {KeyboardEvent} e - Keyboard event
+     * @private
+     */
+    handleGlobalKeydown(e) {
+        // Don't trigger shortcuts when typing in inputs
+        if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') {
+            return;
+        }
+        
+        // Check for Ctrl/Cmd modifier key combinations
+        const isCtrlOrCmd = e.ctrlKey || e.metaKey;
+        
+        switch(e.code) {
+            case 'KeyD':
+                if (isCtrlOrCmd) {
+                    e.preventDefault();
+                    // Ctrl/Cmd + D: Toggle debug panel
+                    this.elements.debugContent.classList.toggle('show');
+                    console.log('🔄 Toggled debug panel');
+                }
+                break;
+                
+            case 'KeyH':
+                if (isCtrlOrCmd && e.shiftKey) {
+                    e.preventDefault();
+                    // Ctrl/Cmd + Shift + H: Hide All Debug
+                    this.hideAllDebugControls();
+                    console.log('👁️‍🗨️ Hide all debug controls');
+                } else if (isCtrlOrCmd) {
+                    e.preventDefault();
+                    // Ctrl/Cmd + H: Show All Debug
+                    this.showAllDebugControls();
+                    console.log('👁️ Show all debug controls');
+                }
+                break;
+        }
+    }
+    
+    /**
+     * Show all debug controls
+     * @private
+     */
+    showAllDebugControls() {
+        this.elements.showSpotOutlines.checked = true;
+        this.elements.showSpotNumbers.checked = true;
+        this.elements.showTextBounds.checked = true;
+        this.elements.showPadding.checked = true;
+        this.updateDebugOptions();
+    }
+    
+    /**
+     * Hide all debug controls
+     * @private
+     */
+    hideAllDebugControls() {
+        this.elements.showSpotOutlines.checked = false;
+        this.elements.showSpotNumbers.checked = false;
+        this.elements.showTextBounds.checked = false;
+        this.elements.showPadding.checked = false;
+        this.updateDebugOptions();
+    }
+    
+    /**
+     * Create spot controls for popup
+     * @param {Spot} spot - Spot object
+     * @param {HTMLElement} container - Container for controls
+     * @private
+     */
+    createPopupSpotControls(spot, container) {
+        container.innerHTML = '';
+        
+        // Spot type selector
+        const typeGroup = document.createElement('div');
+        typeGroup.className = 'chatooly-control-group';
+        typeGroup.innerHTML = `
+            <label>Spot Type</label>
+            <select class="popup-spot-type-select">
+                <option value="empty">Empty</option>
+                <option value="text">Text</option>
+                <option value="image">Image</option>
+                <option value="mask">Mask (Background Reveal)</option>
+            </select>
+        `;
+        
+        const typeSelect = typeGroup.querySelector('.popup-spot-type-select');
+        typeSelect.value = spot.type;
+        
+        typeSelect.addEventListener('change', (e) => {
+            e.stopPropagation();
+            spot.setType(typeSelect.value);
+            this.createPopupSpotControls(spot, container);
+            this.render();
+            this.updateSpotsUI();
+        });
+        
+        container.appendChild(typeGroup);
+        
+        // Add padding control for non-empty types
+        if (spot.type !== 'empty') {
+            this.spotControllers.text.createPaddingControl(spot, container, 'popup');
+        }
+        
+        // Use appropriate controller for the spot type
+        const controller = this.spotControllers[spot.type];
+        if (controller) {
+            controller.createControls(spot, container, 'popup');
+        }
+    }
+    
 }
 
 // Initialize the application when DOM is ready

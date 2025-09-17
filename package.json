@@ -1,0 +1,38 @@
+{
+  "name": "chatooly-employer-brand-tool",
+  "version": "1.0.0",
+  "description": "Text-driven layout tool with automatic spot detection for employer branding",
+  "main": "index.html",
+  "scripts": {
+    "test": "playwright test",
+    "test:ui": "playwright test --ui",
+    "test:debug": "playwright test --debug",
+    "test:report": "playwright show-report tests/playwright-report",
+    "dev": "python3 -m http.server 8000",
+    "serve": "python3 -m http.server 8000"
+  },
+  "keywords": [
+    "chatooly",
+    "design-tool",
+    "employer-branding",
+    "text-layout",
+    "canvas",
+    "spot-detection"
+  ],
+  "author": "Yael Renous - Studio Video",
+  "license": "MIT",
+  "devDependencies": {
+    "@playwright/test": "^1.40.0"
+  },
+  "engines": {
+    "node": ">=16.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "."
+  },
+  "testPathIgnorePatterns": [
+    "/node_modules/",
+    "/tests/playwright-report/"
+  ]
+}

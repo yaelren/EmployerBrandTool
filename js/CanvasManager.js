@@ -20,11 +20,19 @@ class CanvasManager {
         this.backgroundColor = '#ffffff';
         this.backgroundImage = null;
         
-        // Debug flags
+        // Debug flags (legacy individual properties)
         this.showSpotOutlines = true;
         this.showSpotNumbers = true;
         this.showTextBounds = false;
         this.showPadding = false;
+        
+        // Debug options object for TextComponent system
+        this.debugOptions = {
+            showSpotOutlines: true,
+            showSpotNumbers: true,
+            showTextBounds: false,
+            showPadding: false
+        };
     }
     
     /**
@@ -99,8 +107,15 @@ class CanvasManager {
         
         this.ctx.save();
         
+        // Build font string with styles
+        let fontStyle = '';
+        if (textConfig.textStyles) {
+            if (textConfig.textStyles.italic) fontStyle += 'italic ';
+            if (textConfig.textStyles.bold) fontStyle += 'bold ';
+        }
+        
         // Set font properties
-        this.ctx.font = `${textConfig.fontSize}px ${textConfig.fontFamily || 'Arial'}`;
+        this.ctx.font = `${fontStyle}${textConfig.fontSize}px ${textConfig.fontFamily || 'Arial'}`;
         this.ctx.fillStyle = textConfig.color || '#000000';
         this.ctx.textBaseline = 'top';
         
@@ -118,7 +133,63 @@ class CanvasManager {
                     x = line.x + line.width;
                 }
                 
+                // Draw highlight background if enabled
+                if (textConfig.textStyles && textConfig.textStyles.highlight) {
+                    this.ctx.save();
+                    
+                    // Measure text for highlight
+                    const metrics = this.ctx.measureText(line.text);
+                    const highlightHeight = textConfig.fontSize * 1.2;
+                    
+                    // Set highlight color
+                    this.ctx.fillStyle = textConfig.textStyles.highlightColor || '#ffff00';
+                    
+                    // Draw highlight rectangle based on alignment
+                    let highlightX = line.x;
+                    if (line.alignment === 'center') {
+                        highlightX = x - metrics.width / 2;
+                    } else if (line.alignment === 'right') {
+                        highlightX = x - metrics.width;
+                    }
+                    
+                    this.ctx.fillRect(highlightX, line.y - textConfig.fontSize * 0.1, 
+                                     metrics.width, highlightHeight);
+                    
+                    // Restore text color
+                    this.ctx.fillStyle = textConfig.color || '#000000';
+                    this.ctx.restore();
+                }
+                
+                // Draw the text
                 this.ctx.fillText(line.text, x, line.y);
+                
+                // Draw underline if enabled
+                if (textConfig.textStyles && textConfig.textStyles.underline) {
+                    this.ctx.save();
+                    
+                    // Measure text for underline
+                    const metrics = this.ctx.measureText(line.text);
+                    
+                    // Calculate underline position
+                    const underlineY = line.y + textConfig.fontSize * 0.9;
+                    let underlineX = line.x;
+                    
+                    if (line.alignment === 'center') {
+                        underlineX = x - metrics.width / 2;
+                    } else if (line.alignment === 'right') {
+                        underlineX = x - metrics.width;
+                    }
+                    
+                    // Draw underline
+                    this.ctx.strokeStyle = textConfig.color || '#000000';
+                    this.ctx.lineWidth = Math.max(1, textConfig.fontSize / 20);
+                    this.ctx.beginPath();
+                    this.ctx.moveTo(underlineX, underlineY);
+                    this.ctx.lineTo(underlineX + metrics.width, underlineY);
+                    this.ctx.stroke();
+                    
+                    this.ctx.restore();
+                }
             }
         });
         

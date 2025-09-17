@@ -24,7 +24,14 @@ class TextEngine {
             minFontSize: 12,
             mode: 'fillCanvas', // 'fillCanvas' or 'manual'
             textPositionVertical: 'center', // 'top', 'center', 'bottom'
-            textPositionHorizontal: 'center' // 'left', 'center', 'right'
+            textPositionHorizontal: 'center', // 'left', 'center', 'right'
+            textStyles: {
+                bold: false,
+                italic: false,
+                underline: false,
+                highlight: false,
+                highlightColor: '#ffff00'
+            }
         };
         
         // Parsed text data
@@ -94,7 +101,12 @@ class TextEngine {
         
         while (testFontSize >= this.config.minFontSize) {
             // Test with this font size
-            this.measureCtx.font = `${testFontSize}px ${this.config.fontFamily}`;
+            let fontStyle = '';
+            if (this.config.textStyles) {
+                if (this.config.textStyles.italic) fontStyle += 'italic ';
+                if (this.config.textStyles.bold) fontStyle += 'bold ';
+            }
+            this.measureCtx.font = `${fontStyle}${testFontSize}px ${this.config.fontFamily}`;
             const wrappedLines = this.wrapTextWithFontSize(this.rawText, testFontSize);
             // Calculate total height: font size for each line + spacing between lines
             const totalHeight = wrappedLines.length * testFontSize + (wrappedLines.length - 1) * this.config.lineSpacing;
@@ -137,7 +149,12 @@ class TextEngine {
         let testFontSize = this.config.fontSize;
         const availableWidth = this.config.canvasWidth - this.config.paddingLeft - this.config.paddingRight;
         
-        this.measureCtx.font = `${testFontSize}px ${this.config.fontFamily}`;
+        let fontStyle = '';
+        if (this.config.textStyles) {
+            if (this.config.textStyles.italic) fontStyle += 'italic ';
+            if (this.config.textStyles.bold) fontStyle += 'bold ';
+        }
+        this.measureCtx.font = `${fontStyle}${testFontSize}px ${this.config.fontFamily}`;
         
         // Find the longest line
         let maxWidth = 0;
@@ -168,7 +185,12 @@ class TextEngine {
         const inputLines = text.split('\n');
         const wrappedLines = [];
         
-        this.measureCtx.font = `${fontSize}px ${this.config.fontFamily}`;
+        let fontStyle = '';
+        if (this.config.textStyles) {
+            if (this.config.textStyles.italic) fontStyle += 'italic ';
+            if (this.config.textStyles.bold) fontStyle += 'bold ';
+        }
+        this.measureCtx.font = `${fontStyle}${fontSize}px ${this.config.fontFamily}`;
         const maxWidth = this.config.canvasWidth - this.config.paddingLeft - this.config.paddingRight;
         
         for (const inputLine of inputLines) {
@@ -252,7 +274,12 @@ class TextEngine {
         }
         
         // Set up measurement context
-        const fontString = `${this.config.fontSize}px ${this.config.fontFamily}`;
+        let fontStyle = '';
+        if (this.config.textStyles) {
+            if (this.config.textStyles.italic) fontStyle += 'italic ';
+            if (this.config.textStyles.bold) fontStyle += 'bold ';
+        }
+        const fontString = `${fontStyle}${this.config.fontSize}px ${this.config.fontFamily}`;
         this.measureCtx.font = fontString;
         
         // Line height is just the font size (the actual text height)
