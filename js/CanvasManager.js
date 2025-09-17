@@ -20,12 +20,6 @@ class CanvasManager {
         this.backgroundColor = '#ffffff';
         this.backgroundImage = null;
         
-        // Debug flags (legacy individual properties)
-        this.showSpotOutlines = true;
-        this.showSpotNumbers = true;
-        this.showTextBounds = false;
-        this.showPadding = false;
-        
         // Debug options object for TextComponent system
         this.debugOptions = {
             showSpotOutlines: true,
@@ -196,7 +190,7 @@ class CanvasManager {
         this.ctx.restore();
         
         // Draw text bounds if debug mode is on
-        if (this.showTextBounds) {
+        if (this.debugOptions.showTextBounds) {
             this.renderTextBounds(lines);
         }
     }
@@ -268,7 +262,7 @@ class CanvasManager {
         if (!spots || spots.length === 0) return;
         
         spots.forEach(spot => {
-            spot.render(this.ctx, this.showSpotOutlines, this.showSpotNumbers, this.backgroundImage);
+            spot.render(this.ctx, this.debugOptions.showSpotOutlines, this.debugOptions.showSpotNumbers, this.backgroundImage);
         });
     }
     
@@ -329,7 +323,7 @@ class CanvasManager {
         this.renderText(textLines, textConfig);
         
         // 4. Render padding areas if debug mode is on
-        if (this.showPadding && textConfig) {
+        if (this.debugOptions.showPadding && textConfig) {
             this.renderPaddingAreas(textConfig);
         }
         
@@ -342,19 +336,15 @@ class CanvasManager {
      */
     setDebugOptions(options) {
         if (options.showSpotOutlines !== undefined) {
-            this.showSpotOutlines = options.showSpotOutlines;
             this.debugOptions.showSpotOutlines = options.showSpotOutlines;
         }
         if (options.showSpotNumbers !== undefined) {
-            this.showSpotNumbers = options.showSpotNumbers;
             this.debugOptions.showSpotNumbers = options.showSpotNumbers;
         }
         if (options.showTextBounds !== undefined) {
-            this.showTextBounds = options.showTextBounds;
             this.debugOptions.showTextBounds = options.showTextBounds;
         }
         if (options.showPadding !== undefined) {
-            this.showPadding = options.showPadding;
             this.debugOptions.showPadding = options.showPadding;
         }
     }

@@ -363,10 +363,6 @@ class EmployerBrandToolPOC {
             this.updateDebugOptions();
         });
         
-        // Canvas click for spot interaction (future feature)
-        this.canvasManager.canvas.addEventListener('click', (event) => {
-            this.onCanvasClick(event);
-        });
     }
     
     /**
@@ -390,49 +386,13 @@ class EmployerBrandToolPOC {
         this.render();
     }
     
-    /**
-     * Apply stored alignments by mapping content keys to current line indices
-     * @private
-     */
-    applyStoredAlignments() {
-        // Get current lines to map content to indices
-        const ctx = this.canvasManager.ctx;
-        ctx.save();
-        
-        let fontSize = this.mainTextComponent.fontSize;
-        if (fontSize === 'auto') {
-            fontSize = this.mainTextComponent.calculateAutoFontSize(ctx);
-        }
-        
-        ctx.font = this.mainTextComponent.getFontString(fontSize);
-        const availableWidth = this.mainTextComponent.getAvailableWidth();
-        const lines = this.mainTextComponent.wrapTextToLines(ctx, this.mainTextComponent.text, availableWidth, fontSize);
-        
-        ctx.restore();
-        
-        // Clear existing line alignments and apply stored ones
-        this.mainTextComponent.lineAlignments = {};
-        
-        lines.forEach((line, index) => {
-            if (line.trim()) {
-                const lineKey = line.trim();
-                const savedAlignment = this.savedLineAlignments[lineKey];
-                if (savedAlignment) {
-                    this.mainTextComponent.setLineAlignment(index, savedAlignment);
-                }
-            }
-        });
-    }
 
     /**
      * Apply saved alignments to current text lines
      * @private
      */
     applySavedAlignments() {
-        // Sync main text component first
-        this.syncMainTextComponent();
-        
-        // Get lines from main text component
+        // Get lines from main text component (assumes already synced)
         const ctx = this.canvasManager.ctx;
         ctx.save();
         
@@ -1263,7 +1223,7 @@ class EmployerBrandToolPOC {
         }
         
         // Apply saved line alignments by converting content keys to numeric indices
-        this.applyStoredAlignments();
+        this.applySavedAlignments();
     }
     
     /**
