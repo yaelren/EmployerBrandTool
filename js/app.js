@@ -14,6 +14,7 @@ class EmployerBrandToolPOC {
         this.spots = [];
         this.isInitialized = false;
         this.savedLineAlignments = {}; // Store user's line alignment preferences
+        this.savedSpotData = []; // Store spot content data for persistence
         
         // Main text component
         this.mainTextComponent = new MainTextComponent();
@@ -716,11 +717,252 @@ class EmployerBrandToolPOC {
     }
     
     /**
+     * Save current spot data for persistence
+     * @private
+     */
+    saveSpotData() {
+        const promises = this.spots.map(async (spot) => {
+            if (spot.type === 'empty') return null;
+            
+            // Create base saved spot data
+            const savedSpot = {
+                // Position data for matching
+                x: spot.x,
+                y: spot.y,
+                width: spot.width,
+                height: spot.height,
+                
+                // Basic properties
+                type: spot.type,
+                opacity: spot.opacity,
+                originalId: spot.id
+            };
+            
+            // Handle content based on type
+            if (spot.content) {
+                if (spot.type === 'image' && spot.content.image) {
+                    // Convert image to data URL for serialization
+                    savedSpot.content = {
+                        ...spot.content,
+                        imageDataURL: this.imageToDataURL(spot.content.image),
+                        image: null // Remove the actual image object
+                    };
+                } else {
+                    // For non-image content, use regular deep copy
+                    savedSpot.content = JSON.parse(JSON.stringify(spot.content));
+                }
+            } else {
+                savedSpot.content = null;
+            }
+            
+            return savedSpot;
+        });
+        
+        // Filter out null values (empty spots)
+        this.savedSpotData = this.spots
+            .map(spot => this.createSavedSpotData(spot))
+            .filter(savedSpot => savedSpot !== null);
+        
+        console.log(`💾 Saved ${this.savedSpotData.length} spots with content:`, this.savedSpotData);
+    }
+    
+    /**
+     * Create saved spot data for a single spot
+     * @param {Spot} spot - Spot to save
+     * @returns {Object|null} Saved spot data or null if empty
+     * @private
+     */
+    createSavedSpotData(spot) {
+        if (spot.type === 'empty') return null;
+        
+        const savedSpot = {
+            // Position data for matching
+            x: spot.x,
+            y: spot.y,
+            width: spot.width,
+            height: spot.height,
+            
+            // Basic properties
+            type: spot.type,
+            opacity: spot.opacity,
+            originalId: spot.id
+        };
+        
+        // Handle content based on type
+        if (spot.content) {
+            if (spot.type === 'image' && spot.content.image) {
+                // Convert image to data URL for serialization
+                savedSpot.content = {
+                    ...spot.content,
+                    imageDataURL: this.imageToDataURL(spot.content.image),
+                    image: null // Remove the actual image object
+                };
+            } else {
+                // For non-image content, use regular deep copy
+                savedSpot.content = JSON.parse(JSON.stringify(spot.content));
+            }
+        } else {
+            savedSpot.content = null;
+        }
+        
+        return savedSpot;
+    }
+    
+    /**
+     * Convert Image object to data URL
+     * @param {HTMLImageElement} image - Image to convert
+     * @returns {string} Data URL
+     * @private
+     */
+    imageToDataURL(image) {
+        try {
+            const canvas = document.createElement('canvas');
+            const ctx = canvas.getContext('2d');
+            canvas.width = image.width || image.naturalWidth;
+            canvas.height = image.height || image.naturalHeight;
+            ctx.drawImage(image, 0, 0);
+            return canvas.toDataURL();
+        } catch (error) {
+            console.warn('Failed to convert image to data URL:', error);
+            return null;
+        }
+    }
+    
+    /**
+     * Restore saved spot data to newly detected spots
+     * @private
+     */
+    restoreSpotData() {
+        if (!this.savedSpotData || this.savedSpotData.length === 0) {
+            console.log('📝 No saved spot data to restore');
+            return;
+        }
+        
+        console.log(`🔄 Attempting to restore ${this.savedSpotData.length} saved spots to ${this.spots.length} new spots`);
+        
+        // Create a copy of saved data to track what we've used
+        const remainingSavedSpots = [...this.savedSpotData];
+        let restoredCount = 0;
+        
+        // Try to match each new spot with saved data
+        for (const newSpot of this.spots) {
+            if (remainingSavedSpots.length === 0) break;
+            
+            // Find the best matching saved spot based on position similarity
+            let bestMatch = null;
+            let bestScore = Infinity;
+            let bestIndex = -1;
+            
+            remainingSavedSpots.forEach((savedSpot, index) => {
+                // Calculate distance between centers
+                const newCenterX = newSpot.x + newSpot.width / 2;
+                const newCenterY = newSpot.y + newSpot.height / 2;
+                const savedCenterX = savedSpot.x + savedSpot.width / 2;
+                const savedCenterY = savedSpot.y + savedSpot.height / 2;
+                
+                const distance = Math.sqrt(
+                    Math.pow(newCenterX - savedCenterX, 2) + 
+                    Math.pow(newCenterY - savedCenterY, 2)
+                );
+                
+                // Factor in size similarity
+                const sizeDiff = Math.abs(
+                    (newSpot.width * newSpot.height) - (savedSpot.width * savedSpot.height)
+                ) / Math.max(newSpot.width * newSpot.height, savedSpot.width * savedSpot.height);
+                
+                // Combined score (lower is better)
+                const score = distance + (sizeDiff * 100);
+                
+                if (score < bestScore) {
+                    bestScore = score;
+                    bestMatch = savedSpot;
+                    bestIndex = index;
+                }
+            });
+            
+            // If we found a reasonable match (within 150 pixels), restore it
+            if (bestMatch && bestScore < 150) {
+                newSpot.setType(bestMatch.type);
+                
+                // Handle content restoration based on type
+                if (bestMatch.content) {
+                    if (bestMatch.type === 'image' && bestMatch.content.imageDataURL) {
+                        // Restore image from data URL
+                        this.restoreImageContent(newSpot, bestMatch.content);
+                    } else {
+                        // Regular content restoration
+                        newSpot.content = bestMatch.content;
+                    }
+                }
+                
+                if (bestMatch.opacity !== undefined) {
+                    newSpot.opacity = bestMatch.opacity;
+                }
+                
+                // Remove the used saved spot
+                remainingSavedSpots.splice(bestIndex, 1);
+                restoredCount++;
+                
+                console.log(`✅ Restored spot ${newSpot.id} with type '${bestMatch.type}' (distance: ${Math.round(bestScore)})`);
+            }
+        }
+        
+        const unrestoredCount = this.savedSpotData.length - restoredCount;
+        console.log(`🎯 Restoration complete: ${restoredCount} restored, ${unrestoredCount} couldn't be matched`);
+        
+        if (unrestoredCount > 0) {
+            console.log('⚠️ Some saved spots could not be restored - they may be outside the new layout');
+        }
+    }
+    
+    /**
+     * Restore image content from data URL
+     * @param {Spot} spot - Spot to restore to
+     * @param {Object} savedContent - Saved content with imageDataURL
+     * @private
+     */
+    restoreImageContent(spot, savedContent) {
+        if (!savedContent.imageDataURL) {
+            console.warn('No image data URL found for spot restoration');
+            return;
+        }
+        
+        const img = new Image();
+        img.onload = () => {
+            // Create the content object with restored image
+            spot.content = {
+                ...savedContent,
+                image: img,
+                imageDataURL: undefined // Remove the data URL as we now have the image
+            };
+            
+            // Re-render to show the restored image
+            this.render();
+            console.log(`🖼️ Image restored for spot ${spot.id}`);
+        };
+        
+        img.onerror = () => {
+            console.warn(`Failed to load image for spot ${spot.id}`);
+            // Set content without image so other properties are still restored
+            spot.content = {
+                ...savedContent,
+                image: null,
+                imageDataURL: undefined
+            };
+        };
+        
+        img.src = savedContent.imageDataURL;
+    }
+
+    /**
      * Detect open spots using the algorithm
      */
     detectSpots() {
         try {
             console.log('🔍 Starting spot detection...');
+            
+            // Save current spot data before regenerating
+            this.saveSpotData();
             
             // Enable debugging for detection
             this.spotDetector.setDebugging(true);
@@ -744,6 +986,9 @@ class EmployerBrandToolPOC {
             const startTime = performance.now();
             this.spots = this.spotDetector.detect(canvas, textBounds, padding);
             const endTime = performance.now();
+            
+            // Restore saved spot data to new spots
+            this.restoreSpotData();
             
             // Update UI
             this.updateSpotsUI();
