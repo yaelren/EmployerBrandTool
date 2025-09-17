@@ -19,6 +19,7 @@ class EmployerBrandToolPOC {
         // Auto-detection settings
         this.autoDetectSpots = true; // Enable automatic spot detection
         this.spotDetectionTimeout = null; // Debounce timeout for spot detection
+        this.waitingSpots = []; // Spots that couldn't fit in current layout but are preserved
         
         // Main text component
         this.mainTextComponent = new MainTextComponent();
@@ -787,12 +788,15 @@ class EmployerBrandToolPOC {
             return savedSpot;
         });
         
-        // Filter out null values (empty spots)
-        this.savedSpotData = this.spots
+        // Filter out null values (empty spots) and combine with waiting spots
+        const currentSpotData = this.spots
             .map(spot => this.createSavedSpotData(spot))
             .filter(savedSpot => savedSpot !== null);
         
-        console.log(`💾 Saved ${this.savedSpotData.length} spots with content:`, this.savedSpotData);
+        // Combine current spots with waiting spots (waiting spots take priority to be restored first)
+        this.savedSpotData = [...this.waitingSpots, ...currentSpotData];
+        
+        console.log(`💾 Saved ${currentSpotData.length} current spots + ${this.waitingSpots.length} waiting spots = ${this.savedSpotData.length} total`);
     }
     
     /**
@@ -867,7 +871,7 @@ class EmployerBrandToolPOC {
             return;
         }
         
-        console.log(`🔄 Attempting to restore ${this.savedSpotData.length} saved spots to ${this.spots.length} new spots`);
+        console.log(`🔄 Attempting to restore ${this.savedSpotData.length} saved spots (including ${this.waitingSpots.length} waiting) to ${this.spots.length} new spots`);
         
         // Phase 1: Try to restore spots to their original positions
         const remainingSavedSpots = [...this.savedSpotData];
@@ -922,11 +926,23 @@ class EmployerBrandToolPOC {
             console.log(`✅ Restored spot ${newSpot.id} with type '${savedSpot.type}' at new position (was spot ${savedSpot.originalId})`);
         }
         
-        const unrestoredCount = this.savedSpotData.length - restoredCount;
-        console.log(`🎯 Restoration complete: ${restoredCount} restored, ${unrestoredCount} couldn't be matched`);
+        // Phase 3: Move unfitted spots to waiting list (don't delete them!)
+        if (remainingSavedSpots.length > 0) {
+            this.waitingSpots = remainingSavedSpots;
+            console.log(`⏳ ${remainingSavedSpots.length} spots moved to waiting list (will be restored when space becomes available)`);
+            remainingSavedSpots.forEach(spot => {
+                console.log(`   - Waiting: spot with type '${spot.type}' (was spot ${spot.originalId})`);
+            });
+        } else {
+            // Clear waiting list if all spots were restored
+            this.waitingSpots = [];
+        }
+        
+        const unrestoredCount = this.waitingSpots.length;
+        console.log(`🎯 Restoration complete: ${restoredCount} restored, ${unrestoredCount} waiting for space`);
         
         if (unrestoredCount > 0) {
-            console.log('⚠️ Some saved spots could not be restored - no available spots remaining');
+            console.log('💡 Waiting spots will be automatically restored when layout provides more space');
         }
     }
     
@@ -1155,8 +1171,9 @@ class EmployerBrandToolPOC {
      * @private
      */
     updateSpotsUI() {
-        // Update spot count
-        this.elements.spotCount.textContent = this.spots.length.toString();
+        // Update spot count with waiting spots indicator
+        const waitingText = this.waitingSpots.length > 0 ? ` (+${this.waitingSpots.length} waiting)` : '';
+        this.elements.spotCount.textContent = `${this.spots.length}${waitingText}`;
         
         // Clear existing spots list
         this.elements.spotsList.innerHTML = '';
@@ -1166,6 +1183,65 @@ class EmployerBrandToolPOC {
             const spotItem = this.createSpotItemElement(spot);
             this.elements.spotsList.appendChild(spotItem);
         });
+        
+        // Add waiting spots section if any exist
+        if (this.waitingSpots.length > 0) {
+            this.addWaitingSpotsSection();
+        }
+    }
+    
+    /**
+     * Add waiting spots section to the UI
+     * @private
+     */
+    addWaitingSpotsSection() {
+        const waitingSection = document.createElement('div');
+        waitingSection.className = 'waiting-spots-section';
+        waitingSection.innerHTML = `
+            <div class="waiting-spots-header">
+                <h4>⏳ Waiting for Space (${this.waitingSpots.length})</h4>
+                <p>These spots will be restored when layout provides more room:</p>
+            </div>
+        `;
+        
+        // Add each waiting spot as a simple info item
+        this.waitingSpots.forEach((spot, index) => {
+            const waitingItem = document.createElement('div');
+            waitingItem.className = 'waiting-spot-item';
+            
+            const contentPreview = this.getSpotContentPreview(spot);
+            waitingItem.innerHTML = `
+                <span class="waiting-spot-info">
+                    <strong>Spot ${spot.originalId}</strong> (${spot.type})
+                    ${contentPreview ? `: ${contentPreview}` : ''}
+                </span>
+            `;
+            
+            waitingSection.appendChild(waitingItem);
+        });
+        
+        this.elements.spotsList.appendChild(waitingSection);
+    }
+    
+    /**
+     * Get a preview of spot content for display
+     * @param {Object} spot - Spot data
+     * @returns {string} Content preview
+     * @private
+     */
+    getSpotContentPreview(spot) {
+        if (!spot.content) return '';
+        
+        switch (spot.type) {
+            case 'text':
+                return spot.content.text ? `"${spot.content.text.substring(0, 20)}${spot.content.text.length > 20 ? '...' : ''}"` : '';
+            case 'image':
+                return spot.content.imageDataURL ? 'Image' : '';
+            case 'mask':
+                return 'Background reveal';
+            default:
+                return '';
+        }
     }
     
     /**

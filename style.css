@@ -21,6 +21,41 @@
     color: var(--chatooly-primary-color);
 }
 
+/* Waiting spots section styles */
+.waiting-spots-section {
+    margin-top: 16px;
+    padding: 12px;
+    background: var(--chatooly-color-surface-elevated, #2a2a2a);
+    border-radius: 6px;
+    border: 2px dashed rgba(255, 165, 0, 0.3);
+}
+
+.waiting-spots-header h4 {
+    margin: 0 0 8px 0;
+    color: var(--chatooly-color-text, #e5e5e5);
+    font-size: 14px;
+}
+
+.waiting-spots-header p {
+    margin: 0 0 12px 0;
+    color: var(--chatooly-color-text-secondary, #a0a0a0);
+    font-size: 12px;
+}
+
+.waiting-spot-item {
+    padding: 6px 0;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.waiting-spot-item:last-child {
+    border-bottom: none;
+}
+
+.waiting-spot-info {
+    font-size: 12px;
+    color: var(--chatooly-color-text-secondary, #a0a0a0);
+}
+
 /* Make sidebar wider to accommodate all content */
 .chatooly-controls-panel {
     width: 420px !important; /* Increased from default ~300px */
