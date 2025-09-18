@@ -16,7 +16,7 @@ class MaskSpotController extends SpotController {
     getDefaultContent() {
         return {
             opacity: 0.5,
-            padding: 1
+            padding: 0
         };
     }
     

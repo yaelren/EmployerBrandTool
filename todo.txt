@@ -14,12 +14,19 @@
 14. Color scheme for text, main text, secondary text, background, highlight
 15. add alignment of image to spot
 16. organize folder structure
-
+17. bg image and hidden images
+18. masks with images 
+19. 
 auto shuffle tab
 
 
 bugs- 
-1. fix highligh to also be calcualted as text bounds
+1. fix highlight to also be calcualted as text bounds + italics
 2. mask no padding as defualt
-3. 
-
+3. image doesnt save 
+4. metric vs optical kerning 
+5. empty spots have overlay
+6. for the spot algo - decide between spot by x height or xheight + top if theres caps
+7. play with layering
+8. auto fill adds line between 
+9.make sliders also with numbers inserting
