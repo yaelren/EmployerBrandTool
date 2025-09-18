@@ -1,0 +1,25 @@
+1. Spots should have a background color, and that should be at the top
+2. The padding should be at the top of each spot parameters
+3. Do saving adjustments so we know what's been touched and save that
+4. Find spots to run whenever there's changes to the layout and text
+5. Maybe have a shuffle with these parameters - need to think about this
+6. Add an option to lock what we want to lock and what we don't want to lock
+7. Update the UI (that's later)
+8. Write tests
+9. Add image modes like fill, stretch, cut, etc
+10. Keep key shortcuts or hide and show the debug things
+11. Change the alignment buttons from L, C, R to the icons that they usually are
+12. Lines align to the left, lines align to the middle, lines align to the right icons
+13. Add an option to create color schemes that will update the colors
+14. Color scheme for text, main text, secondary text, background, highlight
+15. add alignment of image to spot
+16. organize folder structure
+
+auto shuffle tab
+
+
+bugs- 
+1. fix highligh to also be calcualted as text bounds
+2. mask no padding as defualt
+3. 
+

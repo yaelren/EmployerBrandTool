@@ -55,6 +55,34 @@ class TextComponent {
     }
     
     /**
+     * Get available font options
+     * @returns {Array} Array of font options with name and value
+     */
+    static getAvailableFonts() {
+        return [
+            { name: 'Wix Madefor Display', value: '"Wix Madefor Display", Arial, sans-serif' },
+            { name: 'Wix Madefor Text', value: '"Wix Madefor Text", Arial, sans-serif' },
+            { name: 'Arial', value: 'Arial, sans-serif' },
+            { name: 'Helvetica', value: 'Helvetica, Arial, sans-serif' },
+            { name: 'Times New Roman', value: '"Times New Roman", Times, serif' },
+            { name: 'Georgia', value: 'Georgia, serif' },
+            { name: 'Courier New', value: '"Courier New", Courier, monospace' },
+            { name: 'Verdana', value: 'Verdana, Geneva, sans-serif' },
+            { name: 'Trebuchet MS', value: '"Trebuchet MS", Helvetica, sans-serif' },
+            { name: 'Impact', value: 'Impact, Charcoal, sans-serif' }
+        ];
+    }
+
+    /**
+     * Set font family
+     * @param {string} fontFamily - Font family CSS value
+     */
+    setFontFamily(fontFamily) {
+        this.fontFamily = fontFamily;
+        this.invalidateCache();
+    }
+
+    /**
      * Set text styles from an object
      * @param {Object} styles - Object containing style properties
      */

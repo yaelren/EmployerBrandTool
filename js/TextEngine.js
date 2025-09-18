@@ -473,6 +473,14 @@ class TextEngine {
     getConfig() {
         return {...this.config};
     }
+
+    /**
+     * Get available fonts from TextComponent
+     * @returns {Array} Array of font options
+     */
+    getAvailableFonts() {
+        return TextComponent.getAvailableFonts();
+    }
     
     /**
      * Get text frame dimensions and position

@@ -57,6 +57,9 @@ class EmployerBrandToolPOC {
                 mode: 'fillCanvas' // Set default mode
             });
             
+            // Initialize font family dropdown
+            this.initializeFontFamilyDropdown();
+            
             // Initialize main text component
             this.mainTextComponent.setContainer(
                 0, 0, 
@@ -103,6 +106,7 @@ class EmployerBrandToolPOC {
             transparentBackground: 'transparentBackground',
             backgroundImage: 'backgroundImage',
             clearBackgroundImage: 'clearBackgroundImage',
+            fontFamily: 'fontFamily',
             fontSize: 'fontSize',
             fontSizeValue: 'fontSizeValue',
             lineSpacing: 'lineSpacing',
@@ -146,6 +150,31 @@ class EmployerBrandToolPOC {
             this.elements[key] = element;
         }
     }
+
+    /**
+     * Initialize font family dropdown with options from TextComponent
+     * @private
+     */
+    initializeFontFamilyDropdown() {
+        const fontFamilySelect = this.elements.fontFamily;
+        
+        // Get available fonts from TextComponent (single source of truth)
+        const fonts = this.textEngine.getAvailableFonts();
+        
+        // Clear existing options
+        fontFamilySelect.innerHTML = '';
+        
+        // Add font options
+        fonts.forEach(font => {
+            const option = document.createElement('option');
+            option.value = font.value;
+            option.textContent = font.name;
+            fontFamilySelect.appendChild(option);
+        });
+        
+        // Set initial value to default
+        fontFamilySelect.value = '"Wix Madefor Display", Arial, sans-serif';
+    }
     
     /**
      * Set up all event listeners
@@ -171,6 +200,14 @@ class EmployerBrandToolPOC {
             const color = this.elements.textColor.value;
             this.mainTextComponent.color = color;
             this.render();
+        });
+
+        // Font family changes
+        this.elements.fontFamily.addEventListener('change', () => {
+            const fontFamily = this.elements.fontFamily.value;
+            this.mainTextComponent.fontFamily = fontFamily;
+            this.textEngine.updateConfig({ fontFamily: fontFamily });
+            this.onTextChanged(); // Font family affects text width - trigger auto-detection
         });
         
         // Main text styling buttons

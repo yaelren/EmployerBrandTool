@@ -423,6 +423,33 @@ input[type="radio"] {
     margin-bottom: 8px;
 }
 
+/* Font family select styling */
+select {
+    background: var(--chatooly-color-surface-elevated, #2a2a2a);
+    color: var(--chatooly-color-text, #e5e5e5);
+    border: 1px solid var(--chatooly-color-border, #3a3a3a);
+    border-radius: 4px;
+    padding: 6px 8px;
+    font-size: 13px;
+    width: 100%;
+    outline: none;
+    cursor: pointer;
+}
+
+select:hover {
+    border-color: var(--chatooly-color-accent, #6366f1);
+}
+
+select:focus {
+    border-color: var(--chatooly-color-accent, #6366f1);
+    box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.2);
+}
+
+select option {
+    background: var(--chatooly-color-surface-elevated, #2a2a2a);
+    color: var(--chatooly-color-text, #e5e5e5);
+}
+
 .debug-quick-actions button {
     flex: 1;
     background: var(--chatooly-color-surface, #1a1a1a);

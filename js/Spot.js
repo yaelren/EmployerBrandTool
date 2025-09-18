@@ -340,6 +340,9 @@ class Spot {
         // Set font size
         this.textComponent.fontSize = this.content.fontSize || 'auto';
         
+        // Set font family
+        this.textComponent.fontFamily = this.content.fontFamily || '"Wix Madefor Display", Arial, sans-serif';
+        
         // Set text styles
         const styles = this.content.styles || {};
         this.textComponent.fontWeight = styles.bold ? 'bold' : 'normal';

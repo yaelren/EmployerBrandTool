@@ -20,6 +20,7 @@ class TextSpotController extends SpotController {
             textAlign: 'center',
             styles: {},
             fontSize: 'auto',
+            fontFamily: '"Wix Madefor Display", Arial, sans-serif',
             padding: 1,
             highlightColor: '#ffff00'
         };
@@ -42,6 +43,11 @@ class TextSpotController extends SpotController {
         const textGroup = this.createTextInput(spot, context);
         container.appendChild(textGroup);
         controls.push(textGroup);
+        
+        // Font family control
+        const fontFamilyGroup = this.createFontFamilyControl(spot, context);
+        container.appendChild(fontFamilyGroup);
+        controls.push(fontFamilyGroup);
         
         // Font size control
         const fontSizeGroup = this.createFontSizeControl(spot, context);
@@ -95,6 +101,41 @@ class TextSpotController extends SpotController {
         return textGroup;
     }
     
+    /**
+     * Create font family control
+     * @param {Spot} spot - Spot object
+     * @param {string} context - 'sidebar' or 'popup'
+     * @returns {HTMLElement} Font family control element
+     * @private
+     */
+    createFontFamilyControl(spot, context) {
+        const fontFamilyGroup = this.createControlGroup(context);
+        fontFamilyGroup.innerHTML = `<label>Font Family</label>`;
+        
+        const fontSelect = document.createElement('select');
+        fontSelect.className = 'spot-font-family';
+        
+        // Get available fonts from TextComponent (single source of truth)
+        const fonts = TextComponent.getAvailableFonts();
+        
+        fonts.forEach(font => {
+            const option = document.createElement('option');
+            option.value = font.value;
+            option.textContent = font.name;
+            if (font.value === (spot.content.fontFamily || '"Wix Madefor Display", Arial, sans-serif')) {
+                option.selected = true;
+            }
+            fontSelect.appendChild(option);
+        });
+        
+        this.addControlListener(fontSelect, 'change', () => {
+            this.updateContent(spot, { fontFamily: fontSelect.value }, true);
+        });
+        
+        fontFamilyGroup.appendChild(fontSelect);
+        return fontFamilyGroup;
+    }
+
     /**
      * Create font size control
      * @param {Spot} spot - Spot object
