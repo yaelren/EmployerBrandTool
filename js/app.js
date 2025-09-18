@@ -9,6 +9,7 @@ class EmployerBrandToolPOC {
         this.canvasManager = new CanvasManager();
         this.textEngine = new TextEngine();
         this.spotDetector = new SpotDetector();
+        this.debugController = null; // Will be initialized after DOM is ready
         
         // State
         this.spots = [];
@@ -46,6 +47,9 @@ class EmployerBrandToolPOC {
         try {
             // Cache UI elements
             this.cacheUIElements();
+            
+            // Initialize debug controller
+            this.debugController = new DebugController(this);
             
             // Set up event listeners
             this.setupEventListeners();
@@ -120,17 +124,9 @@ class EmployerBrandToolPOC {
             paddingVertical: 'paddingVertical',
             paddingVerticalValue: 'paddingVerticalValue',
             lineAlignmentControls: 'lineAlignmentControls',
-            toggleDebug: 'toggleDebug',
-            debugContent: 'debugContent',
-            showAllDebug: 'showAllDebug',
-            hideAllDebug: 'hideAllDebug',
             minSpotSize: 'minSpotSize',
             findSpots: 'findSpots',
             autoDetectSpots: 'autoDetectSpots',
-            showSpotOutlines: 'showSpotOutlines',
-            showSpotNumbers: 'showSpotNumbers',
-            showTextBounds: 'showTextBounds',
-            showPadding: 'showPadding',
             spotCount: 'spotCount',
             spotsList: 'spotsList',
             // Main text styling buttons
@@ -351,27 +347,7 @@ class EmployerBrandToolPOC {
         });
         
         
-        // Debug panel toggle
-        this.elements.toggleDebug.addEventListener('click', () => {
-            this.elements.debugContent.classList.toggle('show');
-        });
-        
-        // Debug quick actions
-        this.elements.showAllDebug.addEventListener('click', () => {
-            this.elements.showSpotOutlines.checked = true;
-            this.elements.showSpotNumbers.checked = true;
-            this.elements.showTextBounds.checked = true;
-            this.elements.showPadding.checked = true;
-            this.updateDebugOptions();
-        });
-        
-        this.elements.hideAllDebug.addEventListener('click', () => {
-            this.elements.showSpotOutlines.checked = false;
-            this.elements.showSpotNumbers.checked = false;
-            this.elements.showTextBounds.checked = false;
-            this.elements.showPadding.checked = false;
-            this.updateDebugOptions();
-        });
+        // Debug panel is now handled by DebugController
         
         // Text positioning controls (manual mode only)
         document.querySelectorAll('.pos-btn').forEach(btn => {
@@ -398,11 +374,6 @@ class EmployerBrandToolPOC {
             this.handleCanvasClick(e);
         });
         
-        // Global keyboard shortcuts
-        document.addEventListener('keydown', (e) => {
-            this.handleGlobalKeydown(e);
-        });
-        
         
         // Minimum spot size changes
         this.elements.minSpotSize.addEventListener('input', () => {
@@ -426,22 +397,7 @@ class EmployerBrandToolPOC {
             }
         });
         
-        // Debug visualization toggles
-        this.elements.showSpotOutlines.addEventListener('change', () => {
-            this.updateDebugOptions();
-        });
-        
-        this.elements.showSpotNumbers.addEventListener('change', () => {
-            this.updateDebugOptions();
-        });
-        
-        this.elements.showTextBounds.addEventListener('change', () => {
-            this.updateDebugOptions();
-        });
-        
-        this.elements.showPadding.addEventListener('change', () => {
-            this.updateDebugOptions();
-        });
+        // Debug visualization is now handled by DebugController
         
     }
     
@@ -819,23 +775,6 @@ class EmployerBrandToolPOC {
         console.log('🗑️ Background image cleared');
     }
     
-    
-    
-    /**
-     * Update debug visualization options
-     * @private
-     */
-    updateDebugOptions() {
-        const options = {
-            showSpotOutlines: this.elements.showSpotOutlines.checked,
-            showSpotNumbers: this.elements.showSpotNumbers.checked,
-            showTextBounds: this.elements.showTextBounds.checked,
-            showPadding: this.elements.showPadding.checked
-        };
-        
-        this.canvasManager.setDebugOptions(options);
-        this.render();
-    }
     
     /**
      * Save current spot data for persistence
@@ -1621,20 +1560,20 @@ class EmployerBrandToolPOC {
             this.mainTextComponent.render(this.canvasManager.ctx);
             
             // Render all spots
+            const debugOptions = this.debugController ? this.debugController.getDebugOptions() : {};
             this.spots.forEach(spot => {
-                const showOutline = this.canvasManager.debugOptions.showSpotOutlines;
-                const showNumber = this.canvasManager.debugOptions.showSpotNumbers;
+                const showOutline = debugOptions.showSpotOutlines;
+                const showNumber = debugOptions.showSpotNumbers;
                 // Pass background image to spot render method for mask spots
                 spot.render(this.canvasManager.ctx, showOutline, showNumber, this.canvasManager.backgroundImage);
             });
             
             // Render debug overlays if enabled
-            if (this.canvasManager.debugOptions && 
-                (this.canvasManager.debugOptions.showSpotOutlines || 
-                 this.canvasManager.debugOptions.showSpotNumbers ||
-                 this.canvasManager.debugOptions.showTextBounds ||
-                 this.canvasManager.debugOptions.showPadding)) {
-                this.renderDebugOverlays();
+            if (this.debugController) {
+                this.debugController.renderDebugOverlays(this.canvasManager.ctx, {
+                    mainTextComponent: this.mainTextComponent,
+                    spots: this.spots
+                });
             }
             
         } catch (error) {
@@ -1700,64 +1639,6 @@ class EmployerBrandToolPOC {
         this.applySavedAlignments();
     }
     
-    /**
-     * Render debug overlays
-     * @private
-     */
-    renderDebugOverlays() {
-        const ctx = this.canvasManager.ctx;
-        
-        // Show text bounds
-        if (this.canvasManager.debugOptions.showTextBounds) {
-            ctx.save();
-            ctx.strokeStyle = '#00ff00';
-            ctx.lineWidth = 1;
-            ctx.setLineDash([2, 2]);
-            
-            // Get actual text bounds from the MainTextComponent
-            const textBounds = this.getTextBoundsFromMainComponent();
-            
-            // Draw bounds for each line
-            textBounds.forEach(bounds => {
-                ctx.strokeRect(bounds.x, bounds.y, bounds.width, bounds.height);
-            });
-            
-            // Also draw container bounds in different color
-            ctx.strokeStyle = '#0099ff';
-            ctx.setLineDash([4, 4]);
-            ctx.strokeRect(
-                this.mainTextComponent.containerX + this.mainTextComponent.paddingLeft,
-                this.mainTextComponent.containerY + this.mainTextComponent.paddingTop,
-                this.mainTextComponent.getAvailableWidth(),
-                this.mainTextComponent.getAvailableHeight()
-            );
-            ctx.restore();
-        }
-        
-        // Show padding areas
-        if (this.canvasManager.debugOptions.showPadding) {
-            ctx.save();
-            ctx.fillStyle = 'rgba(255, 0, 0, 0.1)';
-            
-            const containerX = this.mainTextComponent.containerX;
-            const containerY = this.mainTextComponent.containerY;
-            const containerWidth = this.mainTextComponent.containerWidth;
-            const containerHeight = this.mainTextComponent.containerHeight;
-            
-            // Top padding
-            ctx.fillRect(containerX, containerY, containerWidth, this.mainTextComponent.paddingTop);
-            // Bottom padding
-            ctx.fillRect(containerX, containerY + containerHeight - this.mainTextComponent.paddingBottom, 
-                        containerWidth, this.mainTextComponent.paddingBottom);
-            // Left padding
-            ctx.fillRect(containerX, containerY, this.mainTextComponent.paddingLeft, containerHeight);
-            // Right padding
-            ctx.fillRect(containerX + containerWidth - this.mainTextComponent.paddingRight, containerY, 
-                        this.mainTextComponent.paddingRight, containerHeight);
-            
-            ctx.restore();
-        }
-    }
     
     /**
      * Show error message to user
@@ -1888,69 +1769,6 @@ class EmployerBrandToolPOC {
         console.log(`📝 Opened popup for spot ${spot.id}`);
     }
     
-    /**
-     * Handle global keyboard shortcuts
-     * @param {KeyboardEvent} e - Keyboard event
-     * @private
-     */
-    handleGlobalKeydown(e) {
-        // Don't trigger shortcuts when typing in inputs
-        if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') {
-            return;
-        }
-        
-        // Check for Ctrl/Cmd modifier key combinations
-        const isCtrlOrCmd = e.ctrlKey || e.metaKey;
-        
-        switch(e.code) {
-            case 'KeyD':
-                if (isCtrlOrCmd) {
-                    e.preventDefault();
-                    // Ctrl/Cmd + D: Toggle debug panel
-                    this.elements.debugContent.classList.toggle('show');
-                    console.log('🔄 Toggled debug panel');
-                }
-                break;
-                
-            case 'KeyH':
-                if (isCtrlOrCmd && e.shiftKey) {
-                    e.preventDefault();
-                    // Ctrl/Cmd + Shift + H: Hide All Debug
-                    this.hideAllDebugControls();
-                    console.log('👁️‍🗨️ Hide all debug controls');
-                } else if (isCtrlOrCmd) {
-                    e.preventDefault();
-                    // Ctrl/Cmd + H: Show All Debug
-                    this.showAllDebugControls();
-                    console.log('👁️ Show all debug controls');
-                }
-                break;
-        }
-    }
-    
-    /**
-     * Show all debug controls
-     * @private
-     */
-    showAllDebugControls() {
-        this.elements.showSpotOutlines.checked = true;
-        this.elements.showSpotNumbers.checked = true;
-        this.elements.showTextBounds.checked = true;
-        this.elements.showPadding.checked = true;
-        this.updateDebugOptions();
-    }
-    
-    /**
-     * Hide all debug controls
-     * @private
-     */
-    hideAllDebugControls() {
-        this.elements.showSpotOutlines.checked = false;
-        this.elements.showSpotNumbers.checked = false;
-        this.elements.showTextBounds.checked = false;
-        this.elements.showPadding.checked = false;
-        this.updateDebugOptions();
-    }
     
     /**
      * Create spot controls for popup
