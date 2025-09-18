@@ -16,7 +16,7 @@
 16. organize folder structure
 17. bg image and hidden images
 18. masks with images 
-19. 
+19. move to front back etc
 auto shuffle tab
 
 

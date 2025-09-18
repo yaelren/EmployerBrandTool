@@ -247,14 +247,44 @@ class Spot {
             drawHeight = contentHeight * scale;
         }
         
-        // Center the image in content area
-        const centerX = contentX + contentWidth / 2;
-        const centerY = contentY + contentHeight / 2;
+        // Position the image in content area based on positionH and positionV
+        const positionH = this.content.positionH || 'center';
+        const positionV = this.content.positionV || 'middle';
+        
+        let anchorX, anchorY;
+        
+        // Horizontal positioning
+        switch (positionH) {
+            case 'left':
+                anchorX = contentX + drawWidth / 2;
+                break;
+            case 'right':
+                anchorX = contentX + contentWidth - drawWidth / 2;
+                break;
+            case 'center':
+            default:
+                anchorX = contentX + contentWidth / 2;
+                break;
+        }
+        
+        // Vertical positioning
+        switch (positionV) {
+            case 'top':
+                anchorY = contentY + drawHeight / 2;
+                break;
+            case 'bottom':
+                anchorY = contentY + contentHeight - drawHeight / 2;
+                break;
+            case 'middle':
+            default:
+                anchorY = contentY + contentHeight / 2;
+                break;
+        }
         
         ctx.save();
         
-        // Move to center, rotate, then move back
-        ctx.translate(centerX, centerY);
+        // Move to anchor, rotate, then move back
+        ctx.translate(anchorX, anchorY);
         ctx.rotate(rotation);
         ctx.translate(-drawWidth / 2, -drawHeight / 2);
         
@@ -331,7 +361,11 @@ class Spot {
         
         // Set alignment
         this.textComponent.alignH = this.content.textAlign || 'center';
-        this.textComponent.alignV = 'middle'; // Spots always center vertically
+        this.textComponent.alignV = 'middle'; // Default text alignment
+        
+        // Set position alignment
+        this.textComponent.positionH = this.content.positionH || 'center';
+        this.textComponent.positionV = this.content.positionV || 'middle';
         
         // Set padding
         const padding = this.content.padding || 1;

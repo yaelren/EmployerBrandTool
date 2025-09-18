@@ -762,3 +762,102 @@ select option {
         padding: 10px 12px;
     }
 }
+
+/* Text alignment icon styles */
+.align-icon {
+    display: inline-block;
+    width: 14px;
+    height: 12px;
+    position: relative;
+}
+
+.align-left-icon .align-icon::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 2px;
+    background: currentColor;
+    box-shadow: 
+        0 6px 0 0 0 currentColor; /* 60% width line */
+}
+
+.align-left-icon .align-icon::after {
+    content: '';
+    position: absolute;
+    top: 3px;
+    left: 0;
+    width: 80%;
+    height: 2px;
+    background: currentColor;
+    box-shadow: 
+        0 6px 0 0 0 currentColor; /* 90% width line */
+}
+
+/* Create varying line widths using background gradients */
+.align-left-icon .align-icon {
+    background: 
+        linear-gradient(currentColor, currentColor) 0 6px / 60% 2px no-repeat,
+        linear-gradient(currentColor, currentColor) 0 9px / 90% 2px no-repeat;
+}
+
+.align-center-icon .align-icon::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 10%;
+    width: 80%;
+    height: 2px;
+    background: currentColor;
+    box-shadow: 
+        0 9px 0 currentColor;
+}
+
+.align-center-icon .align-icon::after {
+    content: '';
+    position: absolute;
+    top: 3px;
+    left: 0;
+    width: 100%;
+    height: 2px;
+    background: currentColor;
+    box-shadow: 
+        0 3px 0 currentColor;
+}
+
+.align-right-icon .align-icon::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    right: 0;
+    width: 100%;
+    height: 2px;
+    background: currentColor;
+}
+
+.align-right-icon .align-icon::after {
+    content: '';
+    position: absolute;
+    top: 3px;
+    right: 0;
+    width: 80%;
+    height: 2px;
+    background: currentColor;
+}
+
+/* Create varying line widths using background gradients - right aligned */
+.align-right-icon .align-icon {
+    background: 
+        linear-gradient(currentColor, currentColor) 100% 6px / 60% 2px no-repeat,
+        linear-gradient(currentColor, currentColor) 100% 9px / 90% 2px no-repeat;
+    background-position: right 6px, right 9px;
+}
+
+.align-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 24px;
+    padding: 4px 6px;
+}

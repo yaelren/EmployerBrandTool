@@ -18,6 +18,8 @@ class TextSpotController extends SpotController {
             text: '',
             color: '#000000',
             textAlign: 'center',
+            positionH: 'center',
+            positionV: 'middle',
             styles: {},
             fontSize: 'auto',
             fontFamily: '"Wix Madefor Display", Arial, sans-serif',
@@ -58,6 +60,11 @@ class TextSpotController extends SpotController {
         const alignmentGroup = this.createAlignmentControl(spot, context);
         container.appendChild(alignmentGroup);
         controls.push(alignmentGroup);
+        
+        // Position alignment
+        const positionGroup = this.createPositionControl(spot, context);
+        container.appendChild(positionGroup);
+        controls.push(positionGroup);
         
         // Text styling
         const stylingGroup = this.createStylingControl(spot, context);
@@ -199,16 +206,18 @@ class TextSpotController extends SpotController {
         alignmentDiv.className = 'spot-text-alignment';
         
         const alignments = [
-            { value: 'left', label: 'L' },
-            { value: 'center', label: 'C' },
-            { value: 'right', label: 'R' }
+            { value: 'left', label: '<span class="align-icon"></span>', title: 'Align Left', iconClass: 'align-left-icon' },
+            { value: 'center', label: '<span class="align-icon"></span>', title: 'Align Center', iconClass: 'align-center-icon' },
+            { value: 'right', label: '<span class="align-icon"></span>', title: 'Align Right', iconClass: 'align-right-icon' }
         ];
         
         alignments.forEach(align => {
             const btn = document.createElement('button');
             btn.type = 'button';
             btn.className = 'align-btn';
-            btn.textContent = align.label;
+            btn.innerHTML = align.label;
+            btn.title = align.title;
+            btn.classList.add(align.iconClass);
             
             if (align.value === (spot.content.textAlign || 'center')) {
                 btn.classList.add('active');
@@ -225,6 +234,62 @@ class TextSpotController extends SpotController {
         
         alignmentGroup.appendChild(alignmentDiv);
         return alignmentGroup;
+    }
+    
+    /**
+     * Create position alignment control
+     * @param {Spot} spot - Spot object
+     * @param {string} context - 'sidebar' or 'popup'
+     * @returns {HTMLElement} Position control element
+     * @private
+     */
+    createPositionControl(spot, context) {
+        const positionGroup = this.createControlGroup(context);
+        positionGroup.innerHTML = `<label>Position in Spot</label>`;
+        
+        const positionGrid = document.createElement('div');
+        positionGrid.className = 'positioning-grid';
+        
+        const positions = [
+            { h: 'left', v: 'top', icon: '↖', title: 'Top Left' },
+            { h: 'center', v: 'top', icon: '↑', title: 'Top Center' },
+            { h: 'right', v: 'top', icon: '↗', title: 'Top Right' },
+            { h: 'left', v: 'middle', icon: '←', title: 'Middle Left' },
+            { h: 'center', v: 'middle', icon: '•', title: 'Center' },
+            { h: 'right', v: 'middle', icon: '→', title: 'Middle Right' },
+            { h: 'left', v: 'bottom', icon: '↙', title: 'Bottom Left' },
+            { h: 'center', v: 'bottom', icon: '↓', title: 'Bottom Center' },
+            { h: 'right', v: 'bottom', icon: '↘', title: 'Bottom Right' }
+        ];
+        
+        positions.forEach(pos => {
+            const btn = document.createElement('button');
+            btn.type = 'button';
+            btn.className = 'pos-btn';
+            btn.textContent = pos.icon;
+            btn.title = pos.title;
+            
+            const currentPosH = spot.content.positionH || 'center';
+            const currentPosV = spot.content.positionV || 'middle';
+            
+            if (pos.h === currentPosH && pos.v === currentPosV) {
+                btn.classList.add('active');
+            }
+            
+            this.addControlListener(btn, 'click', () => {
+                positionGrid.querySelectorAll('.pos-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                this.updateContent(spot, { 
+                    positionH: pos.h, 
+                    positionV: pos.v 
+                }, true);
+            });
+            
+            positionGrid.appendChild(btn);
+        });
+        
+        positionGroup.appendChild(positionGrid);
+        return positionGroup;
     }
     
     /**

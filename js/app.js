@@ -506,12 +506,12 @@ class EmployerBrandToolPOC {
             lineControl.innerHTML = `
                 <label>Line ${index + 1}: "${line}"</label>
                 <div class="alignment-buttons">
-                    <button type="button" class="align-btn ${currentAlignment === 'left' ? 'active' : ''}" 
-                            data-line="${index}" data-align="left">L</button>
-                    <button type="button" class="align-btn ${currentAlignment === 'center' ? 'active' : ''}" 
-                            data-line="${index}" data-align="center">C</button>
-                    <button type="button" class="align-btn ${currentAlignment === 'right' ? 'active' : ''}" 
-                            data-line="${index}" data-align="right">R</button>
+                    <button type="button" class="align-btn align-left-icon ${currentAlignment === 'left' ? 'active' : ''}" 
+                            data-line="${index}" data-align="left" title="Align Left"><span class="align-icon"></span></button>
+                    <button type="button" class="align-btn align-center-icon ${currentAlignment === 'center' ? 'active' : ''}" 
+                            data-line="${index}" data-align="center" title="Align Center"><span class="align-icon"></span></button>
+                    <button type="button" class="align-btn align-right-icon ${currentAlignment === 'right' ? 'active' : ''}" 
+                            data-line="${index}" data-align="right" title="Align Right"><span class="align-icon"></span></button>
                 </div>
             `;
             
@@ -521,8 +521,8 @@ class EmployerBrandToolPOC {
         // Add event listeners to alignment buttons
         container.querySelectorAll('.align-btn').forEach(btn => {
             btn.addEventListener('click', (e) => {
-                const lineIndex = parseInt(e.target.dataset.line);
-                const alignment = e.target.dataset.align;
+                const lineIndex = parseInt(e.currentTarget.dataset.line);
+                const alignment = e.currentTarget.dataset.align;
                 this.setLineAlignment(lineIndex, alignment);
             });
         });

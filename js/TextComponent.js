@@ -30,6 +30,10 @@ class TextComponent {
         this.alignH = 'center'; // 'left', 'center', 'right'
         this.alignV = 'middle'; // 'top', 'middle', 'bottom'
         
+        // Position alignment within container (separate from text alignment)
+        this.positionH = 'center'; // 'left', 'center', 'right' - where text block sits in container
+        this.positionV = 'middle'; // 'top', 'middle', 'bottom' - where text block sits in container
+        
         // Padding (space between text and container edges)
         this.paddingTop = 20;
         this.paddingRight = 20;
@@ -272,49 +276,56 @@ class TextComponent {
     }
     
     /**
-     * Calculate text position based on alignment
-     * @param {number} lineWidth - Width of the text line
+     * Calculate text position based on alignment and positioning
+     * @param {number} lineWidth - Width of the text line (not used for positioning, kept for compatibility)
      * @param {number} totalHeight - Total height of all text lines
-     * @returns {Object} Object with x and y starting positions
+     * @returns {Object} Object with x and y starting positions and anchor info
      */
     calculateTextPosition(lineWidth, totalHeight) {
-        let x, y;
-        
-        // Horizontal alignment
+        // Calculate content area with padding
         const contentX = this.containerX + this.paddingLeft;
+        const contentY = this.containerY + this.paddingTop;
         const contentWidth = this.getAvailableWidth();
+        const contentHeight = this.getAvailableHeight();
         
-        switch (this.alignH) {
+        // Horizontal anchor position based on positionH
+        let anchorX;
+        switch (this.positionH) {
             case 'left':
-                x = contentX;
+                anchorX = contentX;
                 break;
             case 'right':
-                x = contentX + contentWidth;
+                anchorX = contentX + contentWidth;
                 break;
             case 'center':
             default:
-                x = contentX + contentWidth / 2;
+                anchorX = contentX + contentWidth / 2;
                 break;
         }
         
-        // Vertical alignment
-        const contentY = this.containerY + this.paddingTop;
-        const contentHeight = this.getAvailableHeight();
-        
-        switch (this.alignV) {
+        // Vertical anchor position based on positionV
+        let anchorY;
+        switch (this.positionV) {
             case 'top':
-                y = contentY;
+                anchorY = contentY;
                 break;
             case 'bottom':
-                y = contentY + contentHeight - totalHeight;
+                anchorY = contentY + contentHeight - totalHeight;
                 break;
             case 'middle':
             default:
-                y = contentY + (contentHeight - totalHeight) / 2;
+                anchorY = contentY + (contentHeight - totalHeight) / 2;
                 break;
         }
         
-        return { x, y };
+        return { 
+            x: anchorX, 
+            y: anchorY,
+            contentX,
+            contentY,
+            contentWidth,
+            contentHeight
+        };
     }
     
     /**
@@ -466,6 +477,8 @@ class TextComponent {
             highlightColor: this.highlightColor,
             alignH: this.alignH,
             alignV: this.alignV,
+            positionH: this.positionH,
+            positionV: this.positionV,
             paddingTop: this.paddingTop,
             paddingRight: this.paddingRight,
             paddingBottom: this.paddingBottom,

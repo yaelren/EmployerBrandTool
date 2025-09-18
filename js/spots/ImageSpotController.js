@@ -18,7 +18,9 @@ class ImageSpotController extends SpotController {
             image: null,
             scale: 1,
             rotation: 0,
-            padding: 1
+            padding: 1,
+            positionH: 'center',
+            positionV: 'middle'
         };
     }
     
@@ -39,6 +41,11 @@ class ImageSpotController extends SpotController {
         const imageGroup = this.createImageUploadControl(spot, context);
         container.appendChild(imageGroup);
         controls.push(imageGroup);
+        
+        // Position control (always show)
+        const positionGroup = this.createPositionControl(spot, context);
+        container.appendChild(positionGroup);
+        controls.push(positionGroup);
         
         // If image is loaded, show transform controls
         if (spot.content?.image) {
@@ -76,6 +83,62 @@ class ImageSpotController extends SpotController {
         });
         
         return imageGroup;
+    }
+    
+    /**
+     * Create position alignment control
+     * @param {Spot} spot - Spot object
+     * @param {string} context - 'sidebar' or 'popup'
+     * @returns {HTMLElement} Position control element
+     * @private
+     */
+    createPositionControl(spot, context) {
+        const positionGroup = this.createControlGroup(context);
+        positionGroup.innerHTML = `<label>Position in Spot</label>`;
+        
+        const positionGrid = document.createElement('div');
+        positionGrid.className = 'positioning-grid';
+        
+        const positions = [
+            { h: 'left', v: 'top', icon: '↖', title: 'Top Left' },
+            { h: 'center', v: 'top', icon: '↑', title: 'Top Center' },
+            { h: 'right', v: 'top', icon: '↗', title: 'Top Right' },
+            { h: 'left', v: 'middle', icon: '←', title: 'Middle Left' },
+            { h: 'center', v: 'middle', icon: '•', title: 'Center' },
+            { h: 'right', v: 'middle', icon: '→', title: 'Middle Right' },
+            { h: 'left', v: 'bottom', icon: '↙', title: 'Bottom Left' },
+            { h: 'center', v: 'bottom', icon: '↓', title: 'Bottom Center' },
+            { h: 'right', v: 'bottom', icon: '↘', title: 'Bottom Right' }
+        ];
+        
+        positions.forEach(pos => {
+            const btn = document.createElement('button');
+            btn.type = 'button';
+            btn.className = 'pos-btn';
+            btn.textContent = pos.icon;
+            btn.title = pos.title;
+            
+            const currentPosH = spot.content.positionH || 'center';
+            const currentPosV = spot.content.positionV || 'middle';
+            
+            if (pos.h === currentPosH && pos.v === currentPosV) {
+                btn.classList.add('active');
+            }
+            
+            this.addControlListener(btn, 'click', () => {
+                positionGrid.querySelectorAll('.pos-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                this.updateContent(spot, { 
+                    positionH: pos.h, 
+                    positionV: pos.v 
+                }, true);
+            });
+            
+            positionGrid.appendChild(btn);
+        });
+        
+        positionGroup.appendChild(positionGrid);
+        return positionGroup;
     }
     
     /**

@@ -203,17 +203,17 @@ test.describe('TextComponent System', () => {
       const alignmentControls = spotControls.locator('.spot-text-alignment');
       
       // Test left alignment
-      const leftBtn = alignmentControls.locator('.align-btn').filter({ hasText: 'L' });
+      const leftBtn = alignmentControls.locator('.align-btn.align-left-icon');
       await leftBtn.click();
       await expect(leftBtn).toHaveClass(/active/);
       
       // Test right alignment
-      const rightBtn = alignmentControls.locator('.align-btn').filter({ hasText: 'R' });
+      const rightBtn = alignmentControls.locator('.align-btn.align-right-icon');
       await rightBtn.click();
       await expect(rightBtn).toHaveClass(/active/);
       
       // Test center alignment
-      const centerBtn = alignmentControls.locator('.align-btn').filter({ hasText: 'C' });
+      const centerBtn = alignmentControls.locator('.align-btn.align-center-icon');
       await centerBtn.click();
       await expect(centerBtn).toHaveClass(/active/);
     });
