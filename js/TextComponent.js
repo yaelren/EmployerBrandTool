@@ -26,11 +26,11 @@ class TextComponent {
         this.highlightColor = '#ffff00';
         this.highlightPadding = 0.1; // Padding around text for highlight (as ratio of fontSize)
         
-        // Text alignment (horizontal and vertical)
+        // ========== TEXT ALIGNMENT ========== \n        // How text is aligned within its calculated bounds (CSS text-align equivalent)
         this.alignH = 'center'; // 'left', 'center', 'right'
         this.alignV = 'middle'; // 'top', 'middle', 'bottom'
         
-        // Position alignment within container (separate from text alignment)
+        // ========== POSITION ALIGNMENT ========== \n        // Where the entire text block is positioned within the container (9-position grid)
         this.positionH = 'center'; // 'left', 'center', 'right' - where text block sits in container
         this.positionV = 'middle'; // 'top', 'middle', 'bottom' - where text block sits in container
         

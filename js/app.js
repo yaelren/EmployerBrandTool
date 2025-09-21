@@ -36,6 +36,13 @@ class EmployerBrandToolPOC {
             'mask': new MaskSpotController(this)
         };
         
+        // Shuffler System
+        this.shuffler = null; // Will be initialized after DOM is ready
+        
+        // Asset Management System
+        this.assetManager = null; // Will be initialized after DOM is ready
+        this.backgroundImage = null; // Currently loaded background image
+        
         // Initialize the application
         this.initialize();
     }
@@ -43,13 +50,21 @@ class EmployerBrandToolPOC {
     /**
      * Initialize the application
      */
-    initialize() {
+    async initialize() {
         try {
             // Cache UI elements
             this.cacheUIElements();
             
             // Initialize debug controller
             this.debugController = new DebugController(this);
+            
+            // Initialize asset management system
+            this.assetManager = new AssetManager();
+            await this.assetManager.initialize();
+            
+            // Initialize shuffler system
+            this.shuffler = new Shuffler(this);
+            console.log('🎲 Shuffler system initialized');
             
             // Set up event listeners
             this.setupEventListeners();
@@ -177,6 +192,9 @@ class EmployerBrandToolPOC {
      * @private
      */
     setupEventListeners() {
+        // Initialize shuffler UI
+        this.initShufflerUI();
+
         // Tab switching
         document.querySelectorAll('.tab-btn').forEach(btn => {
             btn.addEventListener('click', (e) => {
@@ -184,7 +202,7 @@ class EmployerBrandToolPOC {
                 this.switchTab(targetTab);
             });
         });
-        
+
         // Text input changes
         this.elements.mainText.addEventListener('input', () => {
             this.mainTextComponent.text = this.elements.mainText.value;
@@ -359,12 +377,17 @@ class EmployerBrandToolPOC {
                 
                 const vertical = e.target.dataset.vertical;
                 const horizontal = e.target.dataset.horizontal;
-                
+
+                // Update both TextEngine and MainTextComponent
                 this.textEngine.updateConfig({
                     textPositionVertical: vertical,
                     textPositionHorizontal: horizontal
                 });
-                
+
+                // Also update MainTextComponent to keep them in sync
+                this.mainTextComponent.positionH = horizontal;
+                this.mainTextComponent.positionV = vertical;
+
                 this.onTextChanged();
             });
         });
@@ -636,6 +659,9 @@ class EmployerBrandToolPOC {
                 break;
             case 'spots':
                 contentId = 'spotsTab';
+                break;
+            case 'parameters':
+                contentId = 'parametersTab';
                 break;
         }
         
@@ -1817,6 +1843,96 @@ class EmployerBrandToolPOC {
         }
     }
     
+    /**
+     * Set background image
+     * @param {HTMLImageElement} image - Image to set as background
+     */
+    setBackgroundImage(image) {
+        this.backgroundImage = image;
+        this.render();
+    }
+    
+    /**
+     * Clear background image
+     */
+    clearBackgroundImage() {
+        this.backgroundImage = null;
+        this.render();
+    }
+    
+    /**
+     * Render background image on canvas if set
+     * @param {CanvasRenderingContext2D} ctx - Canvas context
+     * @private
+     */
+    renderBackgroundImage(ctx) {
+        if (!this.backgroundImage) return;
+        
+        const canvas = this.canvasManager.canvas;
+        const canvasWidth = canvas.width;
+        const canvasHeight = canvas.height;
+        
+        // Calculate scaling to fit the image in the canvas while maintaining aspect ratio
+        const imageAspect = this.backgroundImage.width / this.backgroundImage.height;
+        const canvasAspect = canvasWidth / canvasHeight;
+        
+        let drawWidth, drawHeight, drawX, drawY;
+        
+        if (imageAspect > canvasAspect) {
+            // Image is wider than canvas - fit to height
+            drawHeight = canvasHeight;
+            drawWidth = drawHeight * imageAspect;
+            drawX = (canvasWidth - drawWidth) / 2;
+            drawY = 0;
+        } else {
+            // Image is taller than canvas - fit to width
+            drawWidth = canvasWidth;
+            drawHeight = drawWidth / imageAspect;
+            drawX = 0;
+            drawY = (canvasHeight - drawHeight) / 2;
+        }
+        
+        // Draw the background image
+        ctx.drawImage(this.backgroundImage, drawX, drawY, drawWidth, drawHeight);
+    }
+
+    /**
+     * Initialize shuffler UI event listeners
+     */
+    initShufflerUI() {
+        const shuffleAll = document.getElementById('shuffleAll');
+        const shuffleLayout = document.getElementById('shuffleLayout');
+        const shuffleColors = document.getElementById('shuffleColors');
+        const shuffleSpots = document.getElementById('shuffleSpots');
+        const useDefaultContent = document.getElementById('useDefaultContent');
+
+        if (shuffleAll) {
+            shuffleAll.addEventListener('click', async () => {
+                const useDefaults = useDefaultContent ? useDefaultContent.checked : false;
+                await this.shuffler.shuffleAll(useDefaults);
+            });
+        }
+
+        if (shuffleLayout) {
+            shuffleLayout.addEventListener('click', async () => {
+                await this.shuffler.shuffleLayout();
+            });
+        }
+
+        if (shuffleColors) {
+            shuffleColors.addEventListener('click', async () => {
+                await this.shuffler.shuffleColors();
+            });
+        }
+
+        if (shuffleSpots) {
+            shuffleSpots.addEventListener('click', async () => {
+                const useDefaults = useDefaultContent ? useDefaultContent.checked : false;
+                await this.shuffler.shuffleSpots(useDefaults);
+            });
+        }
+    }
+
 }
 
 // Initialize the application when DOM is ready

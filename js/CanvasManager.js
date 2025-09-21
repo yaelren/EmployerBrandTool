@@ -52,6 +52,11 @@ class CanvasManager {
             this.ctx.fillStyle = this.backgroundColor;
             this.ctx.fillRect(0, 0, this.width, this.height);
         }
+        
+        // Render background image if available (from app)
+        if (window.employerBrandTool && window.employerBrandTool.backgroundImage) {
+            window.employerBrandTool.renderBackgroundImage(this.ctx);
+        }
     }
     
     /**
