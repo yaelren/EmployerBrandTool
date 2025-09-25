@@ -10,24 +10,27 @@ class EmployerBrandToolPOC {
         this.textEngine = new TextEngine();
         this.spotDetector = new SpotDetector();
         this.debugController = null; // Will be initialized after DOM is ready
-        
+
         // State
         this.spots = [];
         this.isInitialized = false;
         this.savedLineAlignments = {}; // Store user's line alignment preferences
         this.savedSpotData = []; // Store spot content data for persistence
-        
+
         // Auto-detection settings
         this.autoDetectSpots = true; // Enable automatic spot detection
         this.spotDetectionTimeout = null; // Debounce timeout for spot detection
         this.waitingSpots = []; // Spots that couldn't fit in current layout but are preserved
-        
+
+        // Canvas resize tracking
+        this.previousCanvasSize = { width: 0, height: 0 };
+
         // Main text component
         this.mainTextComponent = new MainTextComponent();
-        
+
         // UI elements
         this.elements = {};
-        
+
         // Spot Controllers - Object-oriented spot management
         this.spotControllers = {
             'empty': new EmptySpotController(this),
@@ -35,14 +38,14 @@ class EmployerBrandToolPOC {
             'image': new ImageSpotController(this),
             'mask': new MaskSpotController(this)
         };
-        
+
         // Shuffler System
         this.shuffler = null; // Will be initialized after DOM is ready
-        
+
         // Asset Management System
         this.assetManager = null; // Will be initialized after DOM is ready
         this.backgroundImage = null; // Currently loaded background image
-        
+
         // Initialize the application
         this.initialize();
     }
@@ -54,59 +57,90 @@ class EmployerBrandToolPOC {
         try {
             // Cache UI elements
             this.cacheUIElements();
-            
+
             // Initialize debug controller
             this.debugController = new DebugController(this);
-            
+
             // Initialize asset management system
             this.assetManager = new AssetManager();
             await this.assetManager.initialize();
-            
+
             // Initialize shuffler system
             this.shuffler = new Shuffler(this);
             console.log('🎲 Shuffler system initialized');
-            
-            // Set up event listeners
+
+            // Set initial canvas size via Chatooly CDN
+            this.initializeChatoolyCanvas();
+
+            // Set up event listeners (including resize)
             this.setupEventListeners();
-            
+
             // Initialize TextEngine with canvas dimensions and default mode
-            this.textEngine.updateConfig({ 
-                canvasWidth: this.canvasManager.canvas.width, 
+            this.textEngine.updateConfig({
+                canvasWidth: this.canvasManager.canvas.width,
                 canvasHeight: this.canvasManager.canvas.height,
                 mode: 'fillCanvas' // Set default mode
             });
-            
+
             // Initialize font family dropdown
             this.initializeFontFamilyDropdown();
-            
+
             // Initialize main text component
             this.mainTextComponent.setContainer(
-                0, 0, 
-                this.canvasManager.canvas.width, 
+                0, 0,
+                this.canvasManager.canvas.width,
                 this.canvasManager.canvas.height
             );
             this.mainTextComponent.text = this.elements.mainText.value;
             this.mainTextComponent.color = this.elements.textColor.value;
-            
+
             // Set initial text
             this.textEngine.setText(this.elements.mainText.value);
-            
+
             // Update line alignment controls for initial text
             this.updateLineAlignmentControls();
-            
+
             // Sync auto-detect setting with UI
             this.autoDetectSpots = this.elements.autoDetectSpots.checked;
-            
+
             // Initial render
             this.render();
-            
+
             this.isInitialized = true;
-            
+
             console.log('✅ Employer Brand Tool POC initialized successfully');
-            
+
         } catch (error) {
             console.error('❌ Failed to initialize POC:', error);
             this.showError('Failed to initialize application. Please refresh and try again.');
+        }
+    }
+
+    /**
+     * Initialize Chatooly canvas dimensions
+     * @private
+     */
+    initializeChatoolyCanvas() {
+        const setCanvasSize = () => {
+            if (window.Chatooly && window.Chatooly.canvasResizer) {
+                console.log('📐 Setting initial canvas size to 1080x1350');
+                window.Chatooly.canvasResizer.setExportSize(1080, 1350);
+                window.Chatooly.canvasResizer.applyExportSize();
+
+                // Update our tracking
+                this.previousCanvasSize = {
+                    width: this.canvasManager.canvas.width,
+                    height: this.canvasManager.canvas.height
+                };
+            }
+        };
+
+        // Try to set size immediately if CDN is ready
+        if (window.Chatooly && window.Chatooly.canvasResizer) {
+            setCanvasSize();
+        } else {
+            // Wait for Chatooly to be ready
+            window.addEventListener('chatooly:ready', setCanvasSize);
         }
     }
     
@@ -192,6 +226,9 @@ class EmployerBrandToolPOC {
      * @private
      */
     setupEventListeners() {
+        // Canvas resize event from Chatooly CDN
+        document.addEventListener('chatooly:canvas-resized', (e) => this.onCanvasResized(e));
+
         // Initialize shuffler UI
         this.initShufflerUI();
 
@@ -1692,7 +1729,82 @@ class EmployerBrandToolPOC {
             canvasDimensions: this.canvasManager.getDimensions()
         };
     }
-    
+
+    /**
+     * Handle canvas resize event from Chatooly CDN
+     * @param {Event} e - Canvas resize event
+     * @private
+     */
+    onCanvasResized(e) {
+        if (!this.isInitialized || !e.detail) return;
+
+        const newWidth = e.detail.canvas.width;
+        const newHeight = e.detail.canvas.height;
+        const oldWidth = this.previousCanvasSize.width;
+        const oldHeight = this.previousCanvasSize.height;
+
+        console.log(`📏 Canvas resized from ${oldWidth}x${oldHeight} to ${newWidth}x${newHeight}`);
+
+        // Skip if this is the first resize or dimensions haven't changed
+        if (oldWidth === 0 || oldHeight === 0 || (oldWidth === newWidth && oldHeight === newHeight)) {
+            this.previousCanvasSize = { width: newWidth, height: newHeight };
+            return;
+        }
+
+        // Calculate scale factors
+        const scaleX = newWidth / oldWidth;
+        const scaleY = newHeight / oldHeight;
+
+        // Scale all spots
+        this.spots.forEach(spot => {
+            spot.x *= scaleX;
+            spot.y *= scaleY;
+            spot.width *= scaleX;
+            spot.height *= scaleY;
+
+            // Scale spot content if needed
+            if (spot.content) {
+                if (spot.content.fontSize) {
+                    spot.content.fontSize = Math.round(spot.content.fontSize * Math.min(scaleX, scaleY));
+                }
+                if (spot.content.padding) {
+                    spot.content.padding = Math.round(spot.content.padding * Math.min(scaleX, scaleY));
+                }
+            }
+        });
+
+        // Update canvas manager dimensions
+        this.canvasManager.setDimensions(newWidth, newHeight);
+
+        // Update text engine configuration
+        this.textEngine.updateConfig({
+            canvasWidth: newWidth,
+            canvasHeight: newHeight
+        });
+
+        // Update main text component
+        this.mainTextComponent.setContainer(0, 0, newWidth, newHeight);
+
+        // Scale padding
+        const paddingH = Math.round(parseInt(this.elements.paddingHorizontal.value) * scaleX);
+        const paddingV = Math.round(parseInt(this.elements.paddingVertical.value) * scaleY);
+        this.elements.paddingHorizontal.value = paddingH;
+        this.elements.paddingVertical.value = paddingV;
+        this.elements.paddingHorizontalValue.textContent = paddingH + 'px';
+        this.elements.paddingVerticalValue.textContent = paddingV + 'px';
+
+        // Update tracking
+        this.previousCanvasSize = { width: newWidth, height: newHeight };
+
+        // Re-render everything
+        this.render();
+
+        // Trigger spot detection if auto-detect is enabled
+        if (this.autoDetectSpots && this.elements.mainText.value.trim()) {
+            this.autoDetectSpotsDebounced(300);
+        }
+    }
+
     /**
      * Run a test to verify everything is working
      * @returns {Object} Test results

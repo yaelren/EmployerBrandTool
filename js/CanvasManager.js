@@ -10,16 +10,17 @@ class CanvasManager {
         if (!this.canvas) {
             throw new Error('Canvas with id "chatooly-canvas" not found!');
         }
-        
+
         this.ctx = this.canvas.getContext('2d');
-        
-        // Set initial dimensions
-        this.setDimensions(600, 600);
-        
+
+        // Get initial dimensions from the canvas element (set by Chatooly CDN or default)
+        this.width = this.canvas.width || 600;
+        this.height = this.canvas.height || 600;
+
         // Background settings
         this.backgroundColor = '#ffffff';
         this.backgroundImage = null;
-        
+
         // Debug options object for TextComponent system
         this.debugOptions = {
             showSpotOutlines: true,
@@ -382,10 +383,17 @@ class CanvasManager {
      * @returns {{x: number, y: number}} Canvas coordinates
      */
     screenToCanvas(screenX, screenY) {
+        // Use Chatooly utility if available
+        if (window.Chatooly && window.Chatooly.utils && window.Chatooly.utils.mapMouseToCanvas) {
+            const mockEvent = { clientX: screenX, clientY: screenY };
+            return window.Chatooly.utils.mapMouseToCanvas(mockEvent, this.canvas);
+        }
+
+        // Fallback to manual calculation
         const rect = this.canvas.getBoundingClientRect();
         const scaleX = this.width / rect.width;
         const scaleY = this.height / rect.height;
-        
+
         return {
             x: (screenX - rect.left) * scaleX,
             y: (screenY - rect.top) * scaleY
