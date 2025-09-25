@@ -7,7 +7,7 @@ class EmployerBrandToolPOC {
     constructor() {
         // Core components
         this.canvasManager = new CanvasManager();
-        this.textEngine = new TextEngine();
+        this.textEngine = new MainTextController();
         this.spotDetector = new SpotDetector();
         this.debugController = null; // Will be initialized after DOM is ready
 
@@ -70,7 +70,7 @@ class EmployerBrandToolPOC {
             // Set up event listeners (including resize)
             this.setupEventListeners();
 
-            // Initialize TextEngine with canvas dimensions and default mode
+            // Initialize MainTextController with canvas dimensions and default mode
             this.textEngine.updateConfig({
                 canvasWidth: this.canvasManager.canvas.width,
                 canvasHeight: this.canvasManager.canvas.height,
@@ -410,7 +410,7 @@ class EmployerBrandToolPOC {
                 const vertical = e.target.dataset.vertical;
                 const horizontal = e.target.dataset.horizontal;
 
-                // Update both TextEngine and MainTextComponent
+                // Update both MainTextController and MainTextComponent
                 this.textEngine.updateConfig({
                     textPositionVertical: vertical,
                     textPositionHorizontal: horizontal
@@ -1185,86 +1185,7 @@ class EmployerBrandToolPOC {
      * @private
      */
     getTextBoundsFromMainComponent() {
-        if (!this.mainTextComponent.text.trim()) {
-            return [];
-        }
-        
-        const ctx = this.canvasManager.ctx;
-        ctx.save();
-        
-        // Get font size
-        let fontSize = this.mainTextComponent.fontSize;
-        if (fontSize === 'auto') {
-            fontSize = this.mainTextComponent.calculateAutoFontSize(ctx);
-        }
-        
-        // Set font for measurement
-        ctx.font = this.mainTextComponent.getFontString(fontSize);
-        
-        // Get text lines
-        const availableWidth = this.mainTextComponent.getAvailableWidth();
-        const lines = this.mainTextComponent.wrapTextToLines(ctx, this.mainTextComponent.text, availableWidth, fontSize);
-        
-        // Calculate line positions using TextComponent's actual rendering logic
-        const lineHeight = fontSize;
-        const totalHeight = lines.length * lineHeight + (lines.length - 1) * this.mainTextComponent.lineSpacing;
-        const position = this.mainTextComponent.calculateTextPosition(availableWidth, totalHeight);
-        
-        // Create bounds for each line
-        const textBounds = [];
-        lines.forEach((line, index) => {
-            if (!line.trim()) return;
-            
-            const lineY = position.y + index * (lineHeight + this.mainTextComponent.lineSpacing);
-            const lineAlign = this.mainTextComponent.getLineAlignment(index);
-            
-            // Calculate line X based on alignment
-            let lineX;
-            const contentX = this.mainTextComponent.containerX + this.mainTextComponent.paddingLeft;
-            
-            switch (lineAlign) {
-                case 'left':
-                    lineX = contentX;
-                    break;
-                case 'right':
-                    lineX = contentX + availableWidth;
-                    break;
-                case 'center':
-                default:
-                    lineX = contentX + availableWidth / 2;
-                    break;
-            }
-            
-            // Measure the line
-            const metrics = ctx.measureText(line);
-            
-            // Calculate actual bounds based on alignment
-            let boundX;
-            switch (lineAlign) {
-                case 'left':
-                    boundX = lineX;
-                    break;
-                case 'right':
-                    boundX = lineX - metrics.width;
-                    break;
-                case 'center':
-                default:
-                    boundX = lineX - metrics.width / 2;
-                    break;
-            }
-            
-            textBounds.push({
-                x: boundX,
-                y: lineY,
-                width: metrics.width,
-                height: fontSize,
-                text: line,
-                line: line // Keep both for compatibility
-            });
-        });
-        
-        ctx.restore();
-        return textBounds;
+        return this.mainTextComponent.getTextBounds(this.canvasManager.ctx);
     }
     
     /**

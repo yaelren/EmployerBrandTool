@@ -1,9 +1,9 @@
 /**
- * TextEngine.js - Handles text parsing, measurement, and per-line alignment
+ * MainTextController.js - Handles text parsing, measurement, and per-line alignment
  * Supports individual alignment for each line of text
  */
 
-class TextEngine {
+class MainTextController {
     constructor() {
         // Text configuration
         this.config = {

@@ -120,7 +120,7 @@ class Shuffler {
             const img = new Image();
             img.onload = () => {
                 this.spotImages.push(img);
-                console.log(`✅ Spot image loaded: ${path}`);
+                
             };
             img.onerror = () => {
                 console.warn(`❌ Failed to load spot image: ${path}`);
@@ -133,7 +133,6 @@ class Shuffler {
             const img = new Image();
             img.onload = () => {
                 this.backgroundImages.push(img);
-                console.log(`✅ Background image loaded: ${path}`);
             };
             img.onerror = () => {
                 console.warn(`❌ Failed to load background image: ${path}`);
@@ -184,14 +183,12 @@ class Shuffler {
             }
         }
 
-        console.log('✅ Shuffle complete!');
     }
 
     /**
      * Shuffle layout parameters only
      */
     async shuffleLayout() {
-        console.log('📐 Shuffling layout...');
 
         // Always switch to manual mode when shuffling layout
         this.app.setTextMode('manual');
@@ -209,7 +206,6 @@ class Shuffler {
      * Shuffle color parameters only
      */
     async shuffleColors() {
-        console.log('🎨 Shuffling colors...');
 
         const changes = this.shuffleColorsOnly();
         await this.applyChanges(changes);
@@ -266,7 +262,6 @@ class Shuffler {
 
         // Randomly select a palette
         this.currentPalette = this.randomFromArray(this.allPalettes);
-        console.log('🎨 Using palette:', this.allPalettes.indexOf(this.currentPalette) + 1);
 
         // Pick background color from the selected palette
         changes.backgroundColor = this.randomFromArray(this.currentPalette);
@@ -383,7 +378,6 @@ class Shuffler {
         if (this.spotImages.length > 0) {
             const randomImage = this.randomFromArray(this.spotImages);
             spot.content.image = randomImage;
-            console.log(`🖼️ Assigned image to spot ${spot.id}:`, randomImage.src);
         } else {
             console.warn('No spot images loaded yet');
             spot.content.image = null;
@@ -520,13 +514,13 @@ class Shuffler {
                     break;
 
                 case 'textPositionH':
-                    // Update both MainTextComponent and TextEngine for position alignment
+                    // Update both MainTextComponent and MainTextController for position alignment
                     this.app.mainTextComponent.positionH = value;
                     this.app.textEngine.updateConfig({ textPositionHorizontal: value });
                     break;
 
                 case 'textPositionV':
-                    // Update both MainTextComponent and TextEngine for position alignment
+                    // Update both MainTextComponent and MainTextController for position alignment
                     this.app.mainTextComponent.positionV = value;
                     this.app.textEngine.updateConfig({ textPositionVertical: value });
                     break;
@@ -683,8 +677,6 @@ class Shuffler {
      */
     async shuffleAllSpotsRandomly() {
         if (!this.app.spots || this.app.spots.length === 0) return;
-
-        console.log(' Shuffling all spots with random types and parameters...');
 
         for (const spot of this.app.spots) {
             await this.shuffleIndividualSpotRandomly(spot);

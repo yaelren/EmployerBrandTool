@@ -134,7 +134,7 @@ class DebugController {
         const isCtrlOrCmd = e.ctrlKey || e.metaKey;
         
         // Cmd/Ctrl + D: Toggle all debug controls
-        if (isCtrlOrCmd && e.code === 'KeyD') {
+        if (isCtrlOrCmd && e.code === 'KeyI') {
             e.preventDefault();
             this.toggleAllControls();
             console.log('🔄 Toggled all debug controls via keyboard');
@@ -350,43 +350,71 @@ class DebugController {
     }
     
     /**
-     * Get text bounds from a text component
+     * Get text bounds from a text component (delegates to TextComponent)
      * @param {CanvasRenderingContext2D} ctx - Canvas context
      * @param {TextComponent} textComponent - Text component
      * @returns {Array} Array of text bounds
      * @private
      */
     getTextBoundsFromComponent(ctx, textComponent) {
+        return textComponent.getTextBounds(ctx);
+    }
+
+    /**
+     * Legacy method (keeping for reference)
+     * @private
+     */
+    _legacyGetTextBounds(ctx, textComponent) {
         if (!textComponent.text || !textComponent.text.trim()) {
             return [];
         }
-        
+
         ctx.save();
-        
+
         // Get font size
         let fontSize = textComponent.fontSize;
         if (fontSize === 'auto') {
             fontSize = textComponent.calculateAutoFontSize(ctx);
         }
-        
+
         // Set font for measurement
         ctx.font = textComponent.getFontString(fontSize);
-        
+
         // Get text lines
         const availableWidth = textComponent.getAvailableWidth();
         const lines = textComponent.wrapTextToLines(ctx, textComponent.text, availableWidth, fontSize);
-        
-        // Calculate line positions
-        const lineHeight = fontSize;
-        const totalHeight = lines.length * lineHeight + (lines.length - 1) * textComponent.lineSpacing;
-        const position = textComponent.calculateTextPosition(availableWidth, totalHeight);
+
+        // Calculate total text height (use typography-aware heights if enabled)
+        let totalHeight = 0;
+        if (textComponent.useTypographyHeight) {
+            // Calculate actual height based on each line's typography
+            lines.forEach((line, index) => {
+                if (line.trim()) {
+                    totalHeight += textComponent.getLineHeight(line, fontSize);
+                    if (index < lines.length - 1) {
+                        totalHeight += textComponent.lineSpacing;
+                    }
+                }
+            });
+        } else {
+            // Standard calculation
+            const lineHeight = fontSize;
+            totalHeight = lines.length * lineHeight + (lines.length - 1) * textComponent.lineSpacing;
+        }
+
+        const position = textComponent.calculateTextPosition(totalHeight);
         
         // Create bounds for each line
         const textBounds = [];
+        let currentY = position.y;
+
         lines.forEach((line, index) => {
             if (!line.trim()) return;
-            
-            const lineY = position.y + index * (lineHeight + textComponent.lineSpacing);
+
+            // Get line height based on typography settings
+            const lineHeight = textComponent.getLineHeight(line, fontSize);
+
+            const lineY = currentY;
             const lineAlign = textComponent.getLineAlignment(index);
             
             // Calculate line X based on alignment
@@ -424,14 +452,31 @@ class DebugController {
                     break;
             }
             
+            // Calculate typography-aligned bounds
+            let boundsY = lineY;
+            let boundsHeight = lineHeight;
+
+            if (textComponent.useTypographyHeight && lineHeight !== fontSize) {
+                // Get font metrics for baseline alignment
+                const fontMetrics = textComponent.getFontMetrics(fontSize);
+                if (fontMetrics) {
+                    // Align to baseline: Y + ascent - (capHeight8 or xHeight)
+                    boundsY = lineY + Math.abs(fontMetrics.ascent*fontSize) - lineHeight;
+                    boundsHeight = lineHeight;
+                }
+            }
+
             textBounds.push({
                 x: boundX,
-                y: lineY,
+                y: boundsY,
                 width: metrics.width,
-                height: fontSize,
+                height: boundsHeight,
                 text: line,
                 line: line
             });
+
+            // Move to next line position
+            currentY += lineHeight + textComponent.lineSpacing;
         });
         
         ctx.restore();
