@@ -7,6 +7,10 @@ class Shuffler {
     constructor(app) {
         this.app = app;
 
+        // Preloaded image arrays
+        this.spotImages = [];
+        this.backgroundImages = [];
+
         // Default text content for shuffling
         this.defaultMainTexts = [
             'JOIN\nOUR\nTEAM',
@@ -20,10 +24,22 @@ class Shuffler {
         ];
 
         this.defaultSpotTexts = [
-            'NEW', 'HIRE', 'JOIN', 'TEAM',
-            'GROW', 'CAREER', 'OPPORTUNITY', 'SUCCESS',
-            'FUTURE', 'INNOVATE', 'CREATE', 'BUILD'
+            'Join our innovative team',
+            'Build your dream career',
+            'Grow with industry leaders',
+            'Shape the future together',
+            'Create meaningful impact',
+            'Unlock your potential',
+            'Work with purpose',
+            'Lead the change',
+            'Make a difference',
+            'Excel in your field',
+            'Collaborate and innovate',
+            'Achieve your goals'
         ];
+
+        // Initialize image arrays
+        this.initializeImages();
 
         // Color palettes for shuffling
         // Original Palette 1
@@ -83,6 +99,50 @@ class Shuffler {
     }
 
     /**
+     * Initialize and preload all images
+     */
+    initializeImages() {
+        // Spot image paths
+        const spotImagePaths = [
+            'assets/spots/spot1.png',
+            'assets/spots/spot2.png',
+            'assets/spots/spot3.png'
+        ];
+
+        // Background image paths
+        const backgroundImagePaths = [
+            'assets/backgrounds/background1.png',
+            'assets/backgrounds/background2.png'
+        ];
+
+        // Preload spot images
+        spotImagePaths.forEach(path => {
+            const img = new Image();
+            img.onload = () => {
+                this.spotImages.push(img);
+                console.log(`✅ Spot image loaded: ${path}`);
+            };
+            img.onerror = () => {
+                console.warn(`❌ Failed to load spot image: ${path}`);
+            };
+            img.src = path;
+        });
+
+        // Preload background images
+        backgroundImagePaths.forEach(path => {
+            const img = new Image();
+            img.onload = () => {
+                this.backgroundImages.push(img);
+                console.log(`✅ Background image loaded: ${path}`);
+            };
+            img.onerror = () => {
+                console.warn(`❌ Failed to load background image: ${path}`);
+            };
+            img.src = path;
+        });
+    }
+
+    /**
      * Shuffle all unlocked parameters
      */
     async shuffleAll(useDefaults = false) {
@@ -107,9 +167,21 @@ class Shuffler {
         // Apply changes
         await this.applyChanges(changes);
 
-        // Shuffle spots
-        if (this.app.spots && this.app.spots.length > 0) {
-            await this.shuffleSpotsOnly(useDefaults);
+        // Trigger spot detection with callback to shuffle spots after detection
+        if (this.app.autoDetectSpots) {
+            this.app.autoDetectSpotsDebounced(200, () => {
+                console.log('num of spots after detection:', this.app.spots.length);
+                // Shuffle spots - ALWAYS shuffle spots with random types and parameters
+                if (this.app.spots && this.app.spots.length > 0) {
+                    this.shuffleAllSpotsRandomly();
+                }
+            });
+        } else {
+            // If auto-detect is disabled, just shuffle existing spots
+            console.log('num of spots (no detection):', this.app.spots.length);
+            if (this.app.spots && this.app.spots.length > 0) {
+                await this.shuffleAllSpotsRandomly();
+            }
         }
 
         console.log('✅ Shuffle complete!');
@@ -158,7 +230,7 @@ class Shuffler {
         const changes = {};
 
         // Font size - bigger range for more dramatic shuffles
-        changes.fontSize = this.randomInRange(32, 120, 4);
+        changes.fontSize = this.randomInRange(30, 220, 4);
 
         // Font family
         changes.fontFamily = this.randomFromArray(this.fontFamilies);
@@ -307,14 +379,14 @@ class Shuffler {
     async shuffleImageSpot(spot) {
         if (!spot.content) spot.content = {};
 
-        // Load random image from assets
-        try {
-            const randomImage = await this.app.assetManager.getRandomSpotImage();
-            if (randomImage) {
-                spot.content.image = randomImage;
-            }
-        } catch (error) {
-            console.warn('Failed to load random spot image:', error);
+        // Use preloaded spot images
+        if (this.spotImages.length > 0) {
+            const randomImage = this.randomFromArray(this.spotImages);
+            spot.content.image = randomImage;
+            console.log(`🖼️ Assigned image to spot ${spot.id}:`, randomImage.src);
+        } else {
+            console.warn('No spot images loaded yet');
+            spot.content.image = null;
         }
 
         // Random scale for variety (0.5x to 2x size)
@@ -462,15 +534,10 @@ class Shuffler {
         }
 
         // Load random background image with 50% probability
-        if (Math.random() > 0.5) {
-            try {
-                const bgImage = await this.app.assetManager.getRandomBackgroundImage();
-                if (bgImage) {
-                    this.app.setBackgroundImage(bgImage);
-                }
-            } catch (error) {
-                console.warn('Failed to load random background image:', error);
-            }
+        if (Math.random() > 0.5 && this.backgroundImages.length > 0) {
+            const randomBackgroundImage = this.randomFromArray(this.backgroundImages);
+            // Pass the actual Image object, not the src string
+            this.app.setBackgroundImage(randomBackgroundImage);
         }
 
         // Update position button UI after all changes
@@ -609,5 +676,78 @@ class Shuffler {
             const isActive = (btnH === currentH && btnV === currentV);
             btn.classList.toggle('active', isActive);
         });
+    }
+
+    /**
+     * Shuffle all spots with random types and parameters (ignores useDefaults)
+     */
+    async shuffleAllSpotsRandomly() {
+        if (!this.app.spots || this.app.spots.length === 0) return;
+
+        console.log(' Shuffling all spots with random types and parameters...');
+
+        for (const spot of this.app.spots) {
+            await this.shuffleIndividualSpotRandomly(spot);
+        }
+
+        this.app.updateSpotsUI();
+    }
+
+    /**
+     * Shuffle an individual spot with random type and parameters (ignores useDefaults)
+     */
+    async shuffleIndividualSpotRandomly(spot) {
+        // Randomly choose spot type with equal probability
+        const types = ['text', 'image', 'mask', 'empty'];
+        const newType = this.randomFromArray(types);
+        spot.setType(newType);
+        console.log('shuffling spot with type:', newType);
+
+        switch (newType) {
+            case 'text':
+                await this.shuffleTextSpotRandomly(spot);
+                break;
+            case 'image':
+                await this.shuffleImageSpot(spot);
+                break;
+            case 'mask':
+                // Mask spots with random opacity
+                spot.opacity = Math.random() * 0.5 + 0.5;
+                break;
+            case 'empty':
+                // Empty spots don't need configuration
+                break;
+        }
+    }
+
+    /**
+     * Shuffle text spot parameters with random content (ignores useDefaults)
+     */
+    async shuffleTextSpotRandomly(spot) {
+        if (!spot.content) spot.content = {};
+
+        // ALWAYS assign random text content
+        spot.content.text = this.randomFromArray(this.defaultSpotTexts);
+
+        // Text color - use current palette if available, otherwise use first palette
+        const palette = this.currentPalette || this.colorPalette1;
+        spot.content.color = this.randomFromArray(palette);
+
+        // Text alignment - only horizontal (left, center, right)
+        const horizontalAlignments = ['left', 'center', 'right'];
+        spot.content.textAlign = this.randomFromArray(horizontalAlignments);
+
+        // Position - always vertically centered, only vary horizontal
+        const horizontalPositions = ['left', 'center', 'right'];
+        spot.content.positionH = this.randomFromArray(horizontalPositions);
+        spot.content.positionV = 'middle'; // Always center vertically
+
+        // Styles
+        spot.content.styles = {
+            bold: Math.random() > 0.5,
+            italic: Math.random() > 0.7,
+            underline: Math.random() > 0.8,
+            highlight: Math.random() > 0.8
+        };
     }
 }

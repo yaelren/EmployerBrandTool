@@ -20,7 +20,7 @@ class Spot {
         
         // Visual properties
         this.outlineColor = '#e5e5e5';
-        this.fillColor = 'rgba(229, 229, 229, 0.1)';
+        this.fillColor = 'transparent';
     }
     
     /**
@@ -35,16 +35,16 @@ class Spot {
         switch(type) {
             case 'mask':
                 this.opacity = 0.5;
-                this.fillColor = 'rgba(229, 229, 229, 0.3)';
+                this.fillColor = 'transparent';
                 break;
             case 'image':
-                this.fillColor = 'rgba(100, 149, 237, 0.2)'; // Light blue
+                this.fillColor = 'transparent';
                 break;
             case 'text':
-                this.fillColor = 'rgba(255, 165, 0, 0.2)'; // Light orange
+                this.fillColor = 'transparent';
                 break;
             default:
-                this.fillColor = 'rgba(229, 229, 229, 0.1)'; // Default light gray
+                this.fillColor = 'transparent';
         }
     }
     
@@ -149,8 +149,10 @@ class Spot {
      * @private
      */
     renderEmpty(ctx) {
-        ctx.fillStyle = this.fillColor;
-        ctx.fillRect(this.x, this.y, this.width, this.height);
+        if (this.fillColor !== 'transparent') {
+            ctx.fillStyle = this.fillColor;
+            ctx.fillRect(this.x, this.y, this.width, this.height);
+        }
     }
     
     /**
@@ -213,8 +215,10 @@ class Spot {
     renderImage(ctx) {
         // If no image content, show placeholder with background
         if (!this.content || !this.content.image) {
-            ctx.fillStyle = this.fillColor;
-            ctx.fillRect(this.x, this.y, this.width, this.height);
+            if (this.fillColor !== 'transparent') {
+                ctx.fillStyle = this.fillColor;
+                ctx.fillRect(this.x, this.y, this.width, this.height);
+            }
             this.renderImagePlaceholder(ctx);
             return;
         }
@@ -324,8 +328,10 @@ class Spot {
     renderText(ctx) {
         // If no text content, show placeholder with background
         if (!this.content || !this.content.text) {
-            ctx.fillStyle = this.fillColor;
-            ctx.fillRect(this.x, this.y, this.width, this.height);
+            if (this.fillColor !== 'transparent') {
+                ctx.fillStyle = this.fillColor;
+                ctx.fillRect(this.x, this.y, this.width, this.height);
+            }
             this.renderTextPlaceholder(ctx);
             return;
         }

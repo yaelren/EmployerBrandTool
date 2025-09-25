@@ -332,9 +332,9 @@
 
 /* Canvas styling */
 #chatooly-canvas {
-    border: 2px solid var(--chatooly-color-border, #3a3a3a);
-    border-radius: 8px;
-    background: white;
+    /* No border or border-radius - clean export appearance */
+    border-radius: 0 !important;
+    border: none !important;
 }
 
 /* Textarea styling for main text input */

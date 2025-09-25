@@ -43,7 +43,6 @@ class EmployerBrandToolPOC {
         this.shuffler = null; // Will be initialized after DOM is ready
 
         // Asset Management System
-        this.assetManager = null; // Will be initialized after DOM is ready
         this.backgroundImage = null; // Currently loaded background image
 
         // Initialize the application
@@ -60,10 +59,6 @@ class EmployerBrandToolPOC {
 
             // Initialize debug controller
             this.debugController = new DebugController(this);
-
-            // Initialize asset management system
-            this.assetManager = new AssetManager();
-            await this.assetManager.initialize();
 
             // Initialize shuffler system
             this.shuffler = new Shuffler(this);
@@ -1106,9 +1101,10 @@ class EmployerBrandToolPOC {
     /**
      * Auto-detect spots with debouncing
      * @param {number} delay - Delay in milliseconds (default: 500ms)
+     * @param {Function} callback - Optional callback to run after detection completes
      * @private
      */
-    autoDetectSpotsDebounced(delay = 500) {
+    autoDetectSpotsDebounced(delay = 500, callback = null) {
         if (!this.autoDetectSpots) return;
         
         // Clear existing timeout
@@ -1119,14 +1115,15 @@ class EmployerBrandToolPOC {
         // Set new timeout
         this.spotDetectionTimeout = setTimeout(() => {
             console.log('🤖 Auto-detecting spots after text change...');
-            this.detectSpots();
+            this.detectSpots(callback);
         }, delay);
     }
 
     /**
      * Detect open spots using the algorithm
+     * @param {Function} callback - Optional callback to run after detection completes
      */
-    detectSpots() {
+    detectSpots(callback = null) {
         try {
             console.log('🔍 Starting spot detection...');
             
@@ -1165,9 +1162,20 @@ class EmployerBrandToolPOC {
             this.updateSpotsUI();
             this.render();
             
+            // Call the callback if provided
+            if (callback && typeof callback === 'function') {
+                console.log('🎯 Spot detection complete, running callback...');
+                callback();
+            }
+            
         } catch (error) {
             console.error('❌ Spot detection failed:', error);
             this.showError('Spot detection failed. Please try again.');
+            
+            // Still call callback even if detection failed
+            if (callback && typeof callback === 'function') {
+                callback();
+            }
         }
     }
     
@@ -1773,8 +1781,7 @@ class EmployerBrandToolPOC {
             }
         });
 
-        // Update canvas manager dimensions
-        this.canvasManager.setDimensions(newWidth, newHeight);
+        // Canvas dimensions are now automatically synced - no manual update needed
 
         // Update text engine configuration
         this.textEngine.updateConfig({
@@ -2070,37 +2077,44 @@ window.renderHighResolution = function(targetCanvas, scale) {
         console.warn('App not ready for high-res export');
         return;
     }
-    
+
     const app = window.employerBrandTool;
     const ctx = targetCanvas.getContext('2d');
-    
+
     // Set up scaled canvas
-    targetCanvas.width = app.canvasManager.width * scale;
-    targetCanvas.height = app.canvasManager.height * scale;
-    
+    const originalWidth = app.canvasManager.canvas.width;
+    const originalHeight = app.canvasManager.canvas.height;
+    targetCanvas.width = originalWidth * scale;
+    targetCanvas.height = originalHeight * scale;
+
     ctx.save();
     ctx.scale(scale, scale);
-    
-    // Re-render at high resolution
+
+    // Get current render data (no swapping - use original layout)
     const renderData = {
         textLines: app.textEngine.getLinesForRender(),
         textConfig: app.textEngine.getConfig(),
         spots: app.spots,
         debugInfo: null // Skip debug for export
     };
-    
-    // Render to target canvas
+
+    // Temporarily swap canvas and context for rendering, but keep everything else the same
     const originalCanvas = app.canvasManager.canvas;
     const originalCtx = app.canvasManager.ctx;
-    
+
+    // Temporarily set export canvas and context
     app.canvasManager.canvas = targetCanvas;
     app.canvasManager.ctx = ctx;
+
+    // Render using the actual CanvasManager (preserves all methods and alignment logic)
     app.canvasManager.render(renderData);
-    
-    // Restore original canvas
+
+    // Restore original canvas and context
     app.canvasManager.canvas = originalCanvas;
     app.canvasManager.ctx = originalCtx;
-    
+
     ctx.restore();
     console.log(`High-res export completed at ${scale}x resolution`);
+    console.log(`Original canvas: ${originalWidth}x${originalHeight}`);
+    console.log(`Export canvas: ${targetCanvas.width}x${targetCanvas.height}`);
 };

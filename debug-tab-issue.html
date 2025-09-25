@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Debug Tab Issue</title>
+    <style>
+        .tab-navigation { display: flex; gap: 10px; margin: 20px 0; }
+        .tab-btn { padding: 10px 20px; border: 1px solid #ccc; background: #f0f0f0; cursor: pointer; }
+        .tab-btn.active { background: #007bff; color: white; }
+        .tab-content { display: none; padding: 20px; border: 1px solid #ccc; }
+        .tab-content.active { display: block; }
+    </style>
+</head>
+<body>
+    <h1>Debug Tab Issue</h1>
+    
+    <div class="tab-navigation">
+        <button class="tab-btn active" data-tab="mainText">Main Text</button>
+        <button class="tab-btn" data-tab="canvas">Canvas & Background</button>
+        <button class="tab-btn" data-tab="spots">Spots</button>
+    </div>
+    
+    <div id="mainTextTab" class="tab-content active">
+        <h3>Main Text Tab</h3>
+        <p>This is the main text tab content.</p>
+    </div>
+    
+    <div id="canvasTab" class="tab-content">
+        <h3>Canvas Tab</h3>
+        <p>This is the canvas tab content.</p>
+    </div>
+    
+    <div id="spotsTab" class="tab-content">
+        <h3>Spots Tab</h3>
+        <p>This is the spots tab content.</p>
+    </div>
+    
+    <div id="parametersTab" class="tab-content">
+        <h3>Parameters Tab</h3>
+        <p>This is the parameters tab content.</p>
+    </div>
+    
+    <script>
+        // Mock app object for testing
+        const mockApp = {
+            switchTab: function(tabName) {
+                console.log('Switching to tab:', tabName);
+                // Remove active class from all tabs and content
+                document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+                document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+                
+                // Add active class to selected tab
+                const activeTabBtn = document.querySelector(`[data-tab="${tabName}"]`);
+                if (activeTabBtn) {
+                    activeTabBtn.classList.add('active');
+                }
+                
+                // Show corresponding content
+                let contentId;
+                switch(tabName) {
+                    case 'mainText':
+                        contentId = 'mainTextTab';
+                        break;
+                    case 'canvas':
+                        contentId = 'canvasTab';
+                        break;
+                    case 'spots':
+                        contentId = 'spotsTab';
+                        break;
+                    case 'parameters':
+                        contentId = 'parametersTab';
+                        break;
+                }
+                
+                const activeContent = document.getElementById(contentId);
+                if (activeContent) {
+                    activeContent.classList.add('active');
+                }
+            }
+        };
+        
+        // Test adding Parameters tab
+        console.log('Testing Parameters tab addition...');
+        
+        // Add tab button
+        const tabsContainer = document.querySelector('.tab-navigation');
+        if (tabsContainer) {
+            const parameterTab = document.createElement('button');
+            parameterTab.className = 'tab-btn';
+            parameterTab.dataset.tab = 'parameters';
+            parameterTab.textContent = '🎲 Parameters';
+            
+            parameterTab.addEventListener('click', (e) => {
+                mockApp.switchTab('parameters');
+            });
+            
+            tabsContainer.appendChild(parameterTab);
+            console.log('✅ Parameters tab button added');
+        } else {
+            console.error('❌ Tab navigation container not found');
+        }
+        
+        // Test tab switching
+        document.querySelectorAll('.tab-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const targetTab = e.target.dataset.tab;
+                mockApp.switchTab(targetTab);
+            });
+        });
+        
+        console.log('✅ Tab switching setup complete');
+    </script>
+</body>
+</html>

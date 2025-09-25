@@ -13,9 +13,7 @@ class CanvasManager {
 
         this.ctx = this.canvas.getContext('2d');
 
-        // Get initial dimensions from the canvas element (set by Chatooly CDN or default)
-        this.width = this.canvas.width || 600;
-        this.height = this.canvas.height || 600;
+        // No need to cache dimensions - use canvas.width and canvas.height directly
 
         // Background settings
         this.backgroundColor = '#ffffff';
@@ -38,20 +36,18 @@ class CanvasManager {
     setDimensions(width, height) {
         this.canvas.width = width;
         this.canvas.height = height;
-        this.width = width;
-        this.height = height;
     }
     
     /**
      * Clear the entire canvas
      */
     clear() {
-        this.ctx.clearRect(0, 0, this.width, this.height);
+        this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
         
         // Fill with background color if not transparent
         if (this.backgroundColor !== 'transparent') {
             this.ctx.fillStyle = this.backgroundColor;
-            this.ctx.fillRect(0, 0, this.width, this.height);
+            this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
         }
         
         // Render background image if available (from app)
@@ -81,19 +77,19 @@ class CanvasManager {
      */
     renderBackground() {
         // Clear the canvas first
-        this.ctx.clearRect(0, 0, this.width, this.height);
-        
+        this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+
         // If background image exists, draw it first (behind background color)
         if (this.backgroundImage) {
             this.ctx.save();
-            this.ctx.drawImage(this.backgroundImage, 0, 0, this.width, this.height);
+            this.ctx.drawImage(this.backgroundImage, 0, 0, this.canvas.width, this.canvas.height);
             this.ctx.restore();
         }
-        
+
         // Apply background color on top of image (if not transparent)
         if (this.backgroundColor !== 'transparent') {
             this.ctx.fillStyle = this.backgroundColor;
-            this.ctx.fillRect(0, 0, this.width, this.height);
+            this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
         }
     }
     
@@ -122,16 +118,19 @@ class CanvasManager {
         // Render each line
         lines.forEach(line => {
             if (line.text.trim()) {
-                // Set alignment for this line
-                this.ctx.textAlign = line.alignment || 'left';
-                
-                // Calculate x position based on alignment
-                let x = line.x;
+                // Set alignment for this line and calculate position
+                let x, textAlign;
                 if (line.alignment === 'center') {
+                    textAlign = 'center';
                     x = line.x + line.width / 2;
                 } else if (line.alignment === 'right') {
+                    textAlign = 'right';
                     x = line.x + line.width;
+                } else {
+                    textAlign = 'left';
+                    x = line.x;
                 }
+                this.ctx.textAlign = textAlign;
                 
                 // Draw highlight background if enabled
                 if (textConfig.textStyles && textConfig.textStyles.highlight) {
@@ -235,26 +234,26 @@ class CanvasManager {
         
         // Top padding area
         if (paddingTop > 0) {
-            this.ctx.fillRect(0, 0, this.width, paddingTop);
-            this.ctx.strokeRect(0, 0, this.width, paddingTop);
+            this.ctx.fillRect(0, 0, this.canvas.width, paddingTop);
+            this.ctx.strokeRect(0, 0, this.canvas.width, paddingTop);
         }
-        
+
         // Bottom padding area
         if (paddingBottom > 0) {
-            this.ctx.fillRect(0, this.height - paddingBottom, this.width, paddingBottom);
-            this.ctx.strokeRect(0, this.height - paddingBottom, this.width, paddingBottom);
+            this.ctx.fillRect(0, this.canvas.height - paddingBottom, this.canvas.width, paddingBottom);
+            this.ctx.strokeRect(0, this.canvas.height - paddingBottom, this.canvas.width, paddingBottom);
         }
-        
+
         // Left padding area
         if (paddingLeft > 0) {
-            this.ctx.fillRect(0, 0, paddingLeft, this.height);
-            this.ctx.strokeRect(0, 0, paddingLeft, this.height);
+            this.ctx.fillRect(0, 0, paddingLeft, this.canvas.height);
+            this.ctx.strokeRect(0, 0, paddingLeft, this.canvas.height);
         }
-        
+
         // Right padding area
         if (paddingRight > 0) {
-            this.ctx.fillRect(this.width - paddingRight, 0, paddingRight, this.height);
-            this.ctx.strokeRect(this.width - paddingRight, 0, paddingRight, this.height);
+            this.ctx.fillRect(this.canvas.width - paddingRight, 0, paddingRight, this.canvas.height);
+            this.ctx.strokeRect(this.canvas.width - paddingRight, 0, paddingRight, this.canvas.height);
         }
         
         this.ctx.restore();
@@ -371,8 +370,8 @@ class CanvasManager {
      */
     getDimensions() {
         return {
-            width: this.width,
-            height: this.height
+            width: this.canvas.width,
+            height: this.canvas.height
         };
     }
     
@@ -391,8 +390,8 @@ class CanvasManager {
 
         // Fallback to manual calculation
         const rect = this.canvas.getBoundingClientRect();
-        const scaleX = this.width / rect.width;
-        const scaleY = this.height / rect.height;
+        const scaleX = this.canvas.width / rect.width;
+        const scaleY = this.canvas.height / rect.height;
 
         return {
             x: (screenX - rect.left) * scaleX,
