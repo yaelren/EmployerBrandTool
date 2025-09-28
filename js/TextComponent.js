@@ -123,7 +123,6 @@ class TextComponent {
 
                 // Convert normalized values to actual pixels
                 // FontMetrics baseline origin returns positive fractional values
-                console.log(`🔄 FontMetrics raw baseline values:`, metrics);
                 const calculatedMetrics = {
                     fontSize: size,
                     xHeight: Math.abs(metrics.xHeight * size),      // Distance from baseline up to x-height
@@ -133,7 +132,6 @@ class TextComponent {
                     baseline: 0, // We're using baseline as reference
                     lineHeight: size
                 };
-                console.log(`🔄 Calculated pixel values:`, calculatedMetrics);
                 return calculatedMetrics;
             } else {
                 console.error('FontMetrics library not available');
@@ -174,11 +172,6 @@ class TextComponent {
 
         // Use cap-height if line has capitals, otherwise x-height
         lineHeight = this.hasCapitalLetters(line) ? metrics.capHeight : metrics.xHeight;
-        console.log("metrics", metrics);
-        console.log("line", line);
-        console.log("has capitals", this.hasCapitalLetters(line));
-        console.log('🔧 Line height:', lineHeight);
-        // return this.hasCapitalLetters(line) ? Math.abs(metrics.capHeight * fontSize) : Math.abs(metrics.xHeight * fontSize);
         return lineHeight;
        
 
@@ -293,6 +286,7 @@ class TextComponent {
 
             // Measure the line
             const metrics = ctx.measureText(line);
+            const tightWidth = this.getTightTextWidth(ctx, line);
 
             // Calculate actual bounds based on alignment
             let boundX;
@@ -301,11 +295,11 @@ class TextComponent {
                     boundX = lineX;
                     break;
                 case 'right':
-                    boundX = lineX - metrics.width;
+                    boundX = lineX - tightWidth;
                     break;
                 case 'center':
                 default:
-                    boundX = lineX - metrics.width / 2;
+                    boundX = lineX - tightWidth / 2;
                     break;
             }
 
@@ -332,10 +326,6 @@ class TextComponent {
                     const correctCapHeight = Math.abs(correctMetrics.capHeight * fontSize);
                     const correctXHeight = Math.abs(correctMetrics.xHeight * fontSize);
 
-                    console.log(`✅ TYPOGRAPHY DEBUG for "${line}":`);
-                    console.log(`  fontSize: ${fontSize}px, lineY: ${lineY}px (this is BASELINE position)`);
-                    console.log(`  textBaseline mode: 'alphabetic' (text drawn AT baseline)`);
-                    console.log(`  corrected capHeight: ${correctCapHeight.toFixed(1)}px, xHeight: ${correctXHeight.toFixed(1)}px`);
 
                     // BACK TO WORKING APPROACH: Use baseline position directly (lineY)
                     // This positioned correctly, just need to adjust the bounds to wrap letters properly
@@ -353,20 +343,13 @@ class TextComponent {
                         boundsHeight = correctXHeight;    // Typography-aware height for lowercase
                     }
 
-                    if (hasCapitals) {
-                        console.log(`  → CAPITALS: baseline=${lineY}, actualAscent=${actualAscent.toFixed(1)}, boundsTop=${boundsY.toFixed(1)}`);
-                    } else {
-                        console.log(`  → LOWERCASE: baseline=${lineY}, actualAscent=${actualAscent.toFixed(1)}, boundsTop=${boundsY.toFixed(1)}`);
-                    }
-
-                    console.log(`  → FINAL: Y=${boundsY.toFixed(1)}, H=${boundsHeight.toFixed(1)} (baseline was ${lineY})`);
                 }
             }
 
             textBounds.push({
                 x: boundX,
                 y: boundsY,
-                width: metrics.width,
+                width: tightWidth,
                 height: boundsHeight,
                 text: line,
                 line: line
@@ -535,11 +518,42 @@ class TextComponent {
     }
     
     /**
+     * Get tight text width using actualBoundingBox properties
+     * @param {CanvasRenderingContext2D} ctx - Canvas context
+     * @param {string} text - Text to measure
+     * @returns {number} Tight width in pixels
+     */
+    getTightTextWidth(ctx, text) {
+        const metrics = ctx.measureText(text);
+        
+        // Use actualBoundingBox if available (modern browsers)
+        if (metrics.actualBoundingBoxLeft !== undefined && 
+            metrics.actualBoundingBoxRight !== undefined) {
+            const tightWidth = metrics.actualBoundingBoxRight; // Distance from origin to right edge
+            return tightWidth;
+        }
+        
+        // Fallback to standard width
+        return metrics.width;
+    }
+    
+    /**
      * Get available width for text (container width minus padding)
+     * @param {CanvasRenderingContext2D} ctx - Canvas context for tight width calculation
+     * @param {string} text - Text to measure for tight width (optional)
      * @returns {number} Available width in pixels
      */
-    getAvailableWidth() {
-        return this.containerWidth - this.paddingLeft - this.paddingRight;
+    getAvailableWidth(ctx = null, text = null) {
+        const containerWidth = this.containerWidth - this.paddingLeft - this.paddingRight;
+        
+        // If context and text provided, return tight text width
+        if (ctx && text && text.trim()) {
+            const tightWidth = this.getTightTextWidth(ctx, text);
+            return Math.min(containerWidth, tightWidth);
+        }
+        
+        // Default: return container width
+        return containerWidth;
     }
     
     /**
