@@ -45,6 +45,9 @@ class EmployerBrandToolPOC {
         // Asset Management System
         this.backgroundImage = null; // Currently loaded background image
 
+        // Grid Animation System (NEW - built alongside existing)
+        this.grid = null; // Will be initialized after DOM is ready
+
         // Initialize the application
         this.initialize();
     }
@@ -63,6 +66,10 @@ class EmployerBrandToolPOC {
             // Initialize shuffler system
             this.shuffler = new Shuffler(this);
             console.log('🎲 Shuffler system initialized');
+
+            // Initialize Grid system (NEW - testing integration)
+            this.grid = new Grid(this);
+            console.log('🔧 Grid system initialized');
 
             // Set initial canvas size via Chatooly CDN
             this.initializeChatoolyCanvas();
@@ -100,6 +107,12 @@ class EmployerBrandToolPOC {
 
             // Initial render
             this.render();
+
+            // Test Grid system (NEW - build from existing data)
+            if (this.grid) {
+                this.grid.buildFromExisting();
+                console.log('🧪 Grid system test:', this.grid.getStatus());
+            }
 
             this.isInitialized = true;
 
@@ -463,24 +476,35 @@ class EmployerBrandToolPOC {
     onTextChanged() {
         const text = this.elements.mainText.value;
         this.mainTextComponent.text = text;
-        
+
+        // Update text engine with new text
+        if (this.textEngine) {
+            this.textEngine.setText(text);
+        }
+
         // IMPORTANT: Apply saved alignments immediately after text change but before updateLineAlignmentControls
         this.applySavedAlignments();
-        
+
         // Update line alignment controls
         this.updateLineAlignmentControls();
-        
+
         // Save spots before clearing when text changes
         if (this.spots.length > 0) {
             this.saveSpotData();
         }
-        
+
         // Clear spots when text changes
         this.spots = [];
         this.updateSpotsUI();
-        
+
         this.render();
-        
+
+        // Rebuild grid after text changes (NEW - keep grid synchronized)
+        if (this.grid && !this.grid.isLocked) {
+            this.grid.buildFromExisting();
+            console.log('🔄 Grid rebuilt after text change');
+        }
+
         // Auto-detect spots after text changes (only if there's text content)
         if (this.elements.mainText.value.trim()) {
             this.autoDetectSpotsDebounced();
@@ -514,7 +538,6 @@ class EmployerBrandToolPOC {
                 const savedAlignment = this.savedLineAlignments[lineKey];
                 
                 if (savedAlignment) {
-                    console.log(`🔄 Restoring alignment for "${lineKey}": ${savedAlignment}`);
                     this.mainTextComponent.setLineAlignment(index, savedAlignment);
                 }
             }
@@ -1161,7 +1184,13 @@ class EmployerBrandToolPOC {
             // Update UI
             this.updateSpotsUI();
             this.render();
-            
+
+            // Rebuild grid after spot detection (NEW - keep grid synchronized)
+            if (this.grid && !this.grid.isLocked) {
+                this.grid.buildFromExisting();
+                console.log('🔄 Grid rebuilt after spot detection');
+            }
+
             // Call the callback if provided
             if (callback && typeof callback === 'function') {
                 console.log('🎯 Spot detection complete, running callback...');
@@ -1365,6 +1394,11 @@ class EmployerBrandToolPOC {
             spot.setType(typeSelect.value);
             this.createSpotTypeControls(spot, controls);
             this.render();
+
+            // Update grid to reflect spot type change
+            if (this.grid) {
+                this.grid.updateSpotType(spot.id, typeSelect.value);
+            }
         });
         
         // Assemble item
@@ -1409,6 +1443,11 @@ class EmployerBrandToolPOC {
             spot.setType(newType);
             console.log(`Changed spot ${spotId} to type: ${newType}`);
             this.render();
+
+            // Update grid to reflect spot type change
+            if (this.grid) {
+                this.grid.updateSpotType(spot.id, typeSelect.value);
+            }
         }
     }
     
@@ -1867,6 +1906,11 @@ class EmployerBrandToolPOC {
             this.createPopupSpotControls(spot, container);
             this.render();
             this.updateSpotsUI();
+
+            // Update grid to reflect spot type change
+            if (this.grid) {
+                this.grid.updateSpotType(spot.id, typeSelect.value);
+            }
         });
         
         container.appendChild(typeGroup);

@@ -35,7 +35,11 @@ class SpotDetector {
      */
     detect(canvas, textBounds, padding = {top: 0, bottom: 0, left: 0, right: 0}) {
         const startTime = performance.now();
-        
+
+        // Initialize GridBuilder for spatial layout discovery
+        this.gridBuilder = new GridBuilder();
+        this.gridBuilder.startBuild();
+
         // Initialize debug data
         if (this.debugging) {
             this.debugData = {
@@ -95,6 +99,9 @@ class SpotDetector {
                 height: bounds.height,
                 type: 'text'
             });
+
+            // Add text region to GridBuilder for spatial discovery
+            this.gridBuilder.addTextRegion(bounds, bounds.text, index);
             
             // Check for spot to the LEFT of text (respecting left padding)
             const leftSpotWidth = bounds.x - padding.left;
@@ -109,7 +116,10 @@ class SpotDetector {
                     0
                 );
                 spots.push(leftSpot);
-                
+
+                // Add left spot to GridBuilder
+                this.gridBuilder.addSpotRegion(leftSpot);
+
                 if (this.debugging) {
                     this.debugData.processingSteps.push(`  Found left spot: ${Math.round(leftSpotWidth)}x${Math.round(bounds.height)}`);
                 }
@@ -129,7 +139,10 @@ class SpotDetector {
                     2 // Column after text
                 );
                 spots.push(rightSpot);
-                
+
+                // Add right spot to GridBuilder
+                this.gridBuilder.addSpotRegion(rightSpot);
+
                 if (this.debugging) {
                     this.debugData.processingSteps.push(`  Found right spot: ${Math.round(rightSpotWidth)}x${Math.round(bounds.height)}`);
                 }
@@ -160,7 +173,10 @@ class SpotDetector {
                         0
                     );
                     spots.push(gapSpot);
-                    
+
+                    // Add gap spot to GridBuilder
+                    this.gridBuilder.addSpotRegion(gapSpot);
+
                     if (this.debugging) {
                         this.debugData.processingSteps.push(`Found gap between lines: ${Math.round(gapHeight)}px high`);
                     }
@@ -172,7 +188,7 @@ class SpotDetector {
         if (nonEmptyBounds.length > 0) {
             const firstLine = nonEmptyBounds[0];
             const topSpaceHeight = firstLine.y - padding.top;
-            
+
             if (topSpaceHeight >= this.minSpotSize) {
                 const availableWidth = canvas.width - padding.left - padding.right;
                 const topSpot = new Spot(
@@ -185,7 +201,10 @@ class SpotDetector {
                     0
                 );
                 spots.push(topSpot);
-                
+
+                // Add top spot to GridBuilder
+                this.gridBuilder.addSpotRegion(topSpot);
+
                 if (this.debugging) {
                     this.debugData.processingSteps.push(`Found top space: ${Math.round(topSpaceHeight)}px high`);
                 }
@@ -197,7 +216,7 @@ class SpotDetector {
             const lastLine = nonEmptyBounds[nonEmptyBounds.length - 1];
             const bottomSpaceY = lastLine.y + lastLine.height;
             const bottomSpaceHeight = canvas.height - padding.bottom - bottomSpaceY;
-            
+
             if (bottomSpaceHeight >= this.minSpotSize) {
                 const availableWidth = canvas.width - padding.left - padding.right;
                 const bottomSpot = new Spot(
@@ -210,7 +229,10 @@ class SpotDetector {
                     0
                 );
                 spots.push(bottomSpot);
-                
+
+                // Add bottom spot to GridBuilder
+                this.gridBuilder.addSpotRegion(bottomSpot);
+
                 if (this.debugging) {
                     this.debugData.processingSteps.push(`Found bottom space: ${Math.round(bottomSpaceHeight)}px high`);
                 }
@@ -219,17 +241,24 @@ class SpotDetector {
         
         // Step 5: Validate and clean up spots
         const validSpots = this.validateSpots(spots, canvas);
-        
+
+        // Step 6: Finalize the spatial grid based on discovered layout
+        const gridResult = this.gridBuilder.finalizeGrid();
+
+        // Store grid result for access by Grid system
+        this.lastGridResult = gridResult;
+
         // Final debug info
         const endTime = performance.now();
         const detectionTime = Math.round(endTime - startTime);
-        
+
         if (this.debugging) {
             this.debugData.detectedSpots = validSpots.length;
             this.debugData.detectionTime = detectionTime;
             this.debugData.processingSteps.push(`Final: ${validSpots.length} valid spots in ${detectionTime}ms`);
+            this.debugData.processingSteps.push(`Grid: ${gridResult.rows}x${gridResult.cols} with ${this.gridBuilder.regions.length} regions`);
         }
-        
+
         return validSpots;
     }
     
@@ -296,6 +325,14 @@ class SpotDetector {
      */
     getDebugInfo() {
         return this.debugData;
+    }
+
+    /**
+     * Get the grid result from the last detection
+     * @returns {Object} Grid matrix and metadata from GridBuilder
+     */
+    getGridResult() {
+        return this.lastGridResult;
     }
     
     /**
