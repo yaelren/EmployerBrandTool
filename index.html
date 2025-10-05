@@ -55,6 +55,7 @@
                     <button class="tab-btn active" data-tab="mainText">Main Text</button>
                     <button class="tab-btn" data-tab="canvas">Canvas</button>
                     <button class="tab-btn" data-tab="spots">Spots</button>
+                    <button class="tab-btn" data-tab="animation">🎬 Animation</button>
                     <button class="tab-btn" data-tab="parameters">🎲 Parameters</button>
                 </div>
                 
@@ -211,7 +212,64 @@ SPOTLIGHT
                         </div>
                     </div>
                 </div>
-                
+
+                <!-- Animation Tab -->
+                <div id="animationTab" class="tab-content">
+
+                    <!-- Interactive Grid Display -->
+                    <div class="chatooly-control-group">
+                        <h3>🎯 Grid Animation Editor</h3>
+                        <p class="control-description">Click any cell to set its animation</p>
+
+                        <!-- Visual Grid -->
+                        <div id="visualGrid" class="visual-grid">
+                            <!-- Grid cells will be dynamically generated here -->
+                        </div>
+
+                        <!-- Selected Cell Info -->
+                        <div id="selectedCellInfo" class="selected-cell-info" style="display: none;">
+                            <h4>Selected: <span id="selectedCellLabel"></span></h4>
+                            <div class="animation-config">
+                                <label>Animation Type:</label>
+                                <select id="cellAnimationType">
+                                    <option value="none">None</option>
+                                    <option value="sway">Sway</option>
+                                    <option value="bounce">Bounce</option>
+                                    <option value="rotate">Rotate</option>
+                                    <option value="pulse">Pulse</option>
+                                </select>
+
+                                <label>Intensity: <span id="intensityValue">20</span>px</label>
+                                <input type="range" id="cellAnimationIntensity" min="5" max="50" value="20">
+
+                                <label>Speed: <span id="speedValue">1.0</span>x</label>
+                                <input type="range" id="cellAnimationSpeed" min="0.5" max="2" step="0.1" value="1.0">
+
+                                <button id="applyCellAnimation" class="anim-btn">✓ Apply</button>
+                                <button id="removeCellAnimation" class="anim-btn clear-btn">✗ Remove</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Global Animation Controls -->
+                    <div class="chatooly-control-group">
+                        <h3>🎬 Playback Controls</h3>
+                        <div class="animation-playback">
+                            <button id="playAnimation" class="anim-btn play-btn">▶ Play</button>
+                            <button id="pauseAnimation" class="anim-btn pause-btn">⏸ Pause</button>
+                            <button id="resetAnimation" class="anim-btn reset-btn">↺ Reset</button>
+                            <button id="clearAnimations" class="anim-btn clear-btn">🧹 Clear All</button>
+                        </div>
+
+                        <div class="animation-status">
+                            <span id="animationCount">0 animations set</span>
+                            <span id="playbackStatus">Stopped</span>
+                            <span id="fpsDisplay">0 FPS</span>
+                        </div>
+                    </div>
+
+                </div>
+
                 <!-- Parameters Tab -->
                 <div id="parametersTab" class="tab-content">
                     <div class="parameter-management">
@@ -322,7 +380,52 @@ SPOTLIGHT
             </div>
         </div>
     </div>
-    
+
+    <!-- Animation Configuration Popup -->
+    <div id="animationPopup" class="animation-popup" style="display: none;">
+        <div class="popup-overlay"></div>
+        <div class="popup-content">
+            <div class="popup-header">
+                <h4 id="popupTitle">Animate Text</h4>
+                <button id="closePopup" class="popup-close">×</button>
+            </div>
+            <div class="popup-body">
+                <div class="animation-options">
+                    <h5>Animation Type:</h5>
+                    <div class="option-grid">
+                        <button class="anim-option" data-type="sway-horizontal">
+                            <span class="option-icon">↔</span>
+                            <span class="option-label">Sway Left-Right</span>
+                        </button>
+                        <button class="anim-option" data-type="sway-vertical">
+                            <span class="option-icon">↕</span>
+                            <span class="option-label">Sway Up-Down</span>
+                        </button>
+                        <button class="anim-option" data-type="none">
+                            <span class="option-icon">✕</span>
+                            <span class="option-label">No Animation</span>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="intensity-control">
+                    <label for="animationIntensity">Animation Intensity:</label>
+                    <input type="range" id="animationIntensity" min="5" max="50" value="20">
+                    <span id="intensityValue">20px</span>
+                </div>
+
+                <div class="preview-section">
+                    <p class="preview-text">Preview: <span id="previewText">Sample Text</span></p>
+                    <small>Click "Apply" to see the animation on canvas</small>
+                </div>
+            </div>
+            <div class="popup-footer">
+                <button id="applyAnimation" class="btn-primary">Apply Animation</button>
+                <button id="cancelAnimation" class="btn-secondary">Cancel</button>
+            </div>
+        </div>
+    </div>
+
     <!-- ========== DO NOT EDIT: Chatooly CDN v2.0 Integration ========== -->
     <!-- This script automatically provides: Dark theme styling + Static/Video export functionality -->
     <!-- Video support: Detects p5.js, Three.js, Canvas animations and provides MediaRecorder API export -->
@@ -355,13 +458,16 @@ SPOTLIGHT
     <!-- Shuffler System -->
     <script src="js/Shuffler.js"></script>
 
-    <!-- Grid Animation System -->
+    <!-- Grid System -->
     <script src="js/grid/GridCell.js"></script>
     <script src="js/grid/MainTextCell.js"></script>
     <script src="js/grid/SpotCell.js"></script>
     <script src="js/grid/GridBuilder.js"></script>
     <script src="js/grid/GridSnapshot.js"></script>
     <script src="js/grid/Grid.js"></script>
+
+    <!-- Animation System (NEW - Simple per-cell animations) -->
+    <script src="js/animations/TextAnimation.js"></script>
 
     <!-- Main Application -->
     <script src="js/app.js"></script>
