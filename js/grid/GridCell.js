@@ -11,45 +11,45 @@ class GridCell {
         this.bounds = { x: 0, y: 0, width: 0, height: 0 };
         this.originalBounds = null; // Snapshot for animation reset
 
-        // Animation properties
-        this.animation = {
-            type: 'none',                 // 'sway-horizontal' | 'sway-vertical' | 'none'
-            isActive: false,
-            intensity: 20,                // pixels of movement
-            currentOffset: { x: 0, y: 0 }, // current animation position
-            shouldReact: true,            // responds to neighbor animations
-            reactionScale: 1,             // current scale for reactions
-            reactionOffset: { x: 0, y: 0 } // offset from neighbor reactions
-        };
+        // Animation (NEW: Simple per-cell animation)
+        // This is completely isolated from grid structure
+        // cell.bounds remains unchanged - only currentOffset affects rendering
+        this.animation = null;          // TextAnimation instance or null
+        this.currentOffset = { x: 0, y: 0 }; // Visual rendering offset (non-destructive)
     }
 
     /**
-     * Calculate current animation offset based on time
-     * @param {number} time - Current animation time
-     * @returns {Object} - {x, y} offset values
+     * Set animation for this cell
+     * @param {string} type - Animation type ('sway', 'bounce', 'rotate', 'pulse')
+     * @param {number} intensity - Animation intensity in pixels (default: 20)
+     * @param {number} speed - Speed multiplier (default: 1.0)
      */
-    getAnimationOffset(time) {
-        if (!this.animation.isActive || this.animation.type === 'none') {
-            return { x: 0, y: 0 };
+    setAnimation(type, intensity = 20, speed = 1.0) {
+        // Remove existing animation if present
+        if (this.animation) {
+            this.animation.pause();
+            this.animation = null;
         }
 
-        const normalizedTime = (time / 1000) * 2; // 2 cycles per second
-        const intensity = this.animation.intensity;
-
-        switch (this.animation.type) {
-            case 'sway-horizontal':
-                return {
-                    x: Math.sin(normalizedTime) * intensity,
-                    y: 0
-                };
-            case 'sway-vertical':
-                return {
-                    x: 0,
-                    y: Math.sin(normalizedTime) * intensity
-                };
-            default:
-                return { x: 0, y: 0 };
+        // Create new animation based on cell type
+        if (this.type === 'main-text') {
+            this.animation = new TextAnimation(this, { type, intensity, speed });
+            console.log(`✨ Animation set on cell [${this.row}][${this.col}]: ${type}`);
+        } else {
+            console.log(`⚠️ Animation not supported for cell type: ${this.type}`);
         }
+    }
+
+    /**
+     * Remove animation from this cell
+     */
+    removeAnimation() {
+        if (this.animation) {
+            this.animation.pause();
+            this.animation = null;
+        }
+        this.currentOffset = { x: 0, y: 0 };
+        console.log(`🚫 Animation removed from cell [${this.row}][${this.col}]`);
     }
 
     /**
@@ -59,10 +59,7 @@ class GridCell {
         if (this.originalBounds) {
             this.bounds = { ...this.originalBounds };
         }
-        this.animation.currentOffset = { x: 0, y: 0 };
-        this.animation.reactionOffset = { x: 0, y: 0 };
-        this.animation.reactionScale = 1;
-        this.animation.isActive = false;
+        this.currentOffset = { x: 0, y: 0 };
     }
 
     /**
@@ -82,12 +79,8 @@ class GridCell {
             col: this.col,
             type: this.type,
             bounds: this.bounds,
-            originalBounds: this.originalBounds,
-            animation: {
-                type: this.animation.type,
-                intensity: this.animation.intensity,
-                shouldReact: this.animation.shouldReact
-            }
+            originalBounds: this.originalBounds
+            // Note: Animation state is NOT serialized - it's purely visual/transient
         };
     }
 
@@ -100,9 +93,7 @@ class GridCell {
         cell.type = data.type;
         cell.bounds = data.bounds;
         cell.originalBounds = data.originalBounds;
-        cell.animation.type = data.animation.type;
-        cell.animation.intensity = data.animation.intensity;
-        cell.animation.shouldReact = data.animation.shouldReact;
+        // Animation state is not restored from serialization
         return cell;
     }
 }

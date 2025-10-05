@@ -23,10 +23,7 @@ class MainTextCell extends GridCell {
             highlightColor: '#ffff00'
         };
 
-        // Text cells can initiate animations
-        this.animation.canInitiate = true;
-        this.animation.defaultType = 'sway-horizontal';
-        this.animation.intensity = 20; // Default animation intensity
+        // Text cells support animations (set via setAnimation method)
     }
 
     /**
@@ -100,9 +97,7 @@ class MainTextCell extends GridCell {
         cell.bounds = data.bounds;
         cell.originalBounds = data.originalBounds;
         cell.style = { ...data.style };
-        cell.animation.type = data.animation.type;
-        cell.animation.intensity = data.animation.intensity;
-        cell.animation.shouldReact = data.animation.shouldReact;
+        // Animation state is not restored from serialization
         return cell;
     }
 }

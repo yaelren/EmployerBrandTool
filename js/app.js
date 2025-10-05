@@ -45,7 +45,7 @@ class EmployerBrandToolPOC {
         // Asset Management System
         this.backgroundImage = null; // Currently loaded background image
 
-        // Grid Animation System (NEW - built alongside existing)
+        // Grid Animation System (NEW - simple per-cell animations)
         this.grid = null; // Will be initialized after DOM is ready
 
         // Initialize the application
@@ -67,7 +67,7 @@ class EmployerBrandToolPOC {
             this.shuffler = new Shuffler(this);
             console.log('🎲 Shuffler system initialized');
 
-            // Initialize Grid system (NEW - testing integration)
+            // Initialize Grid system (NEW - simple per-cell animations)
             this.grid = new Grid(this);
             console.log('🔧 Grid system initialized');
 
@@ -112,6 +112,9 @@ class EmployerBrandToolPOC {
             if (this.grid) {
                 this.grid.buildFromExisting();
                 console.log('🧪 Grid system test:', this.grid.getStatus());
+
+                // Update visual grid display
+                this.updateVisualGrid();
             }
 
             this.isInitialized = true;
@@ -245,6 +248,14 @@ class EmployerBrandToolPOC {
             btn.addEventListener('click', (e) => {
                 const targetTab = e.target.dataset.tab;
                 this.switchTab(targetTab);
+
+                // Update animation controls when switching to animation tab
+                if (targetTab === 'animation') {
+                    setTimeout(() => {
+                        this.updateVisualGrid();
+                        this.updateTextLineAnimations();
+                    }, 50);
+                }
             });
         });
 
@@ -466,9 +477,626 @@ class EmployerBrandToolPOC {
         });
         
         // Debug visualization is now handled by DebugController
-        
+
+        // Animation Controls Event Handlers
+        this.setupAnimationEventListeners();
+
+        // Visual Grid Animation Editor
+        this.setupVisualGridListeners();
+
     }
-    
+
+    /**
+     * Set up animation control event listeners (NEW - Simple per-cell animations)
+     * @private
+     */
+    setupAnimationEventListeners() {
+        // Animation playback controls
+        const playBtn = document.getElementById('playAnimation');
+        const pauseBtn = document.getElementById('pauseAnimation');
+        const resetBtn = document.getElementById('resetAnimation');
+        const clearBtn = document.getElementById('clearAnimations');
+
+        if (playBtn) {
+            playBtn.addEventListener('click', () => {
+                if (this.grid) {
+                    this.grid.playAllAnimations();
+                    this._startAnimationLoop();  // Start render loop
+                    this.updateAnimationStatus();
+                }
+            });
+        }
+
+        if (pauseBtn) {
+            pauseBtn.addEventListener('click', () => {
+                if (this.grid) {
+                    this.grid.pauseAllAnimations();
+                    this._stopAnimationLoop();  // Stop render loop
+                    this.updateAnimationStatus();
+                }
+            });
+        }
+
+        if (resetBtn) {
+            resetBtn.addEventListener('click', () => {
+                if (this.grid) {
+                    this.grid.resetAllAnimations();
+                    this._stopAnimationLoop();  // Stop render loop
+                    this.updateAnimationStatus();
+                    this.render(); // Re-render to show reset
+                }
+            });
+        }
+
+        if (clearBtn) {
+            clearBtn.addEventListener('click', () => {
+                // Clear all animations from all cells
+                if (this.grid) {
+                    this.grid.getAllCells().forEach(cell => {
+                        if (cell && cell.animation) {
+                            cell.removeAnimation();
+                        }
+                    });
+                    this._stopAnimationLoop();  // Stop render loop
+                    this.updateAnimationStatus();
+                    this.updateTextLineAnimations(); // Refresh sidebar controls
+                    this.updateVisualGrid();  // Refresh visual grid
+                    this.render();  // Re-render canvas
+                }
+            });
+        }
+
+        // Initialize text line animation controls on first setup
+        this.updateTextLineAnimations();
+    }
+
+    /**
+     * Set up animation popup event listeners (DEPRECATED - using sidebar controls)
+     * @private
+     */
+    setupAnimationPopupListeners() {
+        // Animation popup functionality has been replaced with sidebar controls
+        // This method is kept for compatibility but no longer used
+        console.log('🔄 Animation popup listeners deprecated - using sidebar controls');
+    }
+
+    /**
+     * Update animation status display (NEW - Simple per-cell animations)
+     * @private
+     */
+    updateAnimationStatus() {
+        const animationCount = document.getElementById('animationCount');
+        const playbackStatus = document.getElementById('playbackStatus');
+
+        if (this.grid) {
+            const animatedCells = this.grid.getAnimatedCells();
+            const playingCount = animatedCells.filter(cell => cell.animation && cell.animation.isPlaying).length;
+
+            if (animationCount) {
+                animationCount.textContent = `${animatedCells.length} animations set`;
+            }
+
+            if (playbackStatus) {
+                const statusText = playingCount > 0 ? 'Playing' : 'Stopped';
+                playbackStatus.textContent = statusText;
+            }
+        }
+    }
+
+    /**
+     * Handle canvas clicks in animation mode (DEPRECATED - using sidebar controls)
+     * @param {MouseEvent} e - Click event
+     * @private
+     */
+    handleAnimationCanvasClick(e) {
+        // Canvas clicking for animations has been replaced with sidebar controls
+        console.log('🔄 Canvas click for animations deprecated - use sidebar controls');
+    }
+
+    /**
+     * Show animation configuration popup
+     * @param {MainTextCell} cell - Text cell to animate
+     * @private
+     */
+    showAnimationPopup(cell) {
+        const popup = document.getElementById('animationPopup');
+        const title = document.getElementById('popupTitle');
+        const previewText = document.getElementById('previewText');
+        const intensitySlider = document.getElementById('animationIntensity');
+
+        if (!popup) return;
+
+        // Store reference to cell being configured
+        this.currentAnimationCell = cell;
+
+        // Update popup content
+        if (title) {
+            title.textContent = `Animate "${cell.text}"`;
+        }
+
+        if (previewText) {
+            previewText.textContent = cell.text;
+        }
+
+        // Set current animation values
+        if (intensitySlider) {
+            intensitySlider.value = cell.animation.intensity || 20;
+            const intensityValue = document.getElementById('intensityValue');
+            if (intensityValue) {
+                intensityValue.textContent = `${intensitySlider.value}px`;
+            }
+        }
+
+        // Select current animation type
+        popup.querySelectorAll('.anim-option').forEach(option => {
+            option.classList.remove('selected');
+            if (option.dataset.type === cell.animation.type) {
+                option.classList.add('selected');
+            }
+        });
+
+        // If no animation is set, select 'none' by default
+        if (cell.animation.type === 'none') {
+            const noneOption = popup.querySelector('.anim-option[data-type="none"]');
+            if (noneOption) noneOption.classList.add('selected');
+        }
+
+        // Show popup
+        popup.style.display = 'flex';
+    }
+
+    /**
+     * Hide animation configuration popup
+     * @private
+     */
+    hideAnimationPopup() {
+        const popup = document.getElementById('animationPopup');
+        if (popup) {
+            popup.style.display = 'none';
+        }
+        this.currentAnimationCell = null;
+    }
+
+    /**
+     * Apply selected animation configuration
+     * @private
+     */
+    applySelectedAnimation() {
+        if (!this.currentAnimationCell || !this.animationEngine) return;
+
+        const popup = document.getElementById('animationPopup');
+        const selectedOption = popup ? popup.querySelector('.anim-option.selected') : null;
+        const intensitySlider = document.getElementById('animationIntensity');
+
+        if (!selectedOption) return;
+
+        const animationType = selectedOption.dataset.type;
+        const intensity = intensitySlider ? parseInt(intensitySlider.value) : 20;
+
+        // Apply animation to the cell
+        this.animationEngine.setAnimation(
+            this.currentAnimationCell.row,
+            this.currentAnimationCell.col,
+            animationType,
+            intensity
+        );
+
+        // Update status display
+        this.updateAnimationStatus();
+
+        // Hide popup
+        this.hideAnimationPopup();
+
+        console.log(`✨ Applied ${animationType} animation (${intensity}px) to "${this.currentAnimationCell.text}"`);
+    }
+
+    /**
+     * Update visual grid display showing all cells
+     * @private
+     */
+    updateVisualGrid() {
+        const container = document.getElementById('visualGrid');
+        if (!container) {
+            console.warn('⚠️ visualGrid element not found in DOM');
+            return;
+        }
+
+        // Clear existing grid
+        container.innerHTML = '';
+
+        // Check if grid is ready
+        if (!this.grid || !this.grid.isReady) {
+            container.innerHTML = '<p class="no-text-message">Grid not ready. Add text to see grid...</p>';
+            console.log('⚠️ Grid not ready yet');
+            return;
+        }
+
+        // Set grid columns based on actual grid dimensions
+        const cols = this.grid.cols || 3;
+        container.style.gridTemplateColumns = `repeat(${cols}, 1fr)`;
+
+        // Create grid cells
+        for (let row = 0; row < this.grid.rows; row++) {
+            for (let col = 0; col < this.grid.cols; col++) {
+                const cell = this.grid.getCell(row, col);
+
+                const gridCellDiv = document.createElement('div');
+                gridCellDiv.className = 'grid-cell';
+                gridCellDiv.dataset.row = row;
+                gridCellDiv.dataset.col = col;
+
+                if (!cell) {
+                    // Empty cell
+                    gridCellDiv.classList.add('empty-cell');
+                    gridCellDiv.innerHTML = `
+                        <div class="grid-cell-content">—</div>
+                        <div class="grid-cell-position">[${row},${col}]</div>
+                    `;
+                } else {
+                    // Cell with content
+                    const hasAnimation = cell.animation !== null;
+                    if (hasAnimation) {
+                        gridCellDiv.classList.add('has-animation');
+                    }
+
+                    const content = cell.type === 'main-text' ? cell.text :
+                                   cell.type === 'spot' ? `Spot: ${cell.spotType}` :
+                                   'Unknown';
+
+                    let animInfo = '';
+                    if (hasAnimation) {
+                        const status = cell.animation.getStatus();
+                        animInfo = `<div class="grid-cell-animation">${status.type}</div>`;
+                    }
+
+                    gridCellDiv.innerHTML = `
+                        <div class="grid-cell-content">${content}</div>
+                        <div class="grid-cell-position">[${row},${col}]</div>
+                        ${animInfo}
+                    `;
+
+                    // Add click handler for non-empty cells
+                    gridCellDiv.addEventListener('click', () => this.selectGridCell(row, col));
+                }
+
+                container.appendChild(gridCellDiv);
+            }
+        }
+
+        console.log(`🎯 Updated visual grid: ${this.grid.rows}x${this.grid.cols}`);
+    }
+
+    /**
+     * Select a grid cell for animation editing
+     * @param {number} row - Row index
+     * @param {number} col - Column index
+     * @private
+     */
+    selectGridCell(row, col) {
+        const cell = this.grid.getCell(row, col);
+        if (!cell) return;
+
+        // Update selected cell
+        this.selectedCell = { row, col, cell };
+
+        // Highlight selected cell in visual grid
+        document.querySelectorAll('.grid-cell').forEach(el => {
+            el.classList.remove('selected');
+        });
+        const selectedDiv = document.querySelector(`.grid-cell[data-row="${row}"][data-col="${col}"]`);
+        if (selectedDiv) {
+            selectedDiv.classList.add('selected');
+        }
+
+        // Show selected cell info panel
+        const infoPanel = document.getElementById('selectedCellInfo');
+        const cellLabel = document.getElementById('selectedCellLabel');
+        const typeSelect = document.getElementById('cellAnimationType');
+        const intensityInput = document.getElementById('cellAnimationIntensity');
+        const speedInput = document.getElementById('cellAnimationSpeed');
+        const intensityValue = document.getElementById('intensityValue');
+        const speedValue = document.getElementById('speedValue');
+
+        if (infoPanel) {
+            infoPanel.style.display = 'block';
+        }
+
+        if (cellLabel) {
+            const content = cell.type === 'main-text' ? `"${cell.text}"` :
+                           cell.type === 'spot' ? `Spot (${cell.spotType})` :
+                           'Unknown';
+            cellLabel.textContent = `${content} [${row},${col}]`;
+        }
+
+        // Set current animation values
+        if (cell.animation) {
+            const status = cell.animation.getStatus();
+            if (typeSelect) typeSelect.value = status.type;
+            if (intensityInput) intensityInput.value = status.intensity;
+            if (speedInput) speedInput.value = status.speed;
+            if (intensityValue) intensityValue.textContent = status.intensity;
+            if (speedValue) speedValue.textContent = status.speed.toFixed(1);
+        } else {
+            if (typeSelect) typeSelect.value = 'none';
+            if (intensityInput) intensityInput.value = 20;
+            if (speedInput) speedInput.value = 1.0;
+            if (intensityValue) intensityValue.textContent = '20';
+            if (speedValue) speedValue.textContent = '1.0';
+        }
+
+        console.log(`✓ Selected cell [${row},${col}]:`, cell.type);
+    }
+
+    /**
+     * Setup event listeners for visual grid animation controls
+     * @private
+     */
+    setupVisualGridListeners() {
+        // Intensity slider
+        const intensityInput = document.getElementById('cellAnimationIntensity');
+        const intensityValue = document.getElementById('intensityValue');
+        if (intensityInput && intensityValue) {
+            intensityInput.addEventListener('input', () => {
+                intensityValue.textContent = intensityInput.value;
+            });
+        }
+
+        // Speed slider
+        const speedInput = document.getElementById('cellAnimationSpeed');
+        const speedValue = document.getElementById('speedValue');
+        if (speedInput && speedValue) {
+            speedInput.addEventListener('input', () => {
+                speedValue.textContent = parseFloat(speedInput.value).toFixed(1);
+            });
+        }
+
+        // Apply animation button
+        const applyBtn = document.getElementById('applyCellAnimation');
+        if (applyBtn) {
+            applyBtn.addEventListener('click', () => this.applyCellAnimation());
+        }
+
+        // Remove animation button
+        const removeBtn = document.getElementById('removeCellAnimation');
+        if (removeBtn) {
+            removeBtn.addEventListener('click', () => this.removeCellAnimation());
+        }
+    }
+
+    /**
+     * Apply animation to selected cell
+     * @private
+     */
+    applyCellAnimation() {
+        if (!this.selectedCell) return;
+
+        const { row, col, cell } = this.selectedCell;
+        const type = document.getElementById('cellAnimationType').value;
+        const intensity = parseInt(document.getElementById('cellAnimationIntensity').value);
+        const speed = parseFloat(document.getElementById('cellAnimationSpeed').value);
+
+        if (type === 'none') {
+            cell.removeAnimation();
+        } else {
+            cell.setAnimation(type, intensity, speed);
+        }
+
+        // Update visual grid
+        this.updateVisualGrid();
+        this.updateAnimationStatus();
+
+        console.log(`✨ Applied ${type} animation to cell [${row},${col}]`);
+    }
+
+    /**
+     * Remove animation from selected cell
+     * @private
+     */
+    removeCellAnimation() {
+        if (!this.selectedCell) return;
+
+        const { row, col, cell } = this.selectedCell;
+        cell.removeAnimation();
+
+        // Update UI
+        document.getElementById('cellAnimationType').value = 'none';
+        this.updateVisualGrid();
+        this.updateAnimationStatus();
+
+        console.log(`🚫 Removed animation from cell [${row},${col}]`);
+    }
+
+    /**
+     * Update text line animation controls in the sidebar
+     * @private
+     */
+    updateTextLineAnimations() {
+        const container = document.getElementById('textLineAnimations');
+        if (!container) return;
+
+        // Clear existing content
+        container.innerHTML = '';
+
+        // Get current text content
+        const text = this.elements.mainText.value.trim();
+        if (!text) {
+            container.innerHTML = '<p class="no-text-message">Enter text to see animation options</p>';
+            return;
+        }
+
+        // Check if grid is ready
+        if (!this.grid || !this.grid.isReady) {
+            container.innerHTML = '<p class="no-text-message">Loading text lines...</p>';
+            return;
+        }
+
+        // Get text cells from grid
+        const textCells = this.grid.getAllCells().filter(cell => cell && cell.type === 'main-text');
+
+        if (textCells.length === 0) {
+            container.innerHTML = '<p class="no-text-message">No text lines found</p>';
+            return;
+        }
+
+        // Create controls for each text line
+        textCells.forEach((cell, index) => {
+            if (!cell.text || cell.isEmpty()) return;
+
+            // Get animation status (NEW - check if animation instance exists)
+            const animStatus = cell.animation ? cell.animation.getStatus() : null;
+            const currentType = animStatus ? animStatus.type : 'none';
+            const currentIntensity = animStatus ? animStatus.intensity : 20;
+
+            const lineControl = document.createElement('div');
+            lineControl.className = 'text-line-control';
+            lineControl.innerHTML = `
+                <div class="text-line-header">
+                    <h4>Line ${index + 1}: "${cell.text}"</h4>
+                    <span class="animation-status">${this.getAnimationStatusText(cell)}</span>
+                </div>
+                <div class="animation-controls">
+                    <div class="animation-type-selector">
+                        <label>Animation Type:</label>
+                        <div class="animation-buttons">
+                            <button type="button" class="animation-type-btn ${currentType === 'none' ? 'active' : ''}"
+                                    data-type="none" data-row="${cell.row}" data-col="${cell.col}">
+                                None
+                            </button>
+                            <button type="button" class="animation-type-btn ${currentType === 'sway' ? 'active' : ''}"
+                                    data-type="sway" data-row="${cell.row}" data-col="${cell.col}">
+                                Sway
+                            </button>
+                            <button type="button" class="animation-type-btn ${currentType === 'bounce' ? 'active' : ''}"
+                                    data-type="bounce" data-row="${cell.row}" data-col="${cell.col}">
+                                Bounce
+                            </button>
+                            <button type="button" class="animation-type-btn ${currentType === 'rotate' ? 'active' : ''}"
+                                    data-type="rotate" data-row="${cell.row}" data-col="${cell.col}">
+                                Rotate
+                            </button>
+                            <button type="button" class="animation-type-btn ${currentType === 'pulse' ? 'active' : ''}"
+                                    data-type="pulse" data-row="${cell.row}" data-col="${cell.col}">
+                                Pulse
+                            </button>
+                        </div>
+                    </div>
+                    <div class="animation-intensity-control ${currentType === 'none' ? 'disabled' : ''}">
+                        <label>Intensity: <span class="intensity-value">${currentIntensity}px</span></label>
+                        <input type="range" class="intensity-slider"
+                               min="5" max="50" value="${currentIntensity}"
+                               data-row="${cell.row}" data-col="${cell.col}">
+                    </div>
+                </div>
+            `;
+
+            container.appendChild(lineControl);
+        });
+
+        // Add event listeners to animation controls
+        this.setupTextLineAnimationListeners(container);
+
+        console.log(`🎛️ Updated sidebar animation controls for ${textCells.length} text lines`);
+    }
+
+    /**
+     * Get animation status text for a cell
+     * @param {MainTextCell} cell - Text cell
+     * @returns {string} Status text
+     * @private
+     */
+    getAnimationStatusText(cell) {
+        if (!cell.animation) {
+            return 'No Animation';
+        }
+        const status = cell.animation.getStatus();
+        return `${status.type} (${status.intensity}px)`;
+    }
+
+    /**
+     * Set up event listeners for text line animation controls
+     * @param {HTMLElement} container - Container with controls
+     * @private
+     */
+    setupTextLineAnimationListeners(container) {
+        // Animation type buttons
+        container.querySelectorAll('.animation-type-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const row = parseInt(e.target.dataset.row);
+                const col = parseInt(e.target.dataset.col);
+                const type = e.target.dataset.type;
+
+                // Apply animation to the cell
+                this.setTextLineAnimation(row, col, type);
+
+                // Update UI to reflect changes
+                this.updateTextLineAnimations();
+                this.updateAnimationStatus();
+            });
+        });
+
+        // Intensity sliders
+        container.querySelectorAll('.intensity-slider').forEach(slider => {
+            slider.addEventListener('input', (e) => {
+                const row = parseInt(e.target.dataset.row);
+                const col = parseInt(e.target.dataset.col);
+                const intensity = parseInt(e.target.value);
+
+                // Update intensity display
+                const valueDisplay = e.target.parentElement.querySelector('.intensity-value');
+                if (valueDisplay) {
+                    valueDisplay.textContent = `${intensity}px`;
+                }
+
+                // Apply new intensity
+                this.updateTextLineAnimationIntensity(row, col, intensity);
+            });
+        });
+    }
+
+    /**
+     * Set animation for a text line
+     * @param {number} row - Grid row
+     * @param {number} col - Grid column
+     * @param {string} type - Animation type
+     * @private
+     */
+    setTextLineAnimation(row, col, type) {
+        if (!this.grid) return;
+
+        const cell = this.grid.getCell(row, col);
+        if (!cell) return;
+
+        if (type === 'none') {
+            // Remove animation
+            cell.removeAnimation();
+            console.log(`🚫 Removed animation from text line at (${row}, ${col})`);
+        } else {
+            // Set animation with default intensity
+            const intensity = 20;
+            const speed = 1.0;
+            cell.setAnimation(type, intensity, speed);
+            console.log(`✨ Set ${type} animation (${intensity}px) for text line at (${row}, ${col})`);
+        }
+    }
+
+    /**
+     * Update animation intensity for a text line
+     * @param {number} row - Grid row
+     * @param {number} col - Grid column
+     * @param {number} intensity - Animation intensity
+     * @private
+     */
+    updateTextLineAnimationIntensity(row, col, intensity) {
+        if (!this.grid) return;
+
+        const cell = this.grid.getCell(row, col);
+        if (cell && cell.animation) {
+            // Update the animation configuration
+            cell.animation.updateConfig({ intensity });
+            console.log(`🎚️ Updated animation intensity to ${intensity}px for text line at (${row}, ${col})`);
+        }
+    }
+
     /**
      * Handle text input changes
      * @private
@@ -500,9 +1128,15 @@ class EmployerBrandToolPOC {
         this.render();
 
         // Rebuild grid after text changes (NEW - keep grid synchronized)
-        if (this.grid && !this.grid.isLocked) {
+        if (this.grid) {
             this.grid.buildFromExisting();
             console.log('🔄 Grid rebuilt after text change');
+
+            // Update visual grid and animation controls after grid rebuild
+            setTimeout(() => {
+                this.updateVisualGrid();
+                this.updateTextLineAnimations();
+            }, 100); // Small delay to ensure grid is fully rebuilt
         }
 
         // Auto-detect spots after text changes (only if there's text content)
@@ -714,6 +1348,9 @@ class EmployerBrandToolPOC {
                 break;
             case 'spots':
                 contentId = 'spotsTab';
+                break;
+            case 'animation':
+                contentId = 'animationTab';
                 break;
             case 'parameters':
                 contentId = 'parametersTab';
@@ -1186,9 +1823,12 @@ class EmployerBrandToolPOC {
             this.render();
 
             // Rebuild grid after spot detection (NEW - keep grid synchronized)
-            if (this.grid && !this.grid.isLocked) {
+            if (this.grid) {
                 this.grid.buildFromExisting();
                 console.log('🔄 Grid rebuilt after spot detection');
+
+                // Update visual grid display
+                this.updateVisualGrid();
             }
 
             // Call the callback if provided
@@ -1578,27 +2218,19 @@ class EmployerBrandToolPOC {
     
     /**
      * Main render method
+     * @param {boolean} isAnimationFrame - True if called from animation loop
      */
-    render() {
+    render(isAnimationFrame = false) {
         try {
             // Update main text component with current values
             this.syncMainTextComponent();
-            
+
             // Render canvas background
             this.canvasManager.renderBackground();
-            
-            // Render main text using TextComponent
-            this.mainTextComponent.render(this.canvasManager.ctx);
-            
-            // Render all spots
-            const debugOptions = this.debugController ? this.debugController.getDebugOptions() : {};
-            this.spots.forEach(spot => {
-                const showOutline = debugOptions.showSpotOutlines;
-                const showNumber = debugOptions.showSpotNumbers;
-                // Pass background image to spot render method for mask spots
-                spot.render(this.canvasManager.ctx, showOutline, showNumber, this.canvasManager.backgroundImage);
-            });
-            
+
+            // NEW: Simple unified rendering (animations always applied if present)
+            this._renderWithAnimations();
+
             // Render debug overlays if enabled
             if (this.debugController) {
                 this.debugController.renderDebugOverlays(this.canvasManager.ctx, {
@@ -1606,11 +2238,197 @@ class EmployerBrandToolPOC {
                     spots: this.spots
                 });
             }
-            
+
         } catch (error) {
             console.error('❌ Render failed:', error);
         }
     }
+
+    /**
+     * Render content with animations (NEW - Grid-aware per-cell animation rendering)
+     * Applies cell.currentOffset transforms when rendering animated cells
+     * @private
+     */
+    _renderWithAnimations() {
+        const ctx = this.canvasManager.ctx;
+        const debugOptions = this.debugController ? this.debugController.getDebugOptions() : {};
+
+        // Check if we have a grid with cells
+        if (this.grid && this.grid.isReady) {
+            const allCells = this.grid.getAllCells();
+            const animatedCells = allCells.filter(cell => cell && cell.animation);
+
+            // If we have animated cells, render cell-by-cell with transforms
+            if (animatedCells.length > 0) {
+                // Render all grid cells (both animated and non-animated)
+                allCells.forEach(cell => {
+                    if (!cell) return;
+
+                    if (cell.type === 'main-text') {
+                        ctx.save();
+
+                        // Apply animation transforms if cell has animation
+                        const offset = cell.currentOffset || { x: 0, y: 0 };
+
+                        // Calculate transform origin (center of text bounds)
+                        const centerX = cell.bounds.x + cell.bounds.width / 2;
+                        const centerY = cell.bounds.y + cell.bounds.height / 2;
+
+                        // Move to center, apply transforms, move back
+                        ctx.translate(centerX, centerY);
+                        ctx.translate(offset.x || 0, offset.y || 0);
+                        if (offset.rotation) ctx.rotate(offset.rotation);
+                        if (offset.scale) ctx.scale(offset.scale, offset.scale);
+                        ctx.translate(-centerX, -centerY);
+
+                        // Render text cell
+                        ctx.font = cell.getFontString();
+                        ctx.fillStyle = cell.style.color;
+                        ctx.textAlign = cell.getAlignment();
+                        ctx.textBaseline = 'top';
+
+                        // Calculate text position based on alignment
+                        const textX = cell.getAlignment() === 'center'
+                            ? cell.bounds.x + cell.bounds.width / 2
+                            : cell.bounds.x;
+
+                        // Draw highlight if enabled
+                        if (cell.style.highlight) {
+                            ctx.fillStyle = cell.style.highlightColor;
+                            ctx.fillRect(cell.bounds.x, cell.bounds.y, cell.bounds.width, cell.bounds.height);
+                            ctx.fillStyle = cell.style.color;
+                        }
+
+                        // Draw text
+                        ctx.fillText(cell.text, textX, cell.bounds.y);
+
+                        // Draw underline if enabled
+                        if (cell.style.underline) {
+                            const textWidth = ctx.measureText(cell.text).width;
+                            const underlineY = cell.bounds.y + cell.bounds.height - 2;
+                            const underlineX = cell.getAlignment() === 'center'
+                                ? textX - textWidth / 2
+                                : textX;
+
+                            ctx.strokeStyle = cell.style.color;
+                            ctx.lineWidth = 1;
+                            ctx.beginPath();
+                            ctx.moveTo(underlineX, underlineY);
+                            ctx.lineTo(underlineX + textWidth, underlineY);
+                            ctx.stroke();
+                        }
+
+                        ctx.restore();
+                    } else if (cell.type === 'spot') {
+                        // Render spot cells normally (spots handle their own rendering)
+                        const spot = this.spots.find(s => s.id === cell.spotId);
+                        if (spot) {
+                            const showOutline = debugOptions.showSpotOutlines;
+                            const showNumber = debugOptions.showSpotNumbers;
+                            spot.render(ctx, showOutline, showNumber, this.canvasManager.backgroundImage);
+                        }
+                    }
+                });
+
+                // Render spots that are not part of the grid
+                this.spots.forEach(spot => {
+                    const isInGrid = allCells.some(cell =>
+                        cell && cell.type === 'spot' && cell.spotId === spot.id
+                    );
+
+                    if (!isInGrid) {
+                        const showOutline = debugOptions.showSpotOutlines;
+                        const showNumber = debugOptions.showSpotNumbers;
+                        spot.render(ctx, showOutline, showNumber, this.canvasManager.backgroundImage);
+                    }
+                });
+
+                return; // Done rendering with grid
+            }
+        }
+
+        // Fallback: No grid or no animated cells - use MainTextComponent
+        this.mainTextComponent.render(ctx);
+
+        // Render all spots normally
+        this.spots.forEach(spot => {
+            const showOutline = debugOptions.showSpotOutlines;
+            const showNumber = debugOptions.showSpotNumbers;
+            spot.render(ctx, showOutline, showNumber, this.canvasManager.backgroundImage);
+        });
+    }
+
+    /**
+     * Start animation render loop
+     * Continuously renders canvas while animations are playing
+     * @private
+     */
+    _startAnimationLoop() {
+        if (this._animationLoopId) {
+            console.log('🔄 Animation loop already running');
+            return;
+        }
+
+        console.log('▶️ Starting animation render loop');
+        this._animationStartTime = performance.now();
+        this._animationFrameCount = 0;
+
+        const animate = () => {
+            // Check if any animations are still playing
+            const hasPlayingAnimations = this.grid &&
+                this.grid.getAnimatedCells().some(cell =>
+                    cell.animation && cell.animation.isPlaying
+                );
+
+            if (hasPlayingAnimations) {
+                // Re-render canvas
+                this.render();
+
+                // Update FPS counter
+                this._animationFrameCount++;
+                const elapsed = performance.now() - this._animationStartTime;
+                if (elapsed >= 1000) {
+                    const fps = Math.round((this._animationFrameCount / elapsed) * 1000);
+                    const fpsDisplay = document.getElementById('fpsDisplay');
+                    if (fpsDisplay) {
+                        fpsDisplay.textContent = `${fps} FPS`;
+                    }
+                    this._animationFrameCount = 0;
+                    this._animationStartTime = performance.now();
+                }
+
+                // Schedule next frame
+                this._animationLoopId = requestAnimationFrame(animate);
+            } else {
+                // No more playing animations, stop loop
+                console.log('⏹️ No active animations, stopping render loop');
+                this._stopAnimationLoop();
+            }
+        };
+
+        // Start the loop
+        this._animationLoopId = requestAnimationFrame(animate);
+    }
+
+    /**
+     * Stop animation render loop
+     * @private
+     */
+    _stopAnimationLoop() {
+        if (this._animationLoopId) {
+            cancelAnimationFrame(this._animationLoopId);
+            this._animationLoopId = null;
+            console.log('⏸️ Animation render loop stopped');
+
+            // Clear FPS display
+            const fpsDisplay = document.getElementById('fpsDisplay');
+            if (fpsDisplay) {
+                fpsDisplay.textContent = '0 FPS';
+            }
+        }
+    }
+
+
     
     /**
      * Sync MainTextComponent with current UI state
@@ -1910,6 +2728,7 @@ class EmployerBrandToolPOC {
             // Update grid to reflect spot type change
             if (this.grid) {
                 this.grid.updateSpotType(spot.id, typeSelect.value);
+                this.updateVisualGrid();
             }
         });
         

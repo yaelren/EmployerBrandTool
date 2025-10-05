@@ -537,32 +537,53 @@ class Grid {
     }
 
     /**
-     * Get neighbors for animation cascade
-     * @param {number} row - Source cell row
-     * @param {number} col - Source cell column
-     * @param {string} direction - Animation direction ('sway-horizontal' | 'sway-vertical')
-     * @returns {Array} - Array of neighbor cells
+     * Play all cell animations
      */
-    getNeighbors(row, col, direction) {
-        const neighbors = [];
+    playAllAnimations() {
+        let playedCount = 0;
+        this.getAllCells().forEach(cell => {
+            if (cell && cell.animation) {
+                cell.animation.play();
+                playedCount++;
+            }
+        });
+        console.log(`▶️ Playing ${playedCount} cell animations`);
+    }
 
-        if (direction === 'sway-horizontal') {
-            // Left and right neighbors
-            const leftNeighbor = this.getCell(row, col - 1);
-            const rightNeighbor = this.getCell(row, col + 1);
+    /**
+     * Pause all cell animations
+     */
+    pauseAllAnimations() {
+        let pausedCount = 0;
+        this.getAllCells().forEach(cell => {
+            if (cell && cell.animation) {
+                cell.animation.pause();
+                pausedCount++;
+            }
+        });
+        console.log(`⏸️ Paused ${pausedCount} cell animations`);
+    }
 
-            if (leftNeighbor) neighbors.push(leftNeighbor);
-            if (rightNeighbor) neighbors.push(rightNeighbor);
-        } else if (direction === 'sway-vertical') {
-            // Top and bottom neighbors
-            const topNeighbor = this.getCell(row - 1, col);
-            const bottomNeighbor = this.getCell(row + 1, col);
+    /**
+     * Reset all cell animations
+     */
+    resetAllAnimations() {
+        let resetCount = 0;
+        this.getAllCells().forEach(cell => {
+            if (cell && cell.animation) {
+                cell.animation.reset();
+                resetCount++;
+            }
+        });
+        console.log(`↺ Reset ${resetCount} cell animations`);
+    }
 
-            if (topNeighbor) neighbors.push(topNeighbor);
-            if (bottomNeighbor) neighbors.push(bottomNeighbor);
-        }
-
-        return neighbors;
+    /**
+     * Get all cells that have animations
+     * @returns {Array} - Array of cells with animations
+     */
+    getAnimatedCells() {
+        return this.getAllCells().filter(cell => cell && cell.animation);
     }
 
     /**
@@ -615,25 +636,6 @@ class Grid {
         this.buildFromExisting();
     }
 
-    /**
-     * Lock grid for Animation Mode
-     */
-    lock() {
-        this.isLocked = true;
-        this.snapshot = this.serialize();
-        console.log('🔒 Grid locked for Animation Mode');
-    }
-
-    /**
-     * Unlock grid for Layout Mode
-     */
-    unlock() {
-        this.isLocked = false;
-        if (this.snapshot) {
-            this.deserialize(this.snapshot);
-        }
-        console.log('🔓 Grid unlocked for Layout Mode');
-    }
 
     /**
      * Create JSON snapshot of current grid state

@@ -14,11 +14,7 @@ class SpotCell extends GridCell {
         // Store reference to original spot for compatibility
         this.spot = spot;
 
-        // Spots typically react to text animations
-        this.animation.canInitiate = false;
-        this.animation.reactionType = 'scale';
-        this.animation.intensity = 10; // Smaller reaction than text
-        this.animation.shouldReact = true;
+        // Spots can also have animations (future feature)
     }
 
     /**
@@ -76,50 +72,6 @@ class SpotCell extends GridCell {
     }
 
     /**
-     * Get the appropriate reaction intensity based on spot type
-     * @returns {number}
-     */
-    getReactionIntensity() {
-        switch (this.spotType) {
-            case 'empty':
-                return this.animation.intensity * 1.0; // Full reaction
-            case 'image':
-                return this.animation.intensity * 0.7; // Less reaction for images
-            case 'text':
-                return this.animation.intensity * 0.8; // Moderate reaction for text
-            case 'mask':
-                return this.animation.intensity * 0.5; // Minimal reaction for masks
-            default:
-                return this.animation.intensity;
-        }
-    }
-
-    /**
-     * Apply reaction to neighboring animation
-     * @param {number} neighborOffset - Animation offset from neighbor
-     * @param {number} distance - Distance from animating neighbor
-     */
-    applyReaction(neighborOffset, distance = 1) {
-        if (!this.animation.shouldReact) return;
-
-        const falloff = 1 / (distance + 1); // Distance falloff
-        const intensity = this.getReactionIntensity();
-        const reactionStrength = Math.abs(neighborOffset) / 20; // Normalize to 0-1
-
-        // Apply scale reaction
-        if (this.animation.reactionType === 'scale') {
-            this.animation.reactionScale = 1 - (reactionStrength * 0.3 * falloff);
-            this.animation.reactionScale = Math.max(0.7, this.animation.reactionScale); // Minimum scale
-        }
-
-        // Store reaction offset for rendering
-        this.animation.reactionOffset = {
-            x: neighborOffset * 0.5 * falloff,
-            y: 0
-        };
-    }
-
-    /**
      * Serialize SpotCell data to JSON
      * @returns {Object} - Serializable representation
      */
@@ -129,8 +81,7 @@ class SpotCell extends GridCell {
             ...baseData,
             spotId: this.spotId,
             spotType: this.spotType,
-            content: this.content,
-            reactionType: this.animation.reactionType
+            content: this.content
         };
     }
 
@@ -150,10 +101,7 @@ class SpotCell extends GridCell {
         const cell = new SpotCell(mockSpot, data.row, data.col);
         cell.bounds = data.bounds;
         cell.originalBounds = data.originalBounds;
-        cell.animation.type = data.animation.type;
-        cell.animation.intensity = data.animation.intensity;
-        cell.animation.shouldReact = data.animation.shouldReact;
-        cell.animation.reactionType = data.reactionType;
+        // Animation state is not restored from serialization
         return cell;
     }
 }
