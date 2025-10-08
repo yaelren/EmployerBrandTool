@@ -74,8 +74,8 @@ class GridDetector {
 
             regions.push(fullCanvasCell);
 
-            // Finalize grid with single cell
-            const gridResult = this.buildGridMatrix(regions, textBounds);
+            // Delegate matrix building to GridBuilder
+            const gridResult = this.gridBuilder.buildMatrix(regions, textBounds);
 
             if (this.debugging) {
                 const endTime = performance.now();
@@ -93,7 +93,8 @@ class GridDetector {
             this.debugData.processingSteps.push(`Filtered to ${nonEmptyBounds.length} non-empty lines`);
         }
 
-        // Step 1: Process each text line to find horizontal content cells
+        // Step 1: Process each text line AND gaps between them
+        // Interleave text lines with gap detection for correct row ordering
         let currentRow = 0;
 
         nonEmptyBounds.forEach((bounds, index) => {
@@ -104,10 +105,15 @@ class GridDetector {
             // Add text region to GridBuilder for spatial discovery
             this.gridBuilder.addTextRegion(bounds, bounds.text, index);
 
+            // Dynamic column assignment based on which cells exist in this row
+            let currentCol = 0;
+
             // Check for content cell to the LEFT of text (respecting left padding)
             // Position horizontally aligned with text baseline
             const leftCellWidth = bounds.x - padding.left;
-            if (leftCellWidth >= this.minCellSize && bounds.height >= this.minCellSize) {
+            const hasLeftCell = leftCellWidth >= this.minCellSize && bounds.height >= this.minCellSize;
+
+            if (hasLeftCell) {
                 const leftCell = {
                     type: 'content',
                     contentType: 'empty',
@@ -116,7 +122,7 @@ class GridDetector {
                     width: leftCellWidth,
                     height: bounds.height,
                     row: currentRow,
-                    col: 0
+                    col: currentCol  // Dynamic column position
                 };
                 regions.push(leftCell);
 
@@ -124,11 +130,13 @@ class GridDetector {
                 this.gridBuilder.addSpotRegion(leftCell);
 
                 if (this.debugging) {
-                    this.debugData.processingSteps.push(`  Found left cell: ${Math.round(leftCellWidth)}x${Math.round(bounds.height)} at y=${bounds.y}`);
+                    this.debugData.processingSteps.push(`  Found left cell: ${Math.round(leftCellWidth)}x${Math.round(bounds.height)} at y=${bounds.y}, col=${currentCol}`);
                 }
+
+                currentCol++;  // Text will be in next column
             }
 
-            // Add the text region itself
+            // Add the text region itself - column position depends on whether left cell exists
             const textCell = {
                 type: 'main-text',
                 text: bounds.text,
@@ -139,9 +147,10 @@ class GridDetector {
                 height: bounds.height,
                 style: bounds.style || {},
                 row: currentRow,
-                col: 1
+                col: currentCol  // Dynamic: col 0 if no left cell, col 1 if left cell exists
             };
             regions.push(textCell);
+            currentCol++;  // Right cell (if exists) will be in next column
 
             // Check for content cell to the RIGHT of text (respecting right padding)
             const rightCellX = bounds.x + bounds.width;
@@ -155,7 +164,7 @@ class GridDetector {
                     width: rightCellWidth,
                     height: bounds.height,
                     row: currentRow,
-                    col: 2
+                    col: currentCol  // Dynamic column position
                 };
                 regions.push(rightCell);
 
@@ -163,20 +172,41 @@ class GridDetector {
                 this.gridBuilder.addSpotRegion(rightCell);
 
                 if (this.debugging) {
-                    this.debugData.processingSteps.push(`  Found right cell: ${Math.round(rightCellWidth)}x${Math.round(bounds.height)} at y=${bounds.y}`);
+                    this.debugData.processingSteps.push(`  Found right cell: ${Math.round(rightCellWidth)}x${Math.round(bounds.height)} at y=${bounds.y}, col=${currentCol}`);
                 }
             }
 
             currentRow++;
-        });
 
-        // Step 2: Find vertical gaps between text lines
-        // NOTE: Gaps are NOT added as separate rows to avoid inflating the grid row count
-        // Gaps exist in the layout but don't create grid rows - they're just vertical spacing
-        if (nonEmptyBounds.length > 1) {
-            // Gap detection intentionally disabled
-            // The space between text lines is recognized but not added to the grid structure
-        }
+            // Check for gap AFTER this line (before next line)
+            if (index < nonEmptyBounds.length - 1) {
+                const nextLine = nonEmptyBounds[index + 1];
+                const gapY = bounds.y + bounds.height;
+                const gapHeight = nextLine.y - gapY;
+
+                if (gapHeight >= this.minCellSize) {
+                    const availableWidth = canvas.width - padding.left - padding.right;
+                    const gapCell = {
+                        type: 'content',
+                        contentType: 'empty',
+                        x: padding.left,
+                        y: gapY,
+                        width: availableWidth,
+                        height: gapHeight,
+                        row: currentRow,
+                        col: 0
+                    };
+                    regions.push(gapCell);
+                    this.gridBuilder.addSpotRegion(gapCell);
+
+                    if (this.debugging) {
+                        this.debugData.processingSteps.push(`  Found gap after line: ${Math.round(gapHeight)}px high at row ${currentRow}`);
+                    }
+
+                    currentRow++; // Gap gets its own row
+                }
+            }
+        });
 
         // Step 3: Check for remaining space at the TOP (before first line, respecting top padding)
         if (nonEmptyBounds.length > 0) {
@@ -235,8 +265,8 @@ class GridDetector {
             }
         }
 
-        // Step 5: Build the grid matrix from detected regions
-        const gridResult = this.buildGridMatrix(regions, textBounds);
+        // Step 5: Delegate matrix building to GridBuilder
+        const gridResult = this.gridBuilder.buildMatrix(regions, textBounds);
 
         // Final debug info
         const endTime = performance.now();
@@ -250,63 +280,6 @@ class GridDetector {
         }
 
         return gridResult;
-    }
-
-    /**
-     * Build grid matrix from detected regions
-     * @param {Array} regions - Detected regions (text + content cells)
-     * @param {Array} textBounds - Original text bounds for reference
-     * @returns {Object} Grid structure with matrix, rows, cols
-     * @private
-     */
-    buildGridMatrix(regions, textBounds) {
-        // Sort regions by row, then col
-        regions.sort((a, b) => {
-            if (a.row !== b.row) return a.row - b.row;
-            return a.col - b.col;
-        });
-
-        // Determine grid dimensions
-        const minRow = Math.min(...regions.map(r => r.row));
-        const maxRow = Math.max(...regions.map(r => r.row));
-        const maxCol = Math.max(...regions.map(r => r.col));
-
-        const rows = maxRow - minRow + 1;
-        const cols = maxCol + 1;
-
-        // Create empty matrix
-        const matrix = Array(rows).fill(null).map(() => Array(cols).fill(null));
-
-        // Fill matrix with cell instances
-        regions.forEach(region => {
-            const matrixRow = region.row - minRow; // Adjust for negative rows
-            const matrixCol = region.col;
-
-            let cell;
-            if (region.type === 'main-text') {
-                cell = new MainTextCell(region.text, region.lineIndex, matrixRow, matrixCol);
-                cell.style = region.style || {};
-            } else {
-                cell = new ContentCell(region.contentType, matrixRow, matrixCol);
-            }
-
-            // Set bounds
-            cell.bounds = {
-                x: region.x,
-                y: region.y,
-                width: region.width,
-                height: region.height
-            };
-
-            matrix[matrixRow][matrixCol] = cell;
-        });
-
-        return {
-            matrix: matrix,
-            rows: rows,
-            cols: cols,
-            textBounds: textBounds // Keep reference for rebuild
-        };
     }
 
     /**

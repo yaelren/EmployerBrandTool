@@ -350,13 +350,19 @@ class DebugController {
     }
     
     /**
-     * Get text bounds from a text component (delegates to TextComponent)
-     * @param {CanvasRenderingContext2D} ctx - Canvas context
-     * @param {TextComponent} textComponent - Text component
+     * Get text bounds from the text engine (MainTextController)
+     * @param {CanvasRenderingContext2D} ctx - Canvas context (unused, kept for compatibility)
+     * @param {TextComponent} textComponent - Text component (unused, kept for compatibility)
      * @returns {Array} Array of text bounds
      * @private
      */
     getTextBoundsFromComponent(ctx, textComponent) {
+        // Use MainTextController (textEngine) instead of MainTextComponent
+        // because the grid system and actual rendering use MainTextController
+        if (this.app.textEngine) {
+            return this.app.textEngine.getTextBounds();
+        }
+        // Fallback to old component if textEngine not available
         return textComponent.getTextBounds(ctx);
     }
 

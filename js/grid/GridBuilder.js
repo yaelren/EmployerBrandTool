@@ -104,172 +104,64 @@ class GridBuilder {
     }
 
     /**
-     * Finalize the grid based on discovered regions
-     * @returns {Object} - Grid matrix and metadata
+     * Build grid matrix from detected regions
+     * This is the final step after GridDetector has found all regions
+     * @param {Array} regions - Detected regions (text + content cells) from GridDetector
+     * @param {Array} textBounds - Original text bounds for reference
+     * @returns {Object} Grid structure with matrix, rows, cols
      */
-    finalizeGrid() {
-        console.log('🔄 Finalizing grid structure with logical columns...');
+    buildMatrix(regions, textBounds) {
+        console.log('🔧 GridBuilder: Building matrix from detected regions...');
 
-        // Sort row boundaries
-        this.rows.sort((a, b) => a - b);
-        // Merge close row boundaries (within threshold)
-        this.rows = this._mergeBoundaries(this.rows, 20);  // 20px threshold for rows
-        const numRows = Math.max(1, this.rows.length - 1);
-
-        // Build logical grid based on spot detection pattern
-        // Each row has at most 3 logical columns: [left] [center] [right]
-        this.matrix = [];
-
-        // Group regions by row
-        const regionsByRow = {};
-        this.regions.forEach(region => {
-            const row = this._findRow(region.y + region.height / 2);
-            if (!regionsByRow[row]) {
-                regionsByRow[row] = [];
-            }
-            regionsByRow[row].push(region);
+        // Sort regions by row, then col
+        regions.sort((a, b) => {
+            if (a.row !== b.row) return a.row - b.row;
+            return a.col - b.col;
         });
 
-        // Build each row with logical columns
-        for (let r = 0; r < numRows; r++) {
-            const rowRegions = regionsByRow[r] || [];
+        // Determine grid dimensions
+        const minRow = Math.min(...regions.map(r => r.row));
+        const maxRow = Math.max(...regions.map(r => r.row));
+        const maxCol = Math.max(...regions.map(r => r.col));
 
-            if (rowRegions.length === 0) {
-                // Empty row
-                this.matrix[r] = [null];
+        const rows = maxRow - minRow + 1;
+        const cols = maxCol + 1;
+
+        // Create empty matrix
+        this.matrix = Array(rows).fill(null).map(() => Array(cols).fill(null));
+
+        // Fill matrix with cell instances
+        regions.forEach(region => {
+            const matrixRow = region.row - minRow; // Adjust for negative rows
+            const matrixCol = region.col;
+
+            let cell;
+            if (region.type === 'main-text') {
+                cell = new MainTextCell(region.text, region.lineIndex, matrixRow, matrixCol);
+                cell.style = region.style || {};
             } else {
-                // Sort regions by X position
-                rowRegions.sort((a, b) => a.x - b.x);
-
-                // Determine logical structure
-                const hasText = rowRegions.some(r => r.type === 'text');
-
-                if (hasText) {
-                    // Find text region and spots
-                    const textRegion = rowRegions.find(r => r.type === 'text');
-                    const leftSpots = rowRegions.filter(r => r.type === 'spot' && r.x < textRegion.x);
-                    const rightSpots = rowRegions.filter(r => r.type === 'spot' && r.x > textRegion.x);
-
-                    // Build logical row: [left spot?] [text] [right spot?]
-                    const logicalRow = [];
-
-                    // Left column (logical column 0)
-                    if (leftSpots.length > 0) {
-                        logicalRow.push({
-                            type: 'spot',
-                            spot: leftSpots[0].spot  // Use first left spot
-                        });
-                    }
-
-                    // Center column (text)
-                    logicalRow.push({
-                        type: 'text',
-                        text: textRegion.text,
-                        bounds: textRegion.bounds,
-                        lineIndex: textRegion.lineIndex
-                    });
-
-                    // Right column (logical column 2)
-                    if (rightSpots.length > 0) {
-                        logicalRow.push({
-                            type: 'spot',
-                            spot: rightSpots[0].spot  // Use first right spot
-                        });
-                    }
-
-                    this.matrix[r] = logicalRow;
-                    console.log(`  Row ${r}: ${logicalRow.length} logical columns (left: ${leftSpots.length > 0}, text: true, right: ${rightSpots.length > 0})`);
-                } else {
-                    // Only spots, no text - just create single column
-                    this.matrix[r] = [{
-                        type: 'spot',
-                        spot: rowRegions[0].spot
-                    }];
-                    console.log(`  Row ${r}: 1 logical column (spots only)`);
-                }
+                cell = new ContentCell(region.contentType, matrixRow, matrixCol);
             }
-        }
 
-        // Calculate logical columns (maximum columns in any row)
-        const numCols = Math.max(...this.matrix.map(row => row.length));
+            // Set bounds
+            cell.bounds = {
+                x: region.x,
+                y: region.y,
+                width: region.width,
+                height: region.height
+            };
 
-        console.log(`✅ Grid finalized: ${numRows} rows x ${numCols} logical columns`);
+            this.matrix[matrixRow][matrixCol] = cell;
+        });
+
+        console.log(`✅ GridBuilder: Matrix built ${rows}x${cols} with ${regions.length} cells`);
 
         return {
             matrix: this.matrix,
-            rows: numRows,
-            cols: numCols,
-            rowBoundaries: this.rows,
-            colBoundaries: []  // No longer using column boundaries
+            rows: rows,
+            cols: cols,
+            textBounds: textBounds // Keep reference for rebuild
         };
     }
 
-    /**
-     * Merge boundaries that are too close together
-     * @private
-     */
-    _mergeBoundaries(boundaries, threshold) {
-        if (boundaries.length <= 1) return boundaries;
-
-        const merged = [boundaries[0]];
-        for (let i = 1; i < boundaries.length; i++) {
-            const last = merged[merged.length - 1];
-            if (boundaries[i] - last > threshold) {
-                merged.push(boundaries[i]);
-            }
-        }
-        return merged;
-    }
-
-    /**
-     * Find which row a Y position belongs to
-     * @private
-     */
-    _findRow(y) {
-        for (let i = 0; i < this.rows.length - 1; i++) {
-            if (y >= this.rows[i] && y < this.rows[i + 1]) {
-                return i;
-            }
-        }
-        return this.rows.length - 2;  // Last row
-    }
-
-    /**
-     * Find which column an X position belongs to
-     * @private
-     */
-    _findColumn(x) {
-        for (let i = 0; i < this.cols.length - 1; i++) {
-            if (x >= this.cols[i] && x < this.cols[i + 1]) {
-                return i;
-            }
-        }
-        return this.cols.length - 2;  // Last column
-    }
-
-    /**
-     * Get a visual representation of the grid
-     */
-    getVisualRepresentation() {
-        let visual = '📋 Grid Layout:\n';
-        visual += '=====================================\n';
-
-        for (let r = 0; r < this.matrix.length; r++) {
-            let row = `Row ${r}: `;
-            for (let c = 0; c < this.matrix[r].length; c++) {
-                const cell = this.matrix[r][c];
-                if (!cell) {
-                    row += '[empty]';
-                } else if (cell.type === 'text') {
-                    row += `[${cell.text}]`;
-                } else if (cell.type === 'spot') {
-                    row += `[${cell.spot.type || 'spot'}]`;
-                }
-            }
-            visual += row + '\n';
-        }
-
-        visual += '=====================================\n';
-        return visual;
-    }
 }

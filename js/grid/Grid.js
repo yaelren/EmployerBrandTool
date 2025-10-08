@@ -741,15 +741,15 @@ class Grid {
             console.log(`Row ${row}: ${rowStr}`);
         }
 
-        console.log('=====================================');
+        // console.log('=====================================');
 
-        // Show actual column counts per row
-        console.log('📊 Columns per row:');
-        for (let row = 0; row < this.rows; row++) {
-            const actualCols = this.matrix[row] ? this.matrix[row].length : 0;
-            const filledCols = this.matrix[row] ? this.matrix[row].filter(cell => cell !== null && cell !== undefined).length : 0;
-            console.log(`  Row ${row}: ${filledCols} filled cells, ${actualCols} total slots (max: ${this.cols})`);
-        }
+        // // Show actual column counts per row
+        // console.log('📊 Columns per row:');
+        // for (let row = 0; row < this.rows; row++) {
+        //     const actualCols = this.matrix[row] ? this.matrix[row].length : 0;
+        //     const filledCols = this.matrix[row] ? this.matrix[row].filter(cell => cell !== null && cell !== undefined).length : 0;
+        //     console.log(`  Row ${row}: ${filledCols} filled cells, ${actualCols} total slots (max: ${this.cols})`);
+        // }
     }
 
     /**
