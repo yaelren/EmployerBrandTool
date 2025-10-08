@@ -562,67 +562,37 @@ class EmployerBrandToolPOC {
     }
 
     /**
-     * Detect open spots using the algorithm
+     * Detect/rebuild spots - now simplified to use Grid system
      * @param {Function} callback - Optional callback to run after detection completes
      */
     detectSpots(callback = null) {
         try {
-            console.log('🔍 Starting spot detection...');
-            
-            // Save current spot data before regenerating (only if we have spots)
-            if (this.spots.length > 0) {
-                this.saveSpotData();
-            }
-            
-            // Enable debugging for detection
-            this.gridDetector.setDebugging(true);
+            console.log('🔍 Rebuilding grid and extracting spots...');
 
-            // Sync main text component first
-            this.syncMainTextComponent();
-            
-            // Get current text bounds from MainTextComponent
-            const textBounds = this.getTextBoundsFromMainComponent();
-            const canvas = this.canvasManager.getDimensions();
-            
-            // Prepare padding info for spot detector
-            const padding = {
-                top: this.mainTextComponent.paddingTop,
-                bottom: this.mainTextComponent.paddingBottom,
-                left: this.mainTextComponent.paddingLeft,
-                right: this.mainTextComponent.paddingRight
-            };
-            
-            // Phase 2: Grid is already built by updateText() - just extract content cells
-            // No need to rebuild here since grid is always synchronized
-            const startTime = performance.now();
-
-            // Extract content cells from existing grid (already built by updateText)
+            // Rebuild grid (this handles everything: detection, building, content preservation)
             if (this.grid) {
-                // Grid is already up-to-date from updateText() or init()
-                // Just extract the content cells for spot UI
-                const contentCells = this.grid.getContentCells();
-                this.spots = contentCells; // Temporary compatibility
-                console.log('✅ Using existing grid with', contentCells.length, 'content cells');
+                this.grid.buildFromExisting();
+
+                // Extract content cells as spots for UI compatibility
+                this.spots = this.grid.getContentCells();
+
+                console.log(`✅ Grid rebuilt with ${this.spots.length} content cells`);
             }
 
-            const endTime = performance.now();
-
-            // Phase 4: Re-enable UI updates (ContentCell now has Spot compatibility)
+            // Update UI
             this.uiManager.updateSpotsUI();
-            this.render();
-
-            // Update visual grid display
             this.uiManager.updateVisualGrid();
+            this.render();
 
             // Call the callback if provided
             if (callback && typeof callback === 'function') {
-                console.log('🎯 Spot detection complete, running callback...');
+                console.log('🎯 Detection complete, running callback...');
                 callback();
             }
-            
+
         } catch (error) {
-            console.error('❌ Spot detection failed:', error);
-            this.uiManager.showError('Spot detection failed. Please try again.');
+            console.error('❌ Grid rebuild failed:', error);
+            this.uiManager.showError('Grid rebuild failed. Please try again.');
 
             // Still call callback even if detection failed
             if (callback && typeof callback === 'function') {

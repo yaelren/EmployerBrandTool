@@ -39,7 +39,7 @@ class Grid {
 
             // Get data from existing system
             const textBounds = this.app.textEngine ? this.app.textEngine.textBounds : [];
-            const canvas = this.app.canvas || { width: 800, height: 600 };
+            const canvas = this.app.canvasManager ? this.app.canvasManager.canvas : { width: 800, height: 600 };
 
             // CRITICAL: Get padding from textEngine config (where text was actually positioned)
             // NOT from this.app.padding which doesn't exist and defaults to 0

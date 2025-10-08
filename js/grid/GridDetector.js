@@ -105,13 +105,14 @@ class GridDetector {
             this.gridBuilder.addTextRegion(bounds, bounds.text, index);
 
             // Check for content cell to the LEFT of text (respecting left padding)
+            // Position horizontally aligned with text baseline
             const leftCellWidth = bounds.x - padding.left;
             if (leftCellWidth >= this.minCellSize && bounds.height >= this.minCellSize) {
                 const leftCell = {
                     type: 'content',
                     contentType: 'empty',
                     x: padding.left,
-                    y: bounds.y,
+                    y: bounds.y, // Same Y as text for proper alignment
                     width: leftCellWidth,
                     height: bounds.height,
                     row: currentRow,
@@ -123,7 +124,7 @@ class GridDetector {
                 this.gridBuilder.addSpotRegion(leftCell);
 
                 if (this.debugging) {
-                    this.debugData.processingSteps.push(`  Found left cell: ${Math.round(leftCellWidth)}x${Math.round(bounds.height)}`);
+                    this.debugData.processingSteps.push(`  Found left cell: ${Math.round(leftCellWidth)}x${Math.round(bounds.height)} at y=${bounds.y}`);
                 }
             }
 
@@ -150,7 +151,7 @@ class GridDetector {
                     type: 'content',
                     contentType: 'empty',
                     x: rightCellX,
-                    y: bounds.y,
+                    y: bounds.y, // Same Y as text for proper alignment
                     width: rightCellWidth,
                     height: bounds.height,
                     row: currentRow,
@@ -162,7 +163,7 @@ class GridDetector {
                 this.gridBuilder.addSpotRegion(rightCell);
 
                 if (this.debugging) {
-                    this.debugData.processingSteps.push(`  Found right cell: ${Math.round(rightCellWidth)}x${Math.round(bounds.height)}`);
+                    this.debugData.processingSteps.push(`  Found right cell: ${Math.round(rightCellWidth)}x${Math.round(bounds.height)} at y=${bounds.y}`);
                 }
             }
 
