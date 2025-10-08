@@ -281,8 +281,8 @@ class EmployerBrandToolPOC {
      */
     saveSpotData() {
         const promises = this.spots.map(async (spot) => {
-            if (spot.type === 'empty') return null;
-            
+            if (spot.contentType === 'empty') return null;
+
             // Create base saved spot data
             const savedSpot = {
                 // Position data for matching
@@ -290,16 +290,16 @@ class EmployerBrandToolPOC {
                 y: spot.y,
                 width: spot.width,
                 height: spot.height,
-                
+
                 // Basic properties
-                type: spot.type,
+                type: spot.contentType,
                 opacity: spot.opacity,
                 originalId: spot.id
             };
-            
+
             // Handle content based on type
             if (spot.content) {
-                if (spot.type === 'image' && spot.content.image) {
+                if (spot.contentType === 'image' && spot.content.image) {
                     // Convert image to data URL for serialization
                     savedSpot.content = {
                         ...spot.content,
@@ -333,24 +333,24 @@ class EmployerBrandToolPOC {
      * @private
      */
     createSavedSpotData(spot) {
-        if (spot.type === 'empty') return null;
-        
+        if (spot.contentType === 'empty') return null;
+
         const savedSpot = {
             // Position data for matching
             x: spot.x,
             y: spot.y,
             width: spot.width,
             height: spot.height,
-            
+
             // Basic properties
-            type: spot.type,
+            type: spot.contentType,
             opacity: spot.opacity,
             originalId: spot.id
         };
-        
+
         // Handle content based on type
         if (spot.content) {
-            if (spot.type === 'image' && spot.content.image) {
+            if (spot.contentType === 'image' && spot.content.image) {
                 // Convert image to data URL for serialization
                 savedSpot.content = {
                     ...spot.content,
@@ -438,7 +438,7 @@ class EmployerBrandToolPOC {
         }
         
         // Phase 2: Place remaining saved spots in any available spots (starting from spot 1)
-        const availableSpots = this.spots.filter(spot => spot.type === 'empty');
+        const availableSpots = this.spots.filter(spot => spot.contentType === 'empty');
         for (let i = 0; i < availableSpots.length && remainingSavedSpots.length > 0; i++) {
             const newSpot = availableSpots[i];
             const savedSpot = remainingSavedSpots[0]; // Take first remaining saved spot
@@ -960,7 +960,7 @@ class EmployerBrandToolPOC {
             textConfig: this.textEngine.getConfig(),
             spots: this.spots.map(spot => ({
                 id: spot.id,
-                type: spot.type,
+                type: spot.contentType,
                 bounds: { x: spot.x, y: spot.y, width: spot.width, height: spot.height }
             })),
             canvasDimensions: this.canvasManager.getDimensions()

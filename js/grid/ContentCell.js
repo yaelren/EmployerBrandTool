@@ -8,7 +8,7 @@
 class ContentCell extends GridCell {
     constructor(contentType, row, col) {
         super(row, col);
-        this.cellType = 'content';  // Use cellType to avoid conflict with type getter
+        this.cellType = 'content';  // Internal cell type identifier
         this.contentType = contentType || 'empty';  // 'empty' | 'image' | 'text' | 'mask'
         this.content = null;  // Content data (varies by type)
 
@@ -289,16 +289,16 @@ class ContentCell extends GridCell {
     }
 
     /**
-     * Get type (Spot compatibility)
-     * Maps contentType to Spot type convention
+     * Get type - returns 'content' for grid type checking
+     * Use contentType property to get the actual content type ('empty', 'image', etc.)
      * @returns {string}
      */
     get type() {
-        return this.contentType;
+        return 'content';
     }
 
     /**
-     * Set type (Spot compatibility)
+     * Set type (Spot compatibility) - maps to contentType
      * @param {string} value
      */
     set type(value) {

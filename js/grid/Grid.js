@@ -349,11 +349,15 @@ class Grid {
             for (let col = 0; col < this.matrix[row].length; col++) {
                 const cell = this.matrix[row][col];
 
-                if (cell && cell.type === 'spot' && cell.spotId === spotId) {
-                    // Update the spot type
-                    cell.spotType = newType;
-                    if (cell.spot) {
-                        cell.spot.type = newType;
+                if (cell && (cell.type === 'content' || cell.type === 'spot') && (cell.id === spotId || cell.spotId === spotId)) {
+                    // Update the content/spot type
+                    if (cell.type === 'content') {
+                        cell.setContentType(newType);
+                    } else {
+                        cell.spotType = newType;
+                        if (cell.spot) {
+                            cell.spot.type = newType;
+                        }
                     }
                     updated = true;
                     break;
@@ -644,6 +648,9 @@ class Grid {
             hasSnapshot: !!this.snapshot
         };
 
+        // Print visual grid automatically when getting status
+        this.printVisualGrid();
+
         return status;
     }
 
@@ -651,12 +658,16 @@ class Grid {
      * Print visual representation of the grid
      */
     printVisualGrid() {
+        console.log('=====================================');
+        console.log('🎯 Grid Visual Layout:');
+        console.log('=====================================');
+
         for (let row = 0; row < this.rows; row++) {
-            let rowStr = '';
+            let rowStr = `Row ${row}: `;
             const rowCells = this.matrix[row] || [];
 
             if (rowCells.length === 0) {
-                rowStr = '[empty]';
+                rowStr += '[empty]';
             } else {
                 // Only iterate through actual columns that exist in this row
                 const actualCols = rowCells.length;
@@ -668,34 +679,28 @@ class Grid {
                         if (cell.type === 'main-text') {
                             rowStr += `[${cell.text}]`;
                             hasContent = true;
-                        } else if (cell.type === 'spot') {
-                            const content = cell.spotType || 'empty';
+                        } else if (cell.type === 'content' || cell.type === 'spot') {
+                            const content = cell.contentType || cell.spotType || 'empty';
                             rowStr += `[${content}]`;
                             hasContent = true;
                         } else {
                             rowStr += '[unknown]';
                         }
                     } else {
-                        rowStr += '[empty]';
+                        rowStr += '[null]';
                     }
                 }
 
                 // If entire row is empty, show it clearly
                 if (!hasContent) {
-                    rowStr = '[empty]';
+                    rowStr += '[empty row]';
                 }
             }
+
+            console.log(rowStr);
         }
 
         console.log('=====================================');
-
-        // Show actual column counts per row
-        console.log('📊 Columns per row:');
-        for (let row = 0; row < this.rows; row++) {
-            const actualCols = this.matrix[row] ? this.matrix[row].length : 0;
-            const filledCols = this.matrix[row] ? this.matrix[row].filter(cell => cell !== null && cell !== undefined).length : 0;
-            console.log(`  Row ${row}: ${filledCols} filled cells, ${actualCols} total slots (max: ${this.cols})`);
-        }
     }
 
     /**
@@ -705,12 +710,12 @@ class Grid {
     getDetailedStatus() {
         const allCells = this.getAllCells();
         const textCells = allCells.filter(cell => cell.type === 'main-text');
-        const spotCells = allCells.filter(cell => cell.type === 'spot');
+        const spotCells = allCells.filter(cell => cell.type === 'spot' || cell.type === 'content');
 
         // Analyze spot types
         const spotTypes = {};
         spotCells.forEach(cell => {
-            const type = cell.spotType || 'unknown';
+            const type = cell.contentType || cell.spotType || 'unknown';
             spotTypes[type] = (spotTypes[type] || 0) + 1;
         });
 

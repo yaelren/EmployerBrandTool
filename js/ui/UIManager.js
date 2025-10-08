@@ -562,6 +562,7 @@ class UIManager {
                     }
 
                     const content = cell.type === 'main-text' ? cell.text :
+                                   cell.type === 'content' ? `Content: ${cell.contentType}` :
                                    cell.type === 'spot' ? `Spot: ${cell.spotType}` :
                                    'Unknown';
 
@@ -622,6 +623,7 @@ class UIManager {
 
         if (cellLabel) {
             const content = cell.type === 'main-text' ? `"${cell.text}"` :
+                           cell.type === 'content' ? `Content (${cell.contentType})` :
                            cell.type === 'spot' ? `Spot (${cell.spotType})` :
                            'Unknown';
             cellLabel.textContent = `${content} [${row},${col}]`;
@@ -1229,7 +1231,7 @@ class UIManager {
             const contentPreview = this.getSpotContentPreview(spot);
             waitingItem.innerHTML = `
                 <span class="waiting-spot-info">
-                    <strong>Spot ${spot.originalId}</strong> (${spot.type})
+                    <strong>Spot ${spot.originalId}</strong> (${spot.contentType})
                     ${contentPreview ? `: ${contentPreview}` : ''}
                 </span>
             `;
@@ -1248,7 +1250,7 @@ class UIManager {
     getSpotContentPreview(spot) {
         if (!spot.content) return '';
 
-        switch (spot.type) {
+        switch (spot.contentType) {
             case 'text':
                 return spot.content.text ? `"${spot.content.text.substring(0, 20)}${spot.content.text.length > 20 ? '...' : ''}"` : '';
             case 'image':
@@ -1308,7 +1310,7 @@ class UIManager {
             const option = document.createElement('option');
             option.value = type.value;
             option.textContent = type.label;
-            option.selected = type.value === spot.type;
+            option.selected = type.value === spot.contentType;
             typeSelect.appendChild(option);
         });
 
@@ -1382,14 +1384,14 @@ class UIManager {
         container.innerHTML = '';
 
         // Use appropriate controller for the spot type
-        const controller = this.app.contentControllers[spot.type];
+        const controller = this.app.contentControllers[spot.contentType];
         if (controller) {
             controller.createControls(spot, container, 'sidebar');
-        }
 
-        // Add padding control for all non-empty spot types (after type-specific controls)
-        if (spot.type !== 'empty') {
-            controller.createPaddingControl(spot, container, 'sidebar');
+            // Add padding control for all non-empty spot types (after type-specific controls)
+            if (spot.contentType !== 'empty' && controller.createPaddingControl) {
+                controller.createPaddingControl(spot, container, 'sidebar');
+            }
         }
     }
 
@@ -1572,7 +1574,7 @@ class UIManager {
         `;
 
         const typeSelect = typeGroup.querySelector('.popup-spot-type-select');
-        typeSelect.value = spot.type;
+        typeSelect.value = spot.contentType;
 
         typeSelect.addEventListener('change', (e) => {
             e.stopPropagation();
@@ -1591,12 +1593,12 @@ class UIManager {
         container.appendChild(typeGroup);
 
         // Add padding control for non-empty types
-        if (spot.type !== 'empty') {
+        if (spot.contentType !== 'empty') {
             this.app.contentControllers.text.createPaddingControl(spot, container, 'popup');
         }
 
         // Use appropriate controller for the spot type
-        const controller = this.app.contentControllers[spot.type];
+        const controller = this.app.contentControllers[spot.contentType];
         if (controller) {
             controller.createControls(spot, container, 'popup');
         }
