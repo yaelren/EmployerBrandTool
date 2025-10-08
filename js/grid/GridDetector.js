@@ -171,36 +171,12 @@ class GridDetector {
         });
 
         // Step 2: Find vertical gaps between text lines
+        // Note: Gaps should NOT create new rows - they are just empty space within the layout
+        // We skip gap detection between lines as they interfere with proper row calculation
+        // If needed, these gaps can be detected as content cells horizontally aligned with text
         if (nonEmptyBounds.length > 1) {
-            for (let i = 0; i < nonEmptyBounds.length - 1; i++) {
-                const currentLine = nonEmptyBounds[i];
-                const nextLine = nonEmptyBounds[i + 1];
-
-                const gapY = currentLine.y + currentLine.height;
-                const gapHeight = nextLine.y - gapY;
-
-                if (gapHeight >= this.minCellSize) {
-                    const availableWidth = canvas.width - padding.left - padding.right;
-                    const gapCell = {
-                        type: 'content',
-                        contentType: 'empty',
-                        x: padding.left,
-                        y: gapY,
-                        width: availableWidth,
-                        height: gapHeight,
-                        row: currentRow++,
-                        col: 0
-                    };
-                    regions.push(gapCell);
-
-                    // Add to GridBuilder
-                    this.gridBuilder.addSpotRegion(gapCell);
-
-                    if (this.debugging) {
-                        this.debugData.processingSteps.push(`Found gap between lines: ${Math.round(gapHeight)}px high`);
-                    }
-                }
-            }
+            // Gap detection disabled to prevent extra rows in grid
+            // Gaps between text lines are just vertical spacing, not separate grid rows
         }
 
         // Step 3: Check for remaining space at the TOP (before first line, respecting top padding)
