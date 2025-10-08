@@ -19,8 +19,6 @@ class CellAnimation {
         this.isPlaying = false;
         this.startTime = 0;
         this.animationFrameId = null;
-
-        console.log(`✨ CellAnimation created: ${this.type} (${this.intensity}px, ${this.speed}x speed)`);
     }
 
     /**
@@ -28,15 +26,12 @@ class CellAnimation {
      */
     play() {
         if (this.isPlaying) {
-            console.log('⏯️ Animation already playing');
             return;
         }
 
         this.isPlaying = true;
         this.startTime = performance.now();
         this._animate();
-
-        console.log(`▶️ Playing ${this.type} animation`);
     }
 
     /**
@@ -44,7 +39,6 @@ class CellAnimation {
      */
     pause() {
         if (!this.isPlaying) {
-            console.log('⏸️ Animation already paused');
             return;
         }
 
@@ -54,8 +48,6 @@ class CellAnimation {
             cancelAnimationFrame(this.animationFrameId);
             this.animationFrameId = null;
         }
-
-        console.log(`⏸️ Paused ${this.type} animation`);
     }
 
     /**
@@ -66,8 +58,6 @@ class CellAnimation {
 
         // Reset cell's visual offset to zero
         this.cell.currentOffset = { x: 0, y: 0 };
-
-        console.log(`↺ Reset ${this.type} animation`);
     }
 
     /**
@@ -78,8 +68,6 @@ class CellAnimation {
         if (config.type !== undefined) this.type = config.type;
         if (config.intensity !== undefined) this.intensity = config.intensity;
         if (config.speed !== undefined) this.speed = config.speed;
-
-        console.log(`🔧 Updated animation config:`, config);
     }
 
     /**
@@ -211,6 +199,5 @@ class CellAnimation {
     destroy() {
         this.reset();
         this.cell = null;
-        console.log(`🗑️ CellAnimation destroyed`);
     }
 }

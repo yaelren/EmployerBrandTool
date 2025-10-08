@@ -324,7 +324,6 @@ class UIManager {
         // Auto-detect toggle
         this.elements.autoDetectSpots.addEventListener('change', () => {
             this.app.autoDetectSpots = this.elements.autoDetectSpots.checked;
-            console.log(`🤖 Auto-detect spots: ${this.app.autoDetectSpots ? 'enabled' : 'disabled'}`);
 
             // If enabled and we have text but no spots, trigger detection
             if (this.app.autoDetectSpots && this.elements.mainText.value.trim() && this.app.spots.length === 0) {
@@ -514,8 +513,6 @@ class UIManager {
 
         // Hide popup
         this.hideAnimationPopup();
-
-        console.log(`✨ Applied ${animationType} animation (${intensity}px) to "${this.app.currentAnimationCell.text}"`);
     }
 
     /**
@@ -524,7 +521,6 @@ class UIManager {
     updateVisualGrid() {
         const container = document.getElementById('visualGrid');
         if (!container) {
-            console.warn('⚠️ visualGrid element not found in DOM');
             return;
         }
 
@@ -534,7 +530,6 @@ class UIManager {
         // Check if grid is ready
         if (!this.app.grid || !this.app.grid.isReady) {
             container.innerHTML = '<p class="no-text-message">Grid not ready. Add text to see grid...</p>';
-            console.log('⚠️ Grid not ready yet');
             return;
         }
 
@@ -589,8 +584,6 @@ class UIManager {
                 container.appendChild(gridCellDiv);
             }
         }
-
-        console.log(`🎯 Updated visual grid: ${this.app.grid.rows}x${this.app.grid.cols}`);
     }
 
     /**
@@ -649,8 +642,6 @@ class UIManager {
             if (intensityValue) intensityValue.textContent = '20';
             if (speedValue) speedValue.textContent = '1.0';
         }
-
-        console.log(`✓ Selected cell [${row},${col}]:`, cell.type);
     }
 
     /**
@@ -708,8 +699,6 @@ class UIManager {
         // Update visual grid
         this.updateVisualGrid();
         this.updateAnimationStatus();
-
-        console.log(`✨ Applied ${type} animation to cell [${row},${col}]`);
     }
 
     /**
@@ -725,8 +714,6 @@ class UIManager {
         document.getElementById('cellAnimationType').value = 'none';
         this.updateVisualGrid();
         this.updateAnimationStatus();
-
-        console.log(`🚫 Removed animation from cell [${row},${col}]`);
     }
 
     /**
@@ -816,8 +803,6 @@ class UIManager {
 
         // Add event listeners to animation controls
         this.setupTextLineAnimationListeners(container);
-
-        console.log(`🎛️ Updated sidebar animation controls for ${textCells.length} text lines`);
     }
 
     /**
@@ -875,13 +860,11 @@ class UIManager {
         if (type === 'none') {
             // Remove animation
             cell.removeAnimation();
-            console.log(`�� Removed animation from text line at (${row}, ${col})`);
         } else {
             // Set animation with default intensity
             const intensity = 20;
             const speed = 1.0;
             cell.setAnimation(type, intensity, speed);
-            console.log(`✨ Set ${type} animation (${intensity}px) for text line at (${row}, ${col})`);
         }
     }
 
@@ -898,7 +881,6 @@ class UIManager {
         if (cell && cell.animation) {
             // Update the animation configuration
             cell.animation.updateConfig({ intensity });
-            console.log(`🎚️ Updated animation intensity to ${intensity}px for text line at (${row}, ${col})`);
         }
     }
 
@@ -993,8 +975,6 @@ class UIManager {
             // Save the alignment preference for this line content
             const lineKey = line.trim();
             this.app.savedLineAlignments[lineKey] = alignment;
-
-            console.log(`💾 Saved alignment for "${lineKey}": ${alignment}`);
         }
 
         // CRITICAL: Update BOTH systems to keep them in sync
@@ -1015,8 +995,6 @@ class UIManager {
      * @param {string} mode - 'fillCanvas' or 'manual'
      */
     setTextMode(mode) {
-        console.log(`🎛️ Switching to ${mode} mode`);
-
         // When switching to manual mode, preserve current font size and line height
         if (mode === 'manual') {
             const currentConfig = this.app.textEngine.getConfig();
@@ -1026,8 +1004,6 @@ class UIManager {
             this.elements.fontSizeValue.textContent = currentConfig.fontSize + 'px';
             this.elements.lineSpacing.value = currentConfig.lineSpacing;
             this.elements.lineSpacingValue.textContent = currentConfig.lineSpacing + 'px';
-
-            console.log(`📋 Preserving font size: ${currentConfig.fontSize}px, line spacing: ${currentConfig.lineSpacing}px`);
         }
 
         this.app.textEngine.updateConfig({ mode });
@@ -1040,10 +1016,8 @@ class UIManager {
 
         // Show/hide manual controls
         if (mode === 'manual') {
-            console.log('👀 Showing manual controls');
             this.elements.manualControls.style.display = 'block';
         } else {
-            console.log('🙈 Hiding manual controls');
             this.elements.manualControls.style.display = 'none';
         }
 
@@ -1089,8 +1063,6 @@ class UIManager {
         if (activeContent) {
             activeContent.classList.add('active');
         }
-
-        console.log(`🔄 Switched to ${tabName} tab`);
     }
 
     /**
@@ -1197,7 +1169,6 @@ class UIManager {
                 this.app.canvasManager.setBackgroundImage(img);
                 this.elements.clearBackgroundImage.style.display = 'inline-block';
                 this.app.render();
-                console.log('✅ Background image loaded');
             };
             img.src = e.target.result;
         };
@@ -1212,7 +1183,6 @@ class UIManager {
         this.elements.backgroundImage.value = '';
         this.elements.clearBackgroundImage.style.display = 'none';
         this.app.render();
-        console.log('🗑️ Background image cleared');
     }
 
     /**
@@ -1432,7 +1402,6 @@ class UIManager {
         const spot = this.app.spots.find(s => s.id === spotId);
         if (spot) {
             spot.setContentType(newType);
-            console.log(`Changed spot ${spotId} to type: ${newType}`);
             this.app.render();
 
             // Update grid to reflect spot type change
@@ -1451,7 +1420,6 @@ class UIManager {
         if (!spot.content) spot.content = {};
         spot.content.padding = padding;
         this.app.render();
-        console.log(`Updated spot ${spot.id} padding: ${padding}px`);
     }
 
     /**
@@ -1515,7 +1483,6 @@ class UIManager {
                 if (!spot.content) spot.content = {};
                 spot.content.image = img;
                 this.app.render();
-                console.log(`✅ Image loaded for spot ${spot.id}`);
             };
             img.src = e.target.result;
         };
@@ -1581,8 +1548,6 @@ class UIManager {
 
         closeBtn.addEventListener('click', closePopup);
         popup.addEventListener('click', outsideClick);
-
-        console.log(`📝 Opened popup for spot ${spot.id}`);
     }
 
     /**

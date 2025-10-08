@@ -34,3 +34,9 @@ yarn-error.log*
 
 # Template development files
 template-dev/
+
+# Test artifacts and playwright traces
+.playwright-mcp/
+test-results/
+tests/test-results/
+playwright-report/

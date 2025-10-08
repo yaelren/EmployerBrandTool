@@ -50,9 +50,6 @@ class GridCell {
         // Supports: 'main-text', 'text', 'spot', 'content'
         if (this.type === 'main-text' || this.type === 'text' || this.type === 'spot' || this.type === 'content') {
             this.animation = new CellAnimation(this, { type, intensity, speed });
-            console.log(`✨ Animation set on ${this.type} cell [${this.row}][${this.col}]: ${type}`);
-        } else {
-            console.log(`⚠️ Animation not supported for cell type: ${this.type}`);
         }
     }
 
@@ -65,7 +62,6 @@ class GridCell {
             this.animation = null;
         }
         this.currentOffset = { x: 0, y: 0 };
-        console.log(`🚫 Animation removed from cell [${this.row}][${this.col}]`);
     }
 
     /**

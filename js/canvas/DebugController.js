@@ -137,7 +137,6 @@ class DebugController {
         if (isCtrlOrCmd && e.code === 'KeyI') {
             e.preventDefault();
             this.toggleAllControls();
-            console.log('🔄 Toggled all debug controls via keyboard');
         }
     }
     
@@ -147,7 +146,6 @@ class DebugController {
     toggleDebugPanel() {
         if (this.elements.debugContent) {
             this.elements.debugContent.classList.toggle('show');
-            console.log('🔄 Toggled debug panel');
         }
     }
     
@@ -173,7 +171,6 @@ class DebugController {
      */
     showAllControls() {
         this.setAllCheckboxes(true);
-        console.log('👁️ All debug controls enabled');
     }
     
     /**
@@ -181,7 +178,6 @@ class DebugController {
      */
     hideAllControls() {
         this.setAllCheckboxes(false);
-        console.log('👁️‍🗨️ All debug controls disabled');
     }
     
     /**
@@ -211,7 +207,6 @@ class DebugController {
     updateDebugOption(option, value) {
         this.debugOptions[option] = value;
         this.applyDebugOptions();
-        console.log(`Debug option '${option}' set to: ${value}`);
     }
     
     /**

@@ -222,8 +222,6 @@ class ImageContentController extends ContentController {
                     // Find the parent cell item to recreate controls
                     this.app.uiManager?.updateSpotsUI();
                 }
-
-                console.log(`📸 Image loaded for cell ${cell.id}: ${img.width}x${img.height}`);
             };
             img.src = e.target.result;
         };

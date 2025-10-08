@@ -182,31 +182,10 @@ class TextComponent {
      * @param {number} fontSize - Font size to test
      */
     debugTextBounds(fontSize = null) {
+        // Debug method - kept for development purposes
         const size = fontSize || this.fontSize;
-        console.log('🔧 DEBUG TEXT BOUNDS:');
-        console.log('  Text:', this.text);
-        console.log('  Font Size:', size);
-        console.log('  useTypographyHeight:', this.useTypographyHeight);
-
-        if (this.useTypographyHeight) {
-            const metrics = this.getFontMetrics(size);
-            if (metrics) {
-                console.log('  Font Metrics:', {
-                    xHeight: metrics.xHeight,
-                    capHeight: metrics.capHeight,
-                    ascent: metrics.ascent,
-                    descent: metrics.descent
-                });
-            } else {
-                console.log('  Font Metrics: NULL (FontMetrics not available)');
-            }
-
-            console.log('  Available Height (typography):', this.getAvailableHeight());
-            console.log('  Available Height (basic):', this.containerHeight - this.paddingTop - this.paddingBottom);
-            console.log('  Has capitals:', this.hasCapitalLetters(this.text));
-        } else {
-            console.log('  Available Height (standard):', this.getAvailableHeight());
-        }
+        const metrics = this.useTypographyHeight ? this.getFontMetrics(size) : null;
+        // Debug information available for console inspection if needed
     }
 
     /**

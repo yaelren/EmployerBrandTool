@@ -59,18 +59,15 @@ class EmployerBrandToolPOC {
         try {
             // Initialize UI Manager FIRST (other components depend on it)
             this.uiManager = new UIManager(this);
-            console.log('🎨 UI Manager initialized');
 
             // Initialize debug controller
             this.debugController = new DebugController(this);
 
             // Initialize shuffler system
             this.shuffler = new Shuffler(this);
-            console.log('🎲 Shuffler system initialized');
 
             // Initialize Grid system (NEW - simple per-cell animations)
             this.grid = new Grid(this);
-            console.log('🔧 Grid system initialized');
 
             // Set initial canvas size via Chatooly CDN
             this.initializeChatoolyCanvas();
@@ -106,7 +103,6 @@ class EmployerBrandToolPOC {
             // Test Grid system (NEW - build from existing data)
             if (this.grid) {
                 this.grid.buildFromExisting();
-                console.log('🧪 Grid system test:', this.grid.getStatus());
 
                 // Populate spots array from grid content cells
                 this.spots = this.grid.getContentCells();
@@ -117,8 +113,6 @@ class EmployerBrandToolPOC {
             }
 
             this.isInitialized = true;
-
-            console.log('✅ Employer Brand Tool POC initialized successfully');
 
         } catch (error) {
             console.error('❌ Failed to initialize POC:', error);
@@ -137,7 +131,6 @@ class EmployerBrandToolPOC {
     initializeChatoolyCanvas() {
         const setCanvasSize = () => {
             if (window.Chatooly && window.Chatooly.canvasResizer) {
-                console.log('📐 Setting initial canvas size to 1080x1350');
                 window.Chatooly.canvasResizer.setExportSize(1080, 1350);
                 window.Chatooly.canvasResizer.applyExportSize();
 
@@ -208,7 +201,6 @@ class EmployerBrandToolPOC {
         // Rebuild grid BEFORE rendering (NEW - keep grid synchronized)
         if (this.grid) {
             this.grid.buildFromExisting();
-            console.log('🔄 Grid rebuilt after text change');
 
             // Sync spots array with grid content cells
             this.spots = this.grid.getContentCells();
@@ -259,7 +251,7 @@ class EmployerBrandToolPOC {
                 const savedAlignment = this.savedLineAlignments[lineKey];
 
                 if (savedAlignment) {
-                    // CRITICAL: Update BOTH systems to keep them in sync
+                    // Update BOTH systems to keep them in sync
                     // 1. Update MainTextComponent (for rendering)
                     this.mainTextComponent.setLineAlignment(index, savedAlignment);
 
@@ -332,8 +324,6 @@ class EmployerBrandToolPOC {
         
         // Combine current spots with waiting spots (waiting spots take priority to be restored first)
         this.savedSpotData = [...this.waitingSpots, ...currentSpotData];
-        
-        console.log(`💾 Saved ${currentSpotData.length} current spots + ${this.waitingSpots.length} waiting spots = ${this.savedSpotData.length} total`);
     }
     
     /**
@@ -404,11 +394,8 @@ class EmployerBrandToolPOC {
      */
     restoreSpotData() {
         if (!this.savedSpotData || this.savedSpotData.length === 0) {
-            console.log('📝 No saved spot data to restore');
             return;
         }
-        
-        console.log(`🔄 Attempting to restore ${this.savedSpotData.length} saved spots (including ${this.waitingSpots.length} waiting) to ${this.spots.length} new spots`);
         
         // Phase 1: Try to restore spots to their original positions
         const remainingSavedSpots = [...this.savedSpotData];
@@ -447,7 +434,6 @@ class EmployerBrandToolPOC {
                 this.restoreSpotToNewLocation(newSpot, bestMatch);
                 remainingSavedSpots.splice(bestIndex, 1);
                 restoredCount++;
-                console.log(`✅ Restored spot ${newSpot.id} with type '${bestMatch.type}' at original position (distance: ${Math.round(bestScore)})`);
             }
         }
         
@@ -456,30 +442,18 @@ class EmployerBrandToolPOC {
         for (let i = 0; i < availableSpots.length && remainingSavedSpots.length > 0; i++) {
             const newSpot = availableSpots[i];
             const savedSpot = remainingSavedSpots[0]; // Take first remaining saved spot
-            
+
             this.restoreSpotToNewLocation(newSpot, savedSpot);
             remainingSavedSpots.shift(); // Remove from remaining
             restoredCount++;
-            console.log(`✅ Restored spot ${newSpot.id} with type '${savedSpot.type}' at new position (was spot ${savedSpot.originalId})`);
         }
-        
+
         // Phase 3: Move unfitted spots to waiting list (don't delete them!)
         if (remainingSavedSpots.length > 0) {
             this.waitingSpots = remainingSavedSpots;
-            console.log(`⏳ ${remainingSavedSpots.length} spots moved to waiting list (will be restored when space becomes available)`);
-            remainingSavedSpots.forEach(spot => {
-                console.log(`   - Waiting: spot with type '${spot.type}' (was spot ${spot.originalId})`);
-            });
         } else {
             // Clear waiting list if all spots were restored
             this.waitingSpots = [];
-        }
-        
-        const unrestoredCount = this.waitingSpots.length;
-        console.log(`🎯 Restoration complete: ${restoredCount} restored, ${unrestoredCount} waiting for space`);
-        
-        if (unrestoredCount > 0) {
-            console.log('💡 Waiting spots will be automatically restored when layout provides more space');
         }
     }
     
@@ -531,9 +505,8 @@ class EmployerBrandToolPOC {
             
             // Re-render to show the restored image
             this.render();
-            console.log(`🖼️ Image restored for spot ${spot.id}`);
         };
-        
+
         img.onerror = () => {
             console.warn(`Failed to load image for spot ${spot.id}`);
             // Set content without image so other properties are still restored
@@ -563,7 +536,6 @@ class EmployerBrandToolPOC {
         
         // Set new timeout
         this.spotDetectionTimeout = setTimeout(() => {
-            console.log('🤖 Auto-detecting spots after text change...');
             this.detectSpots(callback);
         }, delay);
     }
@@ -574,16 +546,12 @@ class EmployerBrandToolPOC {
      */
     detectSpots(callback = null) {
         try {
-            console.log('🔍 Rebuilding grid and extracting spots...');
-
             // Rebuild grid (this handles everything: detection, building, content preservation)
             if (this.grid) {
                 this.grid.buildFromExisting();
 
                 // Extract content cells as spots for UI compatibility
                 this.spots = this.grid.getContentCells();
-
-                console.log(`✅ Grid rebuilt with ${this.spots.length} content cells`);
             }
 
             // Update UI
@@ -593,7 +561,6 @@ class EmployerBrandToolPOC {
 
             // Call the callback if provided
             if (callback && typeof callback === 'function') {
-                console.log('🎯 Detection complete, running callback...');
                 callback();
             }
 
@@ -640,11 +607,8 @@ class EmployerBrandToolPOC {
     onCanvasClick(event) {
         const canvasCoords = this.canvasManager.screenToCanvas(event.clientX, event.clientY);
         const clickedSpot = this.canvasManager.findSpotAt(canvasCoords.x, canvasCoords.y, this.spots);
-        
-        if (clickedSpot) {
-            console.log(`Clicked on spot ${clickedSpot.id}`);
-            // Future: Could highlight spot or show properties
-        }
+
+        // Future: Could highlight spot or show properties
     }
     
     /**
@@ -860,11 +824,9 @@ class EmployerBrandToolPOC {
      */
     _startAnimationLoop() {
         if (this._animationLoopId) {
-            console.log('🔄 Animation loop already running');
             return;
         }
 
-        console.log('▶️ Starting animation render loop');
         this._animationStartTime = performance.now();
         this._animationFrameCount = 0;
 
@@ -896,7 +858,6 @@ class EmployerBrandToolPOC {
                 this._animationLoopId = requestAnimationFrame(animate);
             } else {
                 // No more playing animations, stop loop
-                console.log('⏹️ No active animations, stopping render loop');
                 this._stopAnimationLoop();
             }
         };
@@ -913,7 +874,6 @@ class EmployerBrandToolPOC {
         if (this._animationLoopId) {
             cancelAnimationFrame(this._animationLoopId);
             this._animationLoopId = null;
-            console.log('⏸️ Animation render loop stopped');
 
             // Clear FPS display
             const fpsDisplay = document.getElementById('fpsDisplay');
@@ -1020,8 +980,6 @@ class EmployerBrandToolPOC {
         const oldWidth = this.previousCanvasSize.width;
         const oldHeight = this.previousCanvasSize.height;
 
-        console.log(`📏 Canvas resized from ${oldWidth}x${oldHeight} to ${newWidth}x${newHeight}`);
-
         // Skip if this is the first resize or dimensions haven't changed
         if (oldWidth === 0 || oldHeight === 0 || (oldWidth === newWidth && oldHeight === newHeight)) {
             this.previousCanvasSize = { width: newWidth, height: newHeight };
@@ -1086,8 +1044,6 @@ class EmployerBrandToolPOC {
      * @returns {Object} Test results
      */
     runTest() {
-        console.log('🧪 Running POC test...');
-        
         try {
             // Set test text
             this.uiManager.elements.mainText.value = 'TEST\nSPOT\nDETECTION';
@@ -1110,8 +1066,7 @@ class EmployerBrandToolPOC {
                 spotDetector: hasSpots,
                 canvasManager: canRender
             };
-            
-            console.log('✅ Test completed:', result);
+
             return result;
             
         } catch (error) {
@@ -1136,7 +1091,6 @@ class EmployerBrandToolPOC {
         const clickedSpot = this.canvasManager.findSpotAt(canvasCoords.x, canvasCoords.y, this.spots);
         
         if (clickedSpot) {
-            console.log(`🎯 Clicked on spot ${clickedSpot.id}`);
             this.uiManager.showSpotEditPopup(clickedSpot, e.clientX, e.clientY);
         }
     }
@@ -1205,12 +1159,10 @@ document.addEventListener('DOMContentLoaded', () => {
     try {
         // Create global app instance
         window.employerBrandTool = new EmployerBrandToolPOC();
-        
+
         // Add to global scope for debugging
         window.app = window.employerBrandTool;
-        
-        console.log('🚀 Application ready! Try window.app.runTest() in console');
-        
+
     } catch (error) {
         console.error('❌ Failed to initialize application:', error);
         alert('Failed to initialize application. Please refresh and try again.');
@@ -1260,7 +1212,4 @@ window.renderHighResolution = function(targetCanvas, scale) {
     app.canvasManager.ctx = originalCtx;
 
     ctx.restore();
-    console.log(`High-res export completed at ${scale}x resolution`);
-    console.log(`Original canvas: ${originalWidth}x${originalHeight}`);
-    console.log(`Export canvas: ${targetCanvas.width}x${targetCanvas.height}`);
 };

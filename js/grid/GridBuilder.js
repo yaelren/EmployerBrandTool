@@ -22,7 +22,6 @@ class GridBuilder {
         this.rows = [];
         this.cols = [];
         this.matrix = [];
-        console.log('🔧 GridBuilder: Starting new grid build');
     }
 
     /**
@@ -48,8 +47,6 @@ class GridBuilder {
 
         // Track column boundaries
         this._trackColumnBoundaries(bounds.x, bounds.x + bounds.width);
-
-        console.log(`  Added text region: "${text}" at (${bounds.x}, ${bounds.y})`);
     }
 
     /**
@@ -71,8 +68,6 @@ class GridBuilder {
 
         // Track column boundaries
         this._trackColumnBoundaries(spot.x, spot.x + spot.width);
-
-        console.log(`  Added spot region at (${spot.x}, ${spot.y})`);
     }
 
     /**
@@ -111,8 +106,6 @@ class GridBuilder {
      * @returns {Object} Grid structure with matrix, rows, cols
      */
     buildMatrix(regions, textBounds) {
-        console.log('🔧 GridBuilder: Building matrix from detected regions...');
-
         // Sort regions by row, then col
         regions.sort((a, b) => {
             if (a.row !== b.row) return a.row - b.row;
@@ -153,8 +146,6 @@ class GridBuilder {
 
             this.matrix[matrixRow][matrixCol] = cell;
         });
-
-        console.log(`✅ GridBuilder: Matrix built ${rows}x${cols} with ${regions.length} cells`);
 
         return {
             matrix: this.matrix,

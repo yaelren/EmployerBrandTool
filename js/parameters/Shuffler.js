@@ -145,8 +145,6 @@ class Shuffler {
      * Shuffle all unlocked parameters
      */
     async shuffleAll(useDefaults = false) {
-        console.log('🎲 Shuffling all parameters...');
-
         // Always switch to manual mode when shuffling
         this.app.uiManager?.setTextMode('manual');
 
@@ -169,7 +167,6 @@ class Shuffler {
         // Trigger spot detection with callback to shuffle spots after detection
         if (this.app.autoDetectSpots) {
             this.app.autoDetectSpotsDebounced(200, () => {
-                console.log('num of spots after detection:', this.app.spots.length);
                 // Shuffle spots - ALWAYS shuffle spots with random types and parameters
                 if (this.app.spots && this.app.spots.length > 0) {
                     this.shuffleAllSpotsRandomly();
@@ -177,7 +174,6 @@ class Shuffler {
             });
         } else {
             // If auto-detect is disabled, just shuffle existing spots
-            console.log('num of spots (no detection):', this.app.spots.length);
             if (this.app.spots && this.app.spots.length > 0) {
                 await this.shuffleAllSpotsRandomly();
             }
@@ -189,7 +185,6 @@ class Shuffler {
      * Shuffle layout parameters only
      */
     async shuffleLayout() {
-
         // Always switch to manual mode when shuffling layout
         this.app.uiManager?.setTextMode('manual');
 
@@ -206,7 +201,6 @@ class Shuffler {
      * Shuffle color parameters only
      */
     async shuffleColors() {
-
         const changes = this.shuffleColorsOnly();
         await this.applyChanges(changes);
     }
@@ -215,7 +209,6 @@ class Shuffler {
      * Shuffle spot parameters only
      */
     async shuffleSpots(useDefaults = false) {
-        console.log('📍 Shuffling spots...');
         await this.shuffleSpotsOnly(useDefaults);
     }
 
@@ -693,7 +686,6 @@ class Shuffler {
         const types = ['text', 'image', 'mask', 'empty'];
         const newType = this.randomFromArray(types);
         spot.setContentType(newType);
-        console.log('shuffling spot with type:', newType);
 
         switch (newType) {
             case 'text':

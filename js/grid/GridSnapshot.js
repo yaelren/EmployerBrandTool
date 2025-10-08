@@ -19,8 +19,6 @@ class GridSnapshot {
 
         // Animation state
         this.animationState = this._captureAnimationState(grid);
-
-        console.log('📸 GridSnapshot created at', new Date(this.timestamp));
     }
 
     /**
@@ -146,7 +144,6 @@ class GridSnapshot {
             snapshot.config = json.config;
             snapshot.animationState = json.animation;
 
-            console.log('📷 GridSnapshot restored from', new Date(snapshot.timestamp));
             return snapshot;
 
         } catch (error) {

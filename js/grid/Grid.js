@@ -13,8 +13,6 @@ class Grid {
         this.isLocked = false; // Layout lock status
         this.isReady = false; // Grid initialization status
         this.waitingContent = []; // Content waiting to be restored (NEW)
-
-        console.log('🔧 Grid system initialized');
     }
 
     /**
@@ -29,8 +27,6 @@ class Grid {
      */
     buildFromExisting() {
         try {
-            console.log('🔄 Building grid using GridDetector...');
-
             // Capture animation state before rebuild
             const animationState = this.captureAnimationState();
 
@@ -77,7 +73,6 @@ class Grid {
             this._saveOriginalBounds();
 
             this.isReady = true;
-            console.log(`✅ Grid built successfully: ${this.rows} rows, ${this.cols} cols`);
 
         } catch (error) {
             console.error('❌ Error building grid:', error);
@@ -175,42 +170,33 @@ class Grid {
      * Play all cell animations
      */
     playAllAnimations() {
-        let playedCount = 0;
         this.getAllCells().forEach(cell => {
             if (cell && cell.animation) {
                 cell.animation.play();
-                playedCount++;
             }
         });
-        console.log(`▶️ Playing ${playedCount} cell animations`);
     }
 
     /**
      * Pause all cell animations
      */
     pauseAllAnimations() {
-        let pausedCount = 0;
         this.getAllCells().forEach(cell => {
             if (cell && cell.animation) {
                 cell.animation.pause();
-                pausedCount++;
             }
         });
-        console.log(`⏸️ Paused ${pausedCount} cell animations`);
     }
 
     /**
      * Reset all cell animations
      */
     resetAllAnimations() {
-        let resetCount = 0;
         this.getAllCells().forEach(cell => {
             if (cell && cell.animation) {
                 cell.animation.reset();
-                resetCount++;
             }
         });
-        console.log(`↺ Reset ${resetCount} cell animations`);
     }
 
     /**
@@ -346,8 +332,6 @@ class Grid {
                 }
             }
         }
-
-        console.log(`🔢 Assigned sequential IDs to ${cellId - 1} cells`);
     }
 
     /**
@@ -372,16 +356,11 @@ class Grid {
                         cell.spot.type = newType;
                     }
                     updated = true;
-                    console.log(`✏️ Updated spot ${spotId} type to: ${newType} at [${row}][${col}]`);
                     break;
                 }
             }
 
             if (updated) break;
-        }
-
-        if (!updated) {
-            console.log(`⚠️ Could not find spot ${spotId} in grid`);
         }
 
         return updated;
@@ -397,8 +376,6 @@ class Grid {
             return;
         }
 
-        console.log('🔄 Rebuilding grid with animation preservation...');
-
         // 1. Capture animation state by contentId
         const animationState = this.captureAnimationState();
 
@@ -413,8 +390,6 @@ class Grid {
 
         // 5. Restore animations to matching cells
         this.restoreAnimationState(animationState);
-
-        console.log('✅ Grid rebuilt with animations and content preserved');
     }
 
     /**
@@ -436,7 +411,6 @@ class Grid {
             }
         });
 
-        console.log(`📸 Captured animation state for ${Object.keys(state).length} cells`);
         return state;
     }
 
@@ -445,8 +419,6 @@ class Grid {
      * @param {Object} state - Animation state map
      */
     restoreAnimationState(state) {
-        let restored = 0;
-
         this.getAllCells().forEach(cell => {
             if (cell && state[cell.contentId]) {
                 const anim = state[cell.contentId];
@@ -458,12 +430,8 @@ class Grid {
                 if (anim.isPlaying && cell.animation) {
                     cell.animation.play();
                 }
-
-                restored++;
             }
         });
-
-        console.log(`♻️ Restored animations to ${restored} cells`);
     }
 
     /**
@@ -497,8 +465,6 @@ class Grid {
                 });
             }
         });
-
-        console.log(`💾 Saved ${this.waitingContent.length} content items to waiting list`);
     }
 
     /**
@@ -510,7 +476,6 @@ class Grid {
         }
 
         const availableCells = this.getEmptyContentCells();
-        let restoredCount = 0;
         const stillWaiting = [];
 
         this.waitingContent.forEach(waiting => {
@@ -543,8 +508,6 @@ class Grid {
                 if (index > -1) {
                     availableCells.splice(index, 1);
                 }
-
-                restoredCount++;
             } else {
                 // No space available, keep waiting
                 stillWaiting.push(waiting);
@@ -553,11 +516,6 @@ class Grid {
 
         // Update waiting list
         this.waitingContent = stillWaiting;
-
-        console.log(`📥 Restored ${restoredCount} content items from waiting list`);
-        if (stillWaiting.length > 0) {
-            console.log(`⏳ ${stillWaiting.length} items still waiting for space`);
-        }
     }
 
     /**
@@ -638,8 +596,6 @@ class Grid {
      */
     deserialize(snapshot) {
         try {
-            console.log('🔄 Restoring grid from snapshot...');
-
             this.matrix = [];
             this.rows = snapshot.layout.rows;
             this.cols = snapshot.layout.cols;
@@ -661,8 +617,6 @@ class Grid {
                     this.matrix[cellData.row][cellData.col] = cell;
                 }
             });
-
-            console.log('✅ Grid restored from snapshot');
         } catch (error) {
             console.error('❌ Error restoring grid from snapshot:', error);
         }
@@ -690,10 +644,6 @@ class Grid {
             hasSnapshot: !!this.snapshot
         };
 
-        // Add visual grid representation
-        console.log('📋 Visual Grid Layout:');
-        this.printVisualGrid();
-
         return status;
     }
 
@@ -701,8 +651,6 @@ class Grid {
      * Print visual representation of the grid
      */
     printVisualGrid() {
-        console.log('=====================================');
-
         for (let row = 0; row < this.rows; row++) {
             let rowStr = '';
             const rowCells = this.matrix[row] || [];
@@ -737,19 +685,17 @@ class Grid {
                     rowStr = '[empty]';
                 }
             }
-
-            console.log(`Row ${row}: ${rowStr}`);
         }
 
-        // console.log('=====================================');
+        console.log('=====================================');
 
-        // // Show actual column counts per row
-        // console.log('📊 Columns per row:');
-        // for (let row = 0; row < this.rows; row++) {
-        //     const actualCols = this.matrix[row] ? this.matrix[row].length : 0;
-        //     const filledCols = this.matrix[row] ? this.matrix[row].filter(cell => cell !== null && cell !== undefined).length : 0;
-        //     console.log(`  Row ${row}: ${filledCols} filled cells, ${actualCols} total slots (max: ${this.cols})`);
-        // }
+        // Show actual column counts per row
+        console.log('📊 Columns per row:');
+        for (let row = 0; row < this.rows; row++) {
+            const actualCols = this.matrix[row] ? this.matrix[row].length : 0;
+            const filledCols = this.matrix[row] ? this.matrix[row].filter(cell => cell !== null && cell !== undefined).length : 0;
+            console.log(`  Row ${row}: ${filledCols} filled cells, ${actualCols} total slots (max: ${this.cols})`);
+        }
     }
 
     /**
@@ -796,7 +742,6 @@ class Grid {
         const config = this._captureCurrentConfig();
 
         const snapshot = new GridSnapshot(this, canvas, config);
-        console.log('📸 Grid snapshot created');
         return snapshot;
     }
 
@@ -827,7 +772,6 @@ class Grid {
                 this._restoreConfig(snapshot.config);
             }
 
-            console.log('📷 Grid restored from snapshot');
             return true;
 
         } catch (error) {
@@ -878,6 +822,5 @@ class Grid {
     _restoreConfig(config) {
         // Note: This is a placeholder for config restoration
         // In a full implementation, this would restore UI states and settings
-        console.log('🔧 Configuration restoration (placeholder)', config);
     }
 }

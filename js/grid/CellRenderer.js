@@ -58,17 +58,6 @@ class CellRenderer {
                 textX = cell.bounds.x;
         }
 
-        // DEBUG: Log rendering details for right-aligned text
-        if (alignment === 'right') {
-            console.log(`🔴 Rendering RIGHT-aligned text: "${cell.text}"`, {
-                alignment,
-                boundsX: cell.bounds.x,
-                boundsWidth: cell.bounds.width,
-                textX,
-                ctxTextAlign: ctx.textAlign
-            });
-        }
-
         // Draw highlight if enabled
         if (cell.style.highlight) {
             ctx.fillStyle = cell.style.highlightColor;

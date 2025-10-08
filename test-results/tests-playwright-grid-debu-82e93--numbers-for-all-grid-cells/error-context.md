@@ -1,22 +1,118 @@
 # Page snapshot
 
 ```yaml
-- generic [ref=e3]:
+- generic [ref=e1]:
+  - banner [ref=e2]:
+    - generic [ref=e3]: Inflatable Text
+    - generic [ref=e4]: MADE BY CHATOOLY
   - generic [ref=e6]:
-    - heading "This site can’t be reached" [level=1] [ref=e7]:
-      - generic [ref=e8]: This site can’t be reached
-    - paragraph [ref=e9]:
-      - strong [ref=e10]: localhost
-      - text: refused to connect.
-    - generic [ref=e11]:
-      - paragraph [ref=e12]: "Try:"
-      - list [ref=e13]:
-        - listitem [ref=e14]: Checking the connection
-        - listitem [ref=e15]:
-          - link "Checking the proxy and the firewall" [ref=e16] [cursor=pointer]:
-            - /url: "#buttons"
-    - generic [ref=e17]: ERR_CONNECTION_REFUSED
-  - generic [ref=e18]:
-    - button "Reload" [ref=e20] [cursor=pointer]
-    - button "Details" [ref=e21] [cursor=pointer]
+    - paragraph [ref=e8]: Create inflatable 3D text and play with geometry parameters in real-time
+    - generic [ref=e9]:
+      - generic [ref=e10]:
+        - generic [ref=e11]: Type Letters
+        - textbox "Type Letters" [active] [ref=e12]
+      - button "Replay Animation" [ref=e14] [cursor=pointer]
+      - button "Clear All" [ref=e16] [cursor=pointer]
+      - group [ref=e17]:
+        - generic [ref=e19]:
+          - generic [ref=e20]:
+            - generic [ref=e21]: Inflation Speed
+            - slider "Inflation Speed" [ref=e22]: "1"
+            - spinbutton [ref=e23]: "1.0"
+          - generic [ref=e25]:
+            - checkbox "Squish Animation" [ref=e26] [cursor=pointer]
+            - text: Squish Animation
+          - generic [ref=e27]:
+            - generic [ref=e28]: Squish Speed
+            - slider "Squish Speed" [ref=e29]: "1"
+            - spinbutton [ref=e30]: "1.0"
+          - generic [ref=e31]:
+            - generic [ref=e32]: Easing
+            - combobox "Easing" [ref=e33] [cursor=pointer]:
+              - option "Linear"
+              - option "Ease In-Out" [selected]
+              - option "Ease In"
+              - option "Ease Out"
+              - option "Bounce"
+              - option "Elastic"
+          - generic [ref=e35]:
+            - checkbox "Ping Pong (loop back and forth)" [checked] [ref=e36] [cursor=pointer]
+            - text: Ping Pong (loop back and forth)
+          - generic [ref=e37]:
+            - generic [ref=e38]: Width Min Size (%)
+            - slider "Width Min Size (%)" [ref=e39]: "50"
+            - spinbutton [ref=e40]: "50"
+          - generic [ref=e41]:
+            - generic [ref=e42]: Width Max Size (%)
+            - slider "Width Max Size (%)" [ref=e43]: "150"
+            - spinbutton [ref=e44]: "150"
+          - generic [ref=e45]:
+            - generic [ref=e46]: Height Min Size (%)
+            - slider "Height Min Size (%)" [ref=e47]: "50"
+            - spinbutton [ref=e48]: "50"
+          - generic [ref=e49]:
+            - generic [ref=e50]: Height Max Size (%)
+            - slider "Height Max Size (%)" [ref=e51]: "150"
+            - spinbutton [ref=e52]: "150"
+      - group [ref=e53]:
+        - generic [ref=e55]:
+          - generic [ref=e56]:
+            - generic [ref=e57]: Font Size
+            - slider "Font Size" [ref=e58]: "5"
+            - spinbutton [ref=e59]: "5"
+          - generic [ref=e61]:
+            - checkbox "Automatic Spacing" [checked] [ref=e62] [cursor=pointer]
+            - text: Automatic Spacing
+          - generic [ref=e64]:
+            - checkbox "Random Spawn Position" [ref=e65] [cursor=pointer]
+            - text: Random Spawn Position
+          - generic [ref=e66]:
+            - generic [ref=e67]: Letter Spacing
+            - slider "Letter Spacing" [disabled] [ref=e68]: "0.3"
+            - spinbutton [disabled] [ref=e69]: "0.3"
+          - generic [ref=e70]:
+            - generic [ref=e71]: Line Spacing
+            - slider "Line Spacing" [disabled] [ref=e72]: "0.3"
+            - spinbutton [disabled] [ref=e73]: "0.3"
+          - generic [ref=e74]:
+            - generic [ref=e75]: Boundary Padding
+            - slider "Boundary Padding" [ref=e76]: "5"
+            - spinbutton [ref=e77]: "5"
+      - group [ref=e78]:
+        - generic [ref=e80]:
+          - generic [ref=e81]:
+            - generic [ref=e82]: Spawn Radius
+            - slider "Spawn Radius" [ref=e83]: "5"
+            - spinbutton [ref=e84]: "5"
+          - generic [ref=e85]:
+            - generic [ref=e86]: Gravity
+            - slider "Gravity" [ref=e87]: "0"
+            - spinbutton [ref=e88]: "0"
+          - generic [ref=e89]:
+            - generic [ref=e90]: Bounciness
+            - slider "Bounciness" [ref=e91]: "0.1"
+            - spinbutton [ref=e92]: "0.1"
+          - generic [ref=e93]:
+            - generic [ref=e94]: Collider Size
+            - slider "Collider Size" [ref=e95]: "0.4"
+            - spinbutton [ref=e96]: "0.4"
+      - group [ref=e97]:
+        - generic [ref=e99]:
+          - generic [ref=e101]:
+            - generic [ref=e102]:
+              - textbox [ref=e103] [cursor=pointer]: "#ff6b9d"
+              - button "×" [ref=e104] [cursor=pointer]
+            - generic [ref=e105]:
+              - textbox [ref=e106] [cursor=pointer]: "#c44569"
+              - button "×" [ref=e107] [cursor=pointer]
+            - generic [ref=e108]:
+              - textbox [ref=e109] [cursor=pointer]: "#4a69bd"
+              - button "×" [ref=e110] [cursor=pointer]
+          - button "Add Color" [ref=e112] [cursor=pointer]
+      - group [ref=e113]
+      - group [ref=e115]
+      - group [ref=e117]
+  - generic [ref=e123] [cursor=pointer]:
+    - generic [ref=e124] [cursor=pointer]: 🌠
+    - generic [ref=e125] [cursor=pointer]: CHATOOLY
 ```
