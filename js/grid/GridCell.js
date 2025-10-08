@@ -7,15 +7,30 @@ class GridCell {
     constructor(row, col) {
         this.row = row;
         this.col = col;
-        this.type = 'base'; // 'main-text' | 'spot'
+        this.id = null; // Sequential ID (assigned after grid build)
+        this.contentId = this._generateContentId(); // Persistent UUID for tracking across rebuilds
+        this.type = 'base'; // 'main-text' | 'spot' | 'content' | 'text'
         this.bounds = { x: 0, y: 0, width: 0, height: 0 };
         this.originalBounds = null; // Snapshot for animation reset
 
-        // Animation (NEW: Simple per-cell animation)
+        // Animation (Per-cell animation system)
         // This is completely isolated from grid structure
         // cell.bounds remains unchanged - only currentOffset affects rendering
-        this.animation = null;          // TextAnimation instance or null
+        this.animation = null;          // CellAnimation instance or null
         this.currentOffset = { x: 0, y: 0 }; // Visual rendering offset (non-destructive)
+    }
+
+    /**
+     * Generate unique content ID for this cell
+     * @returns {string} - UUID v4
+     * @private
+     */
+    _generateContentId() {
+        return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+            const r = Math.random() * 16 | 0;
+            const v = c === 'x' ? r : (r & 0x3 | 0x8);
+            return v.toString(16);
+        });
     }
 
     /**
@@ -31,10 +46,11 @@ class GridCell {
             this.animation = null;
         }
 
-        // Create new animation based on cell type
-        if (this.type === 'main-text') {
-            this.animation = new TextAnimation(this, { type, intensity, speed });
-            console.log(`✨ Animation set on cell [${this.row}][${this.col}]: ${type}`);
+        // Create new animation for supported cell types
+        // Supports: 'main-text', 'text', 'spot', 'content'
+        if (this.type === 'main-text' || this.type === 'text' || this.type === 'spot' || this.type === 'content') {
+            this.animation = new CellAnimation(this, { type, intensity, speed });
+            console.log(`✨ Animation set on ${this.type} cell [${this.row}][${this.col}]: ${type}`);
         } else {
             console.log(`⚠️ Animation not supported for cell type: ${this.type}`);
         }
@@ -70,17 +86,35 @@ class GridCell {
     }
 
     /**
+     * Get the center point of this cell
+     * @returns {Object} - {x, y} coordinates of center
+     */
+    getCenter() {
+        return {
+            x: this.bounds.x + this.bounds.width / 2,
+            y: this.bounds.y + this.bounds.height / 2
+        };
+    }
+
+    /**
      * Serialize cell data to JSON
      * @returns {Object} - Serializable representation
      */
     serialize() {
         return {
+            id: this.id,
+            contentId: this.contentId,
             row: this.row,
             col: this.col,
             type: this.type,
             bounds: this.bounds,
-            originalBounds: this.originalBounds
-            // Note: Animation state is NOT serialized - it's purely visual/transient
+            originalBounds: this.originalBounds,
+            animation: this.animation ? {
+                type: this.animation.type,
+                intensity: this.animation.intensity,
+                speed: this.animation.speed,
+                isPlaying: this.animation.isPlaying
+            } : null
         };
     }
 
@@ -90,10 +124,24 @@ class GridCell {
      */
     static deserialize(data) {
         const cell = new GridCell(data.row, data.col);
+        cell.id = data.id;
+        cell.contentId = data.contentId;
         cell.type = data.type;
         cell.bounds = data.bounds;
         cell.originalBounds = data.originalBounds;
-        // Animation state is not restored from serialization
+
+        // Restore animation if present
+        if (data.animation) {
+            cell.setAnimation(
+                data.animation.type,
+                data.animation.intensity,
+                data.animation.speed
+            );
+            if (data.animation.isPlaying && cell.animation) {
+                cell.animation.play();
+            }
+        }
+
         return cell;
     }
 }

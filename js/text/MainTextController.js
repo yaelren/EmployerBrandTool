@@ -11,7 +11,7 @@ class MainTextController {
             fontFamily: '"Wix Madefor Display", Arial, sans-serif',
             lineSpacing: 10, // Space between lines in pixels
             color: '#000000',
-            defaultAlignment: 'left',
+            defaultAlignment: 'center',
             enableWrap: true,
             fillCanvas: false,
             canvasWidth: 600,
@@ -308,11 +308,23 @@ class MainTextController {
                     width: metrics.width,
                     height: this.config.fontSize, // Only font size, no line spacing
                     actualWidth: metrics.actualBoundingBoxRight - metrics.actualBoundingBoxLeft,
-                    actualHeight: (metrics.actualBoundingBoxAscent || this.config.fontSize * 0.8) + 
+                    actualHeight: (metrics.actualBoundingBoxAscent || this.config.fontSize * 0.8) +
                                  (metrics.actualBoundingBoxDescent || this.config.fontSize * 0.2),
                     x: 0, // Will be set in positionLines()
                     y: 0, // Will be set in positionLines()
-                    alignment: line.alignment
+                    alignment: line.alignment,
+                    // Include style information for grid cells
+                    style: {
+                        fontSize: this.config.fontSize,
+                        fontFamily: this.config.fontFamily,
+                        color: this.config.color || '#000000',
+                        alignment: line.alignment,
+                        bold: this.config.textStyles?.bold || false,
+                        italic: this.config.textStyles?.italic || false,
+                        underline: this.config.textStyles?.underline || false,
+                        highlight: this.config.textStyles?.highlight || false,
+                        highlightColor: this.config.textStyles?.highlightColor || '#ffff00'
+                    }
                 };
                 
                 this.textBounds.push(bounds);
@@ -375,9 +387,24 @@ class MainTextController {
         // Determine vertical positioning
         let startY;
         if (this.config.mode === 'fillCanvas') {
-            // Fill Canvas mode: always center within available space
+            // Fill Canvas mode: distribute lines evenly from top to bottom
             const availableHeight = canvasHeight - this.config.paddingTop - this.config.paddingBottom;
-            startY = this.config.paddingTop + (availableHeight - totalHeight) / 2;
+            // If we have multiple lines, distribute them evenly across full height
+            if (this.textBounds.length > 1) {
+                // Start from top padding
+                startY = this.config.paddingTop;
+                // Calculate spacing to fill the entire available height
+                const lineHeight = fontSize;
+                const totalTextHeight = this.textBounds.length * lineHeight;
+                const extraSpace = availableHeight - totalTextHeight;
+                // Distribute extra space between lines (not before first or after last)
+                const spacingBetweenLines = extraSpace / (this.textBounds.length - 1);
+                // Override lineSpacing for even distribution
+                this.config.lineSpacing = spacingBetweenLines;
+            } else {
+                // Single line: center it
+                startY = this.config.paddingTop + (availableHeight - totalHeight) / 2;
+            }
         } else {
             // Manual mode: use positioning preference
             switch (this.config.textPositionVertical) {

@@ -8,7 +8,7 @@ class EmployerBrandToolPOC {
         // Core components
         this.canvasManager = new CanvasManager();
         this.textEngine = new MainTextController();
-        this.spotDetector = new SpotDetector();
+        this.gridDetector = new GridDetector(); // Phase 2: Unified grid detection
         this.debugController = null; // Will be initialized after DOM is ready
 
         // State
@@ -28,15 +28,15 @@ class EmployerBrandToolPOC {
         // Main text component
         this.mainTextComponent = new MainTextComponent();
 
-        // UI elements
-        this.elements = {};
+        // UI Manager
+        this.uiManager = null; // Will be initialized after DOM is ready
 
-        // Spot Controllers - Object-oriented spot management
-        this.spotControllers = {
-            'empty': new EmptySpotController(this),
-            'text': new TextSpotController(this),
-            'image': new ImageSpotController(this),
-            'mask': new MaskSpotController(this)
+        // Content Controllers - Object-oriented content management
+        this.contentControllers = {
+            'empty': new EmptyContentController(this),
+            'text': new TextContentController(this),
+            'image': new ImageContentController(this),
+            'mask': new MaskContentController(this)
         };
 
         // Shuffler System
@@ -57,8 +57,9 @@ class EmployerBrandToolPOC {
      */
     async initialize() {
         try {
-            // Cache UI elements
-            this.cacheUIElements();
+            // Initialize UI Manager FIRST (other components depend on it)
+            this.uiManager = new UIManager(this);
+            console.log('🎨 UI Manager initialized');
 
             // Initialize debug controller
             this.debugController = new DebugController(this);
@@ -74,9 +75,6 @@ class EmployerBrandToolPOC {
             // Set initial canvas size via Chatooly CDN
             this.initializeChatoolyCanvas();
 
-            // Set up event listeners (including resize)
-            this.setupEventListeners();
-
             // Initialize MainTextController with canvas dimensions and default mode
             this.textEngine.updateConfig({
                 canvasWidth: this.canvasManager.canvas.width,
@@ -84,26 +82,23 @@ class EmployerBrandToolPOC {
                 mode: 'fillCanvas' // Set default mode
             });
 
-            // Initialize font family dropdown
-            this.initializeFontFamilyDropdown();
-
             // Initialize main text component
             this.mainTextComponent.setContainer(
                 0, 0,
                 this.canvasManager.canvas.width,
                 this.canvasManager.canvas.height
             );
-            this.mainTextComponent.text = this.elements.mainText.value;
-            this.mainTextComponent.color = this.elements.textColor.value;
+            this.mainTextComponent.text = this.uiManager.elements.mainText.value;
+            this.mainTextComponent.color = this.uiManager.elements.textColor.value;
 
             // Set initial text
-            this.textEngine.setText(this.elements.mainText.value);
+            this.textEngine.setText(this.uiManager.elements.mainText.value);
 
             // Update line alignment controls for initial text
-            this.updateLineAlignmentControls();
+            this.uiManager.updateLineAlignmentControls();
 
             // Sync auto-detect setting with UI
-            this.autoDetectSpots = this.elements.autoDetectSpots.checked;
+            this.autoDetectSpots = this.uiManager.elements.autoDetectSpots.checked;
 
             // Initial render
             this.render();
@@ -113,8 +108,12 @@ class EmployerBrandToolPOC {
                 this.grid.buildFromExisting();
                 console.log('🧪 Grid system test:', this.grid.getStatus());
 
+                // Populate spots array from grid content cells
+                this.spots = this.grid.getContentCells();
+                this.uiManager.updateSpotsUI();
+
                 // Update visual grid display
-                this.updateVisualGrid();
+                this.uiManager.updateVisualGrid();
             }
 
             this.isInitialized = true;
@@ -123,7 +122,11 @@ class EmployerBrandToolPOC {
 
         } catch (error) {
             console.error('❌ Failed to initialize POC:', error);
-            this.showError('Failed to initialize application. Please refresh and try again.');
+            if (this.uiManager && this.uiManager.showError) {
+                this.uiManager.showError('Failed to initialize application. Please refresh and try again.');
+            } else {
+                alert('Failed to initialize application. Please refresh and try again.');
+            }
         }
     }
 
@@ -156,953 +159,30 @@ class EmployerBrandToolPOC {
     }
     
     
-    /**
-     * Cache references to UI elements
-     * @private
-     */
-    cacheUIElements() {
-        const requiredElements = {
-            mainText: 'mainText',
-            textColor: 'textColor',
-            backgroundColor: 'backgroundColor',
-            backgroundOpacity: 'backgroundOpacity',
-            backgroundOpacityValue: 'backgroundOpacityValue',
-            transparentBackground: 'transparentBackground',
-            backgroundImage: 'backgroundImage',
-            clearBackgroundImage: 'clearBackgroundImage',
-            fontFamily: 'fontFamily',
-            fontSize: 'fontSize',
-            fontSizeValue: 'fontSizeValue',
-            lineSpacing: 'lineSpacing',
-            lineSpacingValue: 'lineSpacingValue',
-            enableWrap: 'enableWrap',
-            fillCanvasMode: 'fillCanvasMode',
-            manualMode: 'manualMode',
-            manualControls: 'manualControls',
-            paddingHorizontal: 'paddingHorizontal',
-            paddingHorizontalValue: 'paddingHorizontalValue',
-            paddingVertical: 'paddingVertical',
-            paddingVerticalValue: 'paddingVerticalValue',
-            lineAlignmentControls: 'lineAlignmentControls',
-            minSpotSize: 'minSpotSize',
-            findSpots: 'findSpots',
-            autoDetectSpots: 'autoDetectSpots',
-            spotCount: 'spotCount',
-            spotsList: 'spotsList',
-            // Main text styling buttons
-            mainTextBold: 'mainTextBold',
-            mainTextItalic: 'mainTextItalic',
-            mainTextUnderline: 'mainTextUnderline',
-            mainTextHighlight: 'mainTextHighlight',
-            mainTextHighlightColor: 'mainTextHighlightColor'
-        };
-        
-        // Cache all elements
-        for (const [key, id] of Object.entries(requiredElements)) {
-            const element = document.getElementById(id);
-            if (!element) {
-                throw new Error(`Required UI element not found: ${id}`);
-            }
-            this.elements[key] = element;
-        }
-    }
 
-    /**
-     * Initialize font family dropdown with options from TextComponent
-     * @private
-     */
-    initializeFontFamilyDropdown() {
-        const fontFamilySelect = this.elements.fontFamily;
-        
-        // Get available fonts from TextComponent (single source of truth)
-        const fonts = this.textEngine.getAvailableFonts();
-        
-        // Clear existing options
-        fontFamilySelect.innerHTML = '';
-        
-        // Add font options
-        fonts.forEach(font => {
-            const option = document.createElement('option');
-            option.value = font.value;
-            option.textContent = font.name;
-            fontFamilySelect.appendChild(option);
-        });
-        
-        // Set initial value to default
-        fontFamilySelect.value = '"Wix Madefor Display", Arial, sans-serif';
-    }
     
-    /**
-     * Set up all event listeners
-     * @private
-     */
-    setupEventListeners() {
-        // Canvas resize event from Chatooly CDN
-        document.addEventListener('chatooly:canvas-resized', (e) => this.onCanvasResized(e));
 
-        // Initialize shuffler UI
-        this.initShufflerUI();
 
-        // Tab switching
-        document.querySelectorAll('.tab-btn').forEach(btn => {
-            btn.addEventListener('click', (e) => {
-                const targetTab = e.target.dataset.tab;
-                this.switchTab(targetTab);
 
-                // Update animation controls when switching to animation tab
-                if (targetTab === 'animation') {
-                    setTimeout(() => {
-                        this.updateVisualGrid();
-                        this.updateTextLineAnimations();
-                    }, 50);
-                }
-            });
-        });
 
-        // Text input changes
-        this.elements.mainText.addEventListener('input', () => {
-            this.mainTextComponent.text = this.elements.mainText.value;
-            this.onTextChanged();
-        });
-        
-        // Text color changes
-        this.elements.textColor.addEventListener('input', () => {
-            const color = this.elements.textColor.value;
-            this.mainTextComponent.color = color;
-            this.render();
-        });
 
-        // Font family changes
-        this.elements.fontFamily.addEventListener('change', () => {
-            const fontFamily = this.elements.fontFamily.value;
-            this.mainTextComponent.fontFamily = fontFamily;
-            this.textEngine.updateConfig({ fontFamily: fontFamily });
-            this.onTextChanged(); // Font family affects text width - trigger auto-detection
-        });
-        
-        // Main text styling buttons
-        this.elements.mainTextBold.addEventListener('click', () => {
-            this.mainTextComponent.fontWeight = this.mainTextComponent.fontWeight === 'bold' ? 'normal' : 'bold';
-            const isActive = this.mainTextComponent.fontWeight === 'bold';
-            this.elements.mainTextBold.classList.toggle('active', isActive);
-            this.onTextChanged(); // Bold affects text width - trigger auto-detection
-        });
-        
-        this.elements.mainTextItalic.addEventListener('click', () => {
-            this.mainTextComponent.fontStyle = this.mainTextComponent.fontStyle === 'italic' ? 'normal' : 'italic';
-            const isActive = this.mainTextComponent.fontStyle === 'italic';
-            this.elements.mainTextItalic.classList.toggle('active', isActive);
-            this.onTextChanged(); // Italic affects text width - trigger auto-detection
-        });
-        
-        this.elements.mainTextUnderline.addEventListener('click', () => {
-            this.mainTextComponent.underline = !this.mainTextComponent.underline;
-            this.elements.mainTextUnderline.classList.toggle('active', this.mainTextComponent.underline);
-            this.render(); // Underline doesn't affect layout - just visual
-        });
-        
-        this.elements.mainTextHighlight.addEventListener('click', () => {
-            this.mainTextComponent.highlight = !this.mainTextComponent.highlight;
-            this.elements.mainTextHighlight.classList.toggle('active', this.mainTextComponent.highlight);
-            
-            // Show/hide highlight color picker based on highlight state
-            const highlightColorGroup = this.elements.mainTextHighlightColor.parentElement;
-            highlightColorGroup.style.display = this.mainTextComponent.highlight ? 'block' : 'none';
-            
-            this.render(); // Highlight doesn't affect layout - just visual
-        });
-        
-        // Highlight color changes
-        this.elements.mainTextHighlightColor.addEventListener('input', () => {
-            this.mainTextComponent.highlightColor = this.elements.mainTextHighlightColor.value;
-            if (this.mainTextComponent.highlight) {
-                this.render();
-            }
-        });
-        
-        // Background color changes
-        this.elements.backgroundColor.addEventListener('input', () => {
-            this.updateBackgroundColor();
-        });
-        
-        // Background opacity changes
-        this.elements.backgroundOpacity.addEventListener('input', () => {
-            const opacity = parseInt(this.elements.backgroundOpacity.value);
-            this.elements.backgroundOpacityValue.textContent = opacity + '%';
-            this.updateBackgroundColor();
-        });
-        
-        // Transparent background toggle
-        this.elements.transparentBackground.addEventListener('change', () => {
-            this.updateBackgroundColor();
-        });
-        
-        // Background image upload
-        this.elements.backgroundImage.addEventListener('change', (e) => {
-            this.handleBackgroundImageUpload(e);
-        });
-        
-        // Clear background image
-        this.elements.clearBackgroundImage.addEventListener('click', () => {
-            this.clearBackgroundImage();
-        });
-        
-        // Font size changes
-        this.elements.fontSize.addEventListener('input', () => {
-            const fontSize = parseInt(this.elements.fontSize.value);
-            this.elements.fontSizeValue.textContent = fontSize + 'px';
-            this.textEngine.updateConfig({ fontSize });
-            this.applySavedAlignments(); // Restore alignments after config change
-            this.render(); // Update display immediately
-        });
-        
-        // Font size auto-detection on release
-        this.elements.fontSize.addEventListener('change', () => {
-            this.onTextChanged(); // Trigger auto-detection when slider is released
-        });
-        
-        // Line spacing changes
-        this.elements.lineSpacing.addEventListener('input', () => {
-            const lineSpacing = parseInt(this.elements.lineSpacing.value);
-            this.elements.lineSpacingValue.textContent = lineSpacing + 'px';
-            this.textEngine.updateConfig({ lineSpacing });
-            this.applySavedAlignments(); // Restore alignments after config change
-            this.render(); // Update display immediately
-        });
-        
-        // Line spacing auto-detection on release
-        this.elements.lineSpacing.addEventListener('change', () => {
-            this.onTextChanged(); // Trigger auto-detection when slider is released
-        });
-        
-        // Mode selection
-        this.elements.fillCanvasMode.addEventListener('change', () => {
-            if (this.elements.fillCanvasMode.checked) {
-                this.setTextMode('fillCanvas');
-            }
-        });
-        
-        this.elements.manualMode.addEventListener('change', () => {
-            if (this.elements.manualMode.checked) {
-                this.setTextMode('manual');
-            }
-        });
-        
-        // Text wrapping toggle (only in manual mode)
-        this.elements.enableWrap.addEventListener('change', () => {
-            const enableWrap = this.elements.enableWrap.checked;
-            this.textEngine.updateConfig({ enableWrap });
-            this.onTextChanged();
-        });
-        
-        // Symmetrical padding controls
-        this.elements.paddingHorizontal.addEventListener('input', () => {
-            const padding = parseInt(this.elements.paddingHorizontal.value);
-            this.elements.paddingHorizontalValue.textContent = padding + 'px';
-            this.updateSymmetricalPaddingDisplay('horizontal', padding); // Update display only
-        });
-        
-        // Padding auto-detection on release
-        this.elements.paddingHorizontal.addEventListener('change', () => {
-            const padding = parseInt(this.elements.paddingHorizontal.value);
-            this.updateSymmetricalPadding('horizontal', padding); // Trigger auto-detection
-        });
-        
-        this.elements.paddingVertical.addEventListener('input', () => {
-            const padding = parseInt(this.elements.paddingVertical.value);
-            this.elements.paddingVerticalValue.textContent = padding + 'px';
-            this.updateSymmetricalPaddingDisplay('vertical', padding); // Update display only
-        });
-        
-        // Padding auto-detection on release  
-        this.elements.paddingVertical.addEventListener('change', () => {
-            const padding = parseInt(this.elements.paddingVertical.value);
-            this.updateSymmetricalPadding('vertical', padding); // Trigger auto-detection
-        });
-        
-        
-        // Debug panel is now handled by DebugController
-        
-        // Text positioning controls (manual mode only)
-        document.querySelectorAll('.pos-btn').forEach(btn => {
-            btn.addEventListener('click', (e) => {
-                // Remove active class from all buttons
-                document.querySelectorAll('.pos-btn').forEach(b => b.classList.remove('active'));
-                // Add active class to clicked button
-                e.target.classList.add('active');
-                
-                const vertical = e.target.dataset.vertical;
-                const horizontal = e.target.dataset.horizontal;
 
-                // Update both MainTextController and MainTextComponent
-                this.textEngine.updateConfig({
-                    textPositionVertical: vertical,
-                    textPositionHorizontal: horizontal
-                });
 
-                // Also update MainTextComponent to keep them in sync
-                this.mainTextComponent.positionH = horizontal;
-                this.mainTextComponent.positionV = vertical;
 
-                this.onTextChanged();
-            });
-        });
-        
-        // Canvas click detection for spots
-        this.canvasManager.canvas.addEventListener('click', (e) => {
-            this.handleCanvasClick(e);
-        });
-        
-        
-        // Minimum spot size changes
-        this.elements.minSpotSize.addEventListener('input', () => {
-            const minSize = parseInt(this.elements.minSpotSize.value);
-            this.spotDetector.setMinSpotSize(minSize);
-        });
-        
-        // Find spots button
-        this.elements.findSpots.addEventListener('click', () => {
-            this.detectSpots();
-        });
-        
-        // Auto-detect toggle
-        this.elements.autoDetectSpots.addEventListener('change', () => {
-            this.autoDetectSpots = this.elements.autoDetectSpots.checked;
-            console.log(`🤖 Auto-detect spots: ${this.autoDetectSpots ? 'enabled' : 'disabled'}`);
-            
-            // If enabled and we have text but no spots, trigger detection
-            if (this.autoDetectSpots && this.elements.mainText.value.trim() && this.spots.length === 0) {
-                this.autoDetectSpotsDebounced(100); // Quick detection when enabling
-            }
-        });
-        
-        // Debug visualization is now handled by DebugController
 
-        // Animation Controls Event Handlers
-        this.setupAnimationEventListeners();
 
-        // Visual Grid Animation Editor
-        this.setupVisualGridListeners();
 
-    }
 
-    /**
-     * Set up animation control event listeners (NEW - Simple per-cell animations)
-     * @private
-     */
-    setupAnimationEventListeners() {
-        // Animation playback controls
-        const playBtn = document.getElementById('playAnimation');
-        const pauseBtn = document.getElementById('pauseAnimation');
-        const resetBtn = document.getElementById('resetAnimation');
-        const clearBtn = document.getElementById('clearAnimations');
 
-        if (playBtn) {
-            playBtn.addEventListener('click', () => {
-                if (this.grid) {
-                    this.grid.playAllAnimations();
-                    this._startAnimationLoop();  // Start render loop
-                    this.updateAnimationStatus();
-                }
-            });
-        }
 
-        if (pauseBtn) {
-            pauseBtn.addEventListener('click', () => {
-                if (this.grid) {
-                    this.grid.pauseAllAnimations();
-                    this._stopAnimationLoop();  // Stop render loop
-                    this.updateAnimationStatus();
-                }
-            });
-        }
 
-        if (resetBtn) {
-            resetBtn.addEventListener('click', () => {
-                if (this.grid) {
-                    this.grid.resetAllAnimations();
-                    this._stopAnimationLoop();  // Stop render loop
-                    this.updateAnimationStatus();
-                    this.render(); // Re-render to show reset
-                }
-            });
-        }
-
-        if (clearBtn) {
-            clearBtn.addEventListener('click', () => {
-                // Clear all animations from all cells
-                if (this.grid) {
-                    this.grid.getAllCells().forEach(cell => {
-                        if (cell && cell.animation) {
-                            cell.removeAnimation();
-                        }
-                    });
-                    this._stopAnimationLoop();  // Stop render loop
-                    this.updateAnimationStatus();
-                    this.updateTextLineAnimations(); // Refresh sidebar controls
-                    this.updateVisualGrid();  // Refresh visual grid
-                    this.render();  // Re-render canvas
-                }
-            });
-        }
-
-        // Initialize text line animation controls on first setup
-        this.updateTextLineAnimations();
-    }
-
-    /**
-     * Set up animation popup event listeners (DEPRECATED - using sidebar controls)
-     * @private
-     */
-    setupAnimationPopupListeners() {
-        // Animation popup functionality has been replaced with sidebar controls
-        // This method is kept for compatibility but no longer used
-        console.log('🔄 Animation popup listeners deprecated - using sidebar controls');
-    }
-
-    /**
-     * Update animation status display (NEW - Simple per-cell animations)
-     * @private
-     */
-    updateAnimationStatus() {
-        const animationCount = document.getElementById('animationCount');
-        const playbackStatus = document.getElementById('playbackStatus');
-
-        if (this.grid) {
-            const animatedCells = this.grid.getAnimatedCells();
-            const playingCount = animatedCells.filter(cell => cell.animation && cell.animation.isPlaying).length;
-
-            if (animationCount) {
-                animationCount.textContent = `${animatedCells.length} animations set`;
-            }
-
-            if (playbackStatus) {
-                const statusText = playingCount > 0 ? 'Playing' : 'Stopped';
-                playbackStatus.textContent = statusText;
-            }
-        }
-    }
-
-    /**
-     * Handle canvas clicks in animation mode (DEPRECATED - using sidebar controls)
-     * @param {MouseEvent} e - Click event
-     * @private
-     */
-    handleAnimationCanvasClick(e) {
-        // Canvas clicking for animations has been replaced with sidebar controls
-        console.log('🔄 Canvas click for animations deprecated - use sidebar controls');
-    }
-
-    /**
-     * Show animation configuration popup
-     * @param {MainTextCell} cell - Text cell to animate
-     * @private
-     */
-    showAnimationPopup(cell) {
-        const popup = document.getElementById('animationPopup');
-        const title = document.getElementById('popupTitle');
-        const previewText = document.getElementById('previewText');
-        const intensitySlider = document.getElementById('animationIntensity');
-
-        if (!popup) return;
-
-        // Store reference to cell being configured
-        this.currentAnimationCell = cell;
-
-        // Update popup content
-        if (title) {
-            title.textContent = `Animate "${cell.text}"`;
-        }
-
-        if (previewText) {
-            previewText.textContent = cell.text;
-        }
-
-        // Set current animation values
-        if (intensitySlider) {
-            intensitySlider.value = cell.animation.intensity || 20;
-            const intensityValue = document.getElementById('intensityValue');
-            if (intensityValue) {
-                intensityValue.textContent = `${intensitySlider.value}px`;
-            }
-        }
-
-        // Select current animation type
-        popup.querySelectorAll('.anim-option').forEach(option => {
-            option.classList.remove('selected');
-            if (option.dataset.type === cell.animation.type) {
-                option.classList.add('selected');
-            }
-        });
-
-        // If no animation is set, select 'none' by default
-        if (cell.animation.type === 'none') {
-            const noneOption = popup.querySelector('.anim-option[data-type="none"]');
-            if (noneOption) noneOption.classList.add('selected');
-        }
-
-        // Show popup
-        popup.style.display = 'flex';
-    }
-
-    /**
-     * Hide animation configuration popup
-     * @private
-     */
-    hideAnimationPopup() {
-        const popup = document.getElementById('animationPopup');
-        if (popup) {
-            popup.style.display = 'none';
-        }
-        this.currentAnimationCell = null;
-    }
-
-    /**
-     * Apply selected animation configuration
-     * @private
-     */
-    applySelectedAnimation() {
-        if (!this.currentAnimationCell || !this.animationEngine) return;
-
-        const popup = document.getElementById('animationPopup');
-        const selectedOption = popup ? popup.querySelector('.anim-option.selected') : null;
-        const intensitySlider = document.getElementById('animationIntensity');
-
-        if (!selectedOption) return;
-
-        const animationType = selectedOption.dataset.type;
-        const intensity = intensitySlider ? parseInt(intensitySlider.value) : 20;
-
-        // Apply animation to the cell
-        this.animationEngine.setAnimation(
-            this.currentAnimationCell.row,
-            this.currentAnimationCell.col,
-            animationType,
-            intensity
-        );
-
-        // Update status display
-        this.updateAnimationStatus();
-
-        // Hide popup
-        this.hideAnimationPopup();
-
-        console.log(`✨ Applied ${animationType} animation (${intensity}px) to "${this.currentAnimationCell.text}"`);
-    }
-
-    /**
-     * Update visual grid display showing all cells
-     * @private
-     */
-    updateVisualGrid() {
-        const container = document.getElementById('visualGrid');
-        if (!container) {
-            console.warn('⚠️ visualGrid element not found in DOM');
-            return;
-        }
-
-        // Clear existing grid
-        container.innerHTML = '';
-
-        // Check if grid is ready
-        if (!this.grid || !this.grid.isReady) {
-            container.innerHTML = '<p class="no-text-message">Grid not ready. Add text to see grid...</p>';
-            console.log('⚠️ Grid not ready yet');
-            return;
-        }
-
-        // Set grid columns based on actual grid dimensions
-        const cols = this.grid.cols || 3;
-        container.style.gridTemplateColumns = `repeat(${cols}, 1fr)`;
-
-        // Create grid cells
-        for (let row = 0; row < this.grid.rows; row++) {
-            for (let col = 0; col < this.grid.cols; col++) {
-                const cell = this.grid.getCell(row, col);
-
-                const gridCellDiv = document.createElement('div');
-                gridCellDiv.className = 'grid-cell';
-                gridCellDiv.dataset.row = row;
-                gridCellDiv.dataset.col = col;
-
-                if (!cell) {
-                    // Empty cell
-                    gridCellDiv.classList.add('empty-cell');
-                    gridCellDiv.innerHTML = `
-                        <div class="grid-cell-content">—</div>
-                        <div class="grid-cell-position">[${row},${col}]</div>
-                    `;
-                } else {
-                    // Cell with content
-                    const hasAnimation = cell.animation !== null;
-                    if (hasAnimation) {
-                        gridCellDiv.classList.add('has-animation');
-                    }
-
-                    const content = cell.type === 'main-text' ? cell.text :
-                                   cell.type === 'spot' ? `Spot: ${cell.spotType}` :
-                                   'Unknown';
-
-                    let animInfo = '';
-                    if (hasAnimation) {
-                        const status = cell.animation.getStatus();
-                        animInfo = `<div class="grid-cell-animation">${status.type}</div>`;
-                    }
-
-                    gridCellDiv.innerHTML = `
-                        <div class="grid-cell-content">${content}</div>
-                        <div class="grid-cell-position">[${row},${col}]</div>
-                        ${animInfo}
-                    `;
-
-                    // Add click handler for non-empty cells
-                    gridCellDiv.addEventListener('click', () => this.selectGridCell(row, col));
-                }
-
-                container.appendChild(gridCellDiv);
-            }
-        }
-
-        console.log(`🎯 Updated visual grid: ${this.grid.rows}x${this.grid.cols}`);
-    }
-
-    /**
-     * Select a grid cell for animation editing
-     * @param {number} row - Row index
-     * @param {number} col - Column index
-     * @private
-     */
-    selectGridCell(row, col) {
-        const cell = this.grid.getCell(row, col);
-        if (!cell) return;
-
-        // Update selected cell
-        this.selectedCell = { row, col, cell };
-
-        // Highlight selected cell in visual grid
-        document.querySelectorAll('.grid-cell').forEach(el => {
-            el.classList.remove('selected');
-        });
-        const selectedDiv = document.querySelector(`.grid-cell[data-row="${row}"][data-col="${col}"]`);
-        if (selectedDiv) {
-            selectedDiv.classList.add('selected');
-        }
-
-        // Show selected cell info panel
-        const infoPanel = document.getElementById('selectedCellInfo');
-        const cellLabel = document.getElementById('selectedCellLabel');
-        const typeSelect = document.getElementById('cellAnimationType');
-        const intensityInput = document.getElementById('cellAnimationIntensity');
-        const speedInput = document.getElementById('cellAnimationSpeed');
-        const intensityValue = document.getElementById('intensityValue');
-        const speedValue = document.getElementById('speedValue');
-
-        if (infoPanel) {
-            infoPanel.style.display = 'block';
-        }
-
-        if (cellLabel) {
-            const content = cell.type === 'main-text' ? `"${cell.text}"` :
-                           cell.type === 'spot' ? `Spot (${cell.spotType})` :
-                           'Unknown';
-            cellLabel.textContent = `${content} [${row},${col}]`;
-        }
-
-        // Set current animation values
-        if (cell.animation) {
-            const status = cell.animation.getStatus();
-            if (typeSelect) typeSelect.value = status.type;
-            if (intensityInput) intensityInput.value = status.intensity;
-            if (speedInput) speedInput.value = status.speed;
-            if (intensityValue) intensityValue.textContent = status.intensity;
-            if (speedValue) speedValue.textContent = status.speed.toFixed(1);
-        } else {
-            if (typeSelect) typeSelect.value = 'none';
-            if (intensityInput) intensityInput.value = 20;
-            if (speedInput) speedInput.value = 1.0;
-            if (intensityValue) intensityValue.textContent = '20';
-            if (speedValue) speedValue.textContent = '1.0';
-        }
-
-        console.log(`✓ Selected cell [${row},${col}]:`, cell.type);
-    }
-
-    /**
-     * Setup event listeners for visual grid animation controls
-     * @private
-     */
-    setupVisualGridListeners() {
-        // Intensity slider
-        const intensityInput = document.getElementById('cellAnimationIntensity');
-        const intensityValue = document.getElementById('intensityValue');
-        if (intensityInput && intensityValue) {
-            intensityInput.addEventListener('input', () => {
-                intensityValue.textContent = intensityInput.value;
-            });
-        }
-
-        // Speed slider
-        const speedInput = document.getElementById('cellAnimationSpeed');
-        const speedValue = document.getElementById('speedValue');
-        if (speedInput && speedValue) {
-            speedInput.addEventListener('input', () => {
-                speedValue.textContent = parseFloat(speedInput.value).toFixed(1);
-            });
-        }
-
-        // Apply animation button
-        const applyBtn = document.getElementById('applyCellAnimation');
-        if (applyBtn) {
-            applyBtn.addEventListener('click', () => this.applyCellAnimation());
-        }
-
-        // Remove animation button
-        const removeBtn = document.getElementById('removeCellAnimation');
-        if (removeBtn) {
-            removeBtn.addEventListener('click', () => this.removeCellAnimation());
-        }
-    }
-
-    /**
-     * Apply animation to selected cell
-     * @private
-     */
-    applyCellAnimation() {
-        if (!this.selectedCell) return;
-
-        const { row, col, cell } = this.selectedCell;
-        const type = document.getElementById('cellAnimationType').value;
-        const intensity = parseInt(document.getElementById('cellAnimationIntensity').value);
-        const speed = parseFloat(document.getElementById('cellAnimationSpeed').value);
-
-        if (type === 'none') {
-            cell.removeAnimation();
-        } else {
-            cell.setAnimation(type, intensity, speed);
-        }
-
-        // Update visual grid
-        this.updateVisualGrid();
-        this.updateAnimationStatus();
-
-        console.log(`✨ Applied ${type} animation to cell [${row},${col}]`);
-    }
-
-    /**
-     * Remove animation from selected cell
-     * @private
-     */
-    removeCellAnimation() {
-        if (!this.selectedCell) return;
-
-        const { row, col, cell } = this.selectedCell;
-        cell.removeAnimation();
-
-        // Update UI
-        document.getElementById('cellAnimationType').value = 'none';
-        this.updateVisualGrid();
-        this.updateAnimationStatus();
-
-        console.log(`🚫 Removed animation from cell [${row},${col}]`);
-    }
-
-    /**
-     * Update text line animation controls in the sidebar
-     * @private
-     */
-    updateTextLineAnimations() {
-        const container = document.getElementById('textLineAnimations');
-        if (!container) return;
-
-        // Clear existing content
-        container.innerHTML = '';
-
-        // Get current text content
-        const text = this.elements.mainText.value.trim();
-        if (!text) {
-            container.innerHTML = '<p class="no-text-message">Enter text to see animation options</p>';
-            return;
-        }
-
-        // Check if grid is ready
-        if (!this.grid || !this.grid.isReady) {
-            container.innerHTML = '<p class="no-text-message">Loading text lines...</p>';
-            return;
-        }
-
-        // Get text cells from grid
-        const textCells = this.grid.getAllCells().filter(cell => cell && cell.type === 'main-text');
-
-        if (textCells.length === 0) {
-            container.innerHTML = '<p class="no-text-message">No text lines found</p>';
-            return;
-        }
-
-        // Create controls for each text line
-        textCells.forEach((cell, index) => {
-            if (!cell.text || cell.isEmpty()) return;
-
-            // Get animation status (NEW - check if animation instance exists)
-            const animStatus = cell.animation ? cell.animation.getStatus() : null;
-            const currentType = animStatus ? animStatus.type : 'none';
-            const currentIntensity = animStatus ? animStatus.intensity : 20;
-
-            const lineControl = document.createElement('div');
-            lineControl.className = 'text-line-control';
-            lineControl.innerHTML = `
-                <div class="text-line-header">
-                    <h4>Line ${index + 1}: "${cell.text}"</h4>
-                    <span class="animation-status">${this.getAnimationStatusText(cell)}</span>
-                </div>
-                <div class="animation-controls">
-                    <div class="animation-type-selector">
-                        <label>Animation Type:</label>
-                        <div class="animation-buttons">
-                            <button type="button" class="animation-type-btn ${currentType === 'none' ? 'active' : ''}"
-                                    data-type="none" data-row="${cell.row}" data-col="${cell.col}">
-                                None
-                            </button>
-                            <button type="button" class="animation-type-btn ${currentType === 'sway' ? 'active' : ''}"
-                                    data-type="sway" data-row="${cell.row}" data-col="${cell.col}">
-                                Sway
-                            </button>
-                            <button type="button" class="animation-type-btn ${currentType === 'bounce' ? 'active' : ''}"
-                                    data-type="bounce" data-row="${cell.row}" data-col="${cell.col}">
-                                Bounce
-                            </button>
-                            <button type="button" class="animation-type-btn ${currentType === 'rotate' ? 'active' : ''}"
-                                    data-type="rotate" data-row="${cell.row}" data-col="${cell.col}">
-                                Rotate
-                            </button>
-                            <button type="button" class="animation-type-btn ${currentType === 'pulse' ? 'active' : ''}"
-                                    data-type="pulse" data-row="${cell.row}" data-col="${cell.col}">
-                                Pulse
-                            </button>
-                        </div>
-                    </div>
-                    <div class="animation-intensity-control ${currentType === 'none' ? 'disabled' : ''}">
-                        <label>Intensity: <span class="intensity-value">${currentIntensity}px</span></label>
-                        <input type="range" class="intensity-slider"
-                               min="5" max="50" value="${currentIntensity}"
-                               data-row="${cell.row}" data-col="${cell.col}">
-                    </div>
-                </div>
-            `;
-
-            container.appendChild(lineControl);
-        });
-
-        // Add event listeners to animation controls
-        this.setupTextLineAnimationListeners(container);
-
-        console.log(`🎛️ Updated sidebar animation controls for ${textCells.length} text lines`);
-    }
-
-    /**
-     * Get animation status text for a cell
-     * @param {MainTextCell} cell - Text cell
-     * @returns {string} Status text
-     * @private
-     */
-    getAnimationStatusText(cell) {
-        if (!cell.animation) {
-            return 'No Animation';
-        }
-        const status = cell.animation.getStatus();
-        return `${status.type} (${status.intensity}px)`;
-    }
-
-    /**
-     * Set up event listeners for text line animation controls
-     * @param {HTMLElement} container - Container with controls
-     * @private
-     */
-    setupTextLineAnimationListeners(container) {
-        // Animation type buttons
-        container.querySelectorAll('.animation-type-btn').forEach(btn => {
-            btn.addEventListener('click', (e) => {
-                const row = parseInt(e.target.dataset.row);
-                const col = parseInt(e.target.dataset.col);
-                const type = e.target.dataset.type;
-
-                // Apply animation to the cell
-                this.setTextLineAnimation(row, col, type);
-
-                // Update UI to reflect changes
-                this.updateTextLineAnimations();
-                this.updateAnimationStatus();
-            });
-        });
-
-        // Intensity sliders
-        container.querySelectorAll('.intensity-slider').forEach(slider => {
-            slider.addEventListener('input', (e) => {
-                const row = parseInt(e.target.dataset.row);
-                const col = parseInt(e.target.dataset.col);
-                const intensity = parseInt(e.target.value);
-
-                // Update intensity display
-                const valueDisplay = e.target.parentElement.querySelector('.intensity-value');
-                if (valueDisplay) {
-                    valueDisplay.textContent = `${intensity}px`;
-                }
-
-                // Apply new intensity
-                this.updateTextLineAnimationIntensity(row, col, intensity);
-            });
-        });
-    }
-
-    /**
-     * Set animation for a text line
-     * @param {number} row - Grid row
-     * @param {number} col - Grid column
-     * @param {string} type - Animation type
-     * @private
-     */
-    setTextLineAnimation(row, col, type) {
-        if (!this.grid) return;
-
-        const cell = this.grid.getCell(row, col);
-        if (!cell) return;
-
-        if (type === 'none') {
-            // Remove animation
-            cell.removeAnimation();
-            console.log(`🚫 Removed animation from text line at (${row}, ${col})`);
-        } else {
-            // Set animation with default intensity
-            const intensity = 20;
-            const speed = 1.0;
-            cell.setAnimation(type, intensity, speed);
-            console.log(`✨ Set ${type} animation (${intensity}px) for text line at (${row}, ${col})`);
-        }
-    }
-
-    /**
-     * Update animation intensity for a text line
-     * @param {number} row - Grid row
-     * @param {number} col - Grid column
-     * @param {number} intensity - Animation intensity
-     * @private
-     */
-    updateTextLineAnimationIntensity(row, col, intensity) {
-        if (!this.grid) return;
-
-        const cell = this.grid.getCell(row, col);
-        if (cell && cell.animation) {
-            // Update the animation configuration
-            cell.animation.updateConfig({ intensity });
-            console.log(`🎚️ Updated animation intensity to ${intensity}px for text line at (${row}, ${col})`);
-        }
-    }
 
     /**
      * Handle text input changes
      * @private
      */
     onTextChanged() {
-        const text = this.elements.mainText.value;
+        const text = this.uiManager.elements.mainText.value;
         this.mainTextComponent.text = text;
 
         // Update text engine with new text
@@ -1114,7 +194,7 @@ class EmployerBrandToolPOC {
         this.applySavedAlignments();
 
         // Update line alignment controls
-        this.updateLineAlignmentControls();
+        this.uiManager.updateLineAlignmentControls();
 
         // Save spots before clearing when text changes
         if (this.spots.length > 0) {
@@ -1123,24 +203,31 @@ class EmployerBrandToolPOC {
 
         // Clear spots when text changes
         this.spots = [];
-        this.updateSpotsUI();
+        this.uiManager.updateSpotsUI();
 
-        this.render();
-
-        // Rebuild grid after text changes (NEW - keep grid synchronized)
+        // Rebuild grid BEFORE rendering (NEW - keep grid synchronized)
         if (this.grid) {
             this.grid.buildFromExisting();
             console.log('🔄 Grid rebuilt after text change');
 
-            // Update visual grid and animation controls after grid rebuild
+            // Sync spots array with grid content cells
+            this.spots = this.grid.getContentCells();
+            this.uiManager.updateSpotsUI();
+        }
+
+        // Render with updated grid
+        this.render();
+
+        // Update visual grid and animation controls after grid rebuild
+        if (this.grid) {
             setTimeout(() => {
-                this.updateVisualGrid();
-                this.updateTextLineAnimations();
+                this.uiManager.updateVisualGrid();
+                this.uiManager.updateTextLineAnimations();
             }, 100); // Small delay to ensure grid is fully rebuilt
         }
 
         // Auto-detect spots after text changes (only if there's text content)
-        if (this.elements.mainText.value.trim()) {
+        if (this.uiManager.elements.mainText.value.trim()) {
             this.autoDetectSpotsDebounced();
         }
     }
@@ -1178,320 +265,15 @@ class EmployerBrandToolPOC {
         });
     }
     
-    /**
-     * Update line alignment controls based on current text
-     * @private
-     */
-    updateLineAlignmentControls() {
-        const container = this.elements.lineAlignmentControls;
-        
-        // Sync main text component first
-        this.syncMainTextComponent();
-        
-        // Get lines from main text component
-        const ctx = this.canvasManager.ctx;
-        ctx.save();
-        
-        let fontSize = this.mainTextComponent.fontSize;
-        if (fontSize === 'auto') {
-            fontSize = this.mainTextComponent.calculateAutoFontSize(ctx);
-        }
-        
-        ctx.font = this.mainTextComponent.getFontString(fontSize);
-        const availableWidth = this.mainTextComponent.getAvailableWidth();
-        const lines = this.mainTextComponent.wrapTextToLines(ctx, this.mainTextComponent.text, availableWidth, fontSize);
-        
-        ctx.restore();
-        
-        // Clear existing controls
-        container.innerHTML = '';
-        
-        // Create alignment control for each line
-        lines.forEach((line, index) => {
-            if (!line.trim()) return; // Skip empty lines
-            
-            // Get the current alignment from MainTextComponent
-            const currentAlignment = this.mainTextComponent.getLineAlignment(index);
-            
-            const lineControl = document.createElement('div');
-            lineControl.className = 'line-alignment-control';
-            lineControl.innerHTML = `
-                <label>Line ${index + 1}: "${line}"</label>
-                <div class="alignment-buttons">
-                    <button type="button" class="align-btn align-left-icon ${currentAlignment === 'left' ? 'active' : ''}" 
-                            data-line="${index}" data-align="left" title="Align Left"><span class="align-icon"></span></button>
-                    <button type="button" class="align-btn align-center-icon ${currentAlignment === 'center' ? 'active' : ''}" 
-                            data-line="${index}" data-align="center" title="Align Center"><span class="align-icon"></span></button>
-                    <button type="button" class="align-btn align-right-icon ${currentAlignment === 'right' ? 'active' : ''}" 
-                            data-line="${index}" data-align="right" title="Align Right"><span class="align-icon"></span></button>
-                </div>
-            `;
-            
-            container.appendChild(lineControl);
-        });
-        
-        // Add event listeners to alignment buttons
-        container.querySelectorAll('.align-btn').forEach(btn => {
-            btn.addEventListener('click', (e) => {
-                const lineIndex = parseInt(e.currentTarget.dataset.line);
-                const alignment = e.currentTarget.dataset.align;
-                this.setLineAlignment(lineIndex, alignment);
-            });
-        });
-    }
     
-    /**
-     * Set alignment for a specific line
-     * @param {number} lineIndex - Index of the line
-     * @param {string} alignment - 'left', 'center', or 'right'
-     * @private
-     */
-    setLineAlignment(lineIndex, alignment) {
-        // Sync main text component first
-        this.syncMainTextComponent();
-        
-        // Get lines from main text component
-        const ctx = this.canvasManager.ctx;
-        ctx.save();
-        
-        let fontSize = this.mainTextComponent.fontSize;
-        if (fontSize === 'auto') {
-            fontSize = this.mainTextComponent.calculateAutoFontSize(ctx);
-        }
-        
-        ctx.font = this.mainTextComponent.getFontString(fontSize);
-        const availableWidth = this.mainTextComponent.getAvailableWidth();
-        const lines = this.mainTextComponent.wrapTextToLines(ctx, this.mainTextComponent.text, availableWidth, fontSize);
-        
-        ctx.restore();
-        
-        const line = lines[lineIndex];
-        
-        if (line && line.trim()) {
-            // Save the alignment preference for this line content
-            const lineKey = line.trim();
-            this.savedLineAlignments[lineKey] = alignment;
-            
-            console.log(`💾 Saved alignment for "${lineKey}": ${alignment}`);
-        }
-        
-        this.mainTextComponent.setLineAlignment(lineIndex, alignment);
-        this.updateLineAlignmentControls(); // Refresh controls to show active state
-        this.onTextChanged(); // Trigger auto-detection for layout change
-    }
     
-    /**
-     * Set text mode and update UI accordingly
-     * @param {string} mode - 'fillCanvas' or 'manual'
-     * @private
-     */
-    setTextMode(mode) {
-        console.log(`🎛️ Switching to ${mode} mode`);
-        
-        // When switching to manual mode, preserve current font size and line height
-        if (mode === 'manual') {
-            const currentConfig = this.textEngine.getConfig();
-            
-            // Update UI controls to reflect current state
-            this.elements.fontSize.value = currentConfig.fontSize;
-            this.elements.fontSizeValue.textContent = currentConfig.fontSize + 'px';
-            this.elements.lineSpacing.value = currentConfig.lineSpacing;
-            this.elements.lineSpacingValue.textContent = currentConfig.lineSpacing + 'px';
-            
-            console.log(`📋 Preserving font size: ${currentConfig.fontSize}px, line spacing: ${currentConfig.lineSpacing}px`);
-        }
-        
-        this.textEngine.updateConfig({ mode });
-        
-        // Update canvas dimensions in textEngine
-        this.textEngine.updateConfig({ 
-            canvasWidth: this.canvasManager.canvas.width, 
-            canvasHeight: this.canvasManager.canvas.height 
-        });
-        
-        // Show/hide manual controls
-        if (mode === 'manual') {
-            console.log('👀 Showing manual controls');
-            this.elements.manualControls.style.display = 'block';
-        } else {
-            console.log('🙈 Hiding manual controls');
-            this.elements.manualControls.style.display = 'none';
-        }
-        
-        this.onTextChanged();
-    }
     
-    /**
-     * Switch between tabs
-     * @param {string} tabName - Tab to switch to
-     * @private
-     */
-    switchTab(tabName) {
-        // Remove active class from all tabs and content
-        document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
-        document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
-        
-        // Add active class to selected tab
-        const activeTabBtn = document.querySelector(`[data-tab="${tabName}"]`);
-        if (activeTabBtn) {
-            activeTabBtn.classList.add('active');
-        }
-        
-        // Show corresponding content
-        let contentId;
-        switch(tabName) {
-            case 'mainText':
-                contentId = 'mainTextTab';
-                break;
-            case 'canvas':
-                contentId = 'canvasTab';
-                break;
-            case 'spots':
-                contentId = 'spotsTab';
-                break;
-            case 'animation':
-                contentId = 'animationTab';
-                break;
-            case 'parameters':
-                contentId = 'parametersTab';
-                break;
-        }
-        
-        const activeContent = document.getElementById(contentId);
-        if (activeContent) {
-            activeContent.classList.add('active');
-        }
-        
-        console.log(`🔄 Switched to ${tabName} tab`);
-    }
     
-    /**
-     * Update symmetrical padding display only (no auto-detection)
-     * @param {string} direction - 'horizontal' or 'vertical'
-     * @param {number} value - Padding value
-     * @private
-     */
-    updateSymmetricalPaddingDisplay(direction, value) {
-        if (direction === 'horizontal') {
-            this.textEngine.updateConfig({ 
-                paddingLeft: value, 
-                paddingRight: value 
-            });
-        } else if (direction === 'vertical') {
-            this.textEngine.updateConfig({ 
-                paddingTop: value, 
-                paddingBottom: value 
-            });
-        }
-        
-        // Update main text component padding
-        const paddingH = parseInt(this.elements.paddingHorizontal.value);
-        const paddingV = parseInt(this.elements.paddingVertical.value);
-        this.mainTextComponent.setPaddingIndividual({
-            left: paddingH,
-            right: paddingH,
-            top: paddingV,
-            bottom: paddingV
-        });
-        
-        this.render(); // Update display immediately
-    }
     
-    /**
-     * Update symmetrical padding with auto-detection
-     * @param {string} direction - 'horizontal' or 'vertical'
-     * @param {number} value - Padding value
-     * @private
-     */
-    updateSymmetricalPadding(direction, value) {
-        if (direction === 'horizontal') {
-            this.textEngine.updateConfig({ 
-                paddingLeft: value, 
-                paddingRight: value 
-            });
-        } else if (direction === 'vertical') {
-            this.textEngine.updateConfig({ 
-                paddingTop: value, 
-                paddingBottom: value 
-            });
-        }
-        this.onTextChanged();
-    }
     
-    /**
-     * Update background color with opacity
-     * @private
-     */
-    updateBackgroundColor() {
-        const isTransparent = this.elements.transparentBackground.checked;
-        
-        if (isTransparent) {
-            this.canvasManager.setBackgroundColor('transparent');
-        } else {
-            const hexColor = this.elements.backgroundColor.value;
-            const opacity = parseInt(this.elements.backgroundOpacity.value);
-            
-            if (opacity === 100) {
-                // Fully opaque, use hex color
-                this.canvasManager.setBackgroundColor(hexColor);
-            } else {
-                // Convert hex to RGBA with opacity
-                const rgbaColor = this.hexToRgba(hexColor, opacity / 100);
-                this.canvasManager.setBackgroundColor(rgbaColor);
-            }
-        }
-        
-        this.render();
-    }
     
-    /**
-     * Convert hex color to RGBA
-     * @param {string} hex - Hex color (#ffffff)
-     * @param {number} alpha - Alpha value (0-1)
-     * @returns {string} RGBA color string
-     * @private
-     */
-    hexToRgba(hex, alpha) {
-        const r = parseInt(hex.slice(1, 3), 16);
-        const g = parseInt(hex.slice(3, 5), 16);
-        const b = parseInt(hex.slice(5, 7), 16);
-        return `rgba(${r}, ${g}, ${b}, ${alpha})`;
-    }
     
-    /**
-     * Handle background image upload
-     * @param {Event} event - File input change event
-     * @private
-     */
-    handleBackgroundImageUpload(event) {
-        const file = event.target.files[0];
-        if (!file) return;
-        
-        const reader = new FileReader();
-        reader.onload = (e) => {
-            const img = new Image();
-            img.onload = () => {
-                this.canvasManager.setBackgroundImage(img);
-                this.elements.clearBackgroundImage.style.display = 'inline-block';
-                this.render();
-                console.log('✅ Background image loaded');
-            };
-            img.src = e.target.result;
-        };
-        reader.readAsDataURL(file);
-    }
     
-    /**
-     * Clear background image
-     * @private
-     */
-    clearBackgroundImage() {
-        this.canvasManager.setBackgroundImage(null);
-        this.elements.backgroundImage.value = '';
-        this.elements.clearBackgroundImage.style.display = 'none';
-        this.render();
-        console.log('🗑️ Background image cleared');
-    }
     
     
     /**
@@ -1701,7 +483,7 @@ class EmployerBrandToolPOC {
      * @private
      */
     restoreSpotToNewLocation(newSpot, savedSpot) {
-        newSpot.setType(savedSpot.type);
+        newSpot.setContentType(savedSpot.type);
         
         // Handle content restoration based on type
         if (savedSpot.content) {
@@ -1793,8 +575,8 @@ class EmployerBrandToolPOC {
             }
             
             // Enable debugging for detection
-            this.spotDetector.setDebugging(true);
-            
+            this.gridDetector.setDebugging(true);
+
             // Sync main text component first
             this.syncMainTextComponent();
             
@@ -1810,26 +592,27 @@ class EmployerBrandToolPOC {
                 right: this.mainTextComponent.paddingRight
             };
             
-            // Run detection algorithm
+            // Phase 2: Grid is already built by updateText() - just extract content cells
+            // No need to rebuild here since grid is always synchronized
             const startTime = performance.now();
-            this.spots = this.spotDetector.detect(canvas, textBounds, padding);
+
+            // Extract content cells from existing grid (already built by updateText)
+            if (this.grid) {
+                // Grid is already up-to-date from updateText() or init()
+                // Just extract the content cells for spot UI
+                const contentCells = this.grid.getContentCells();
+                this.spots = contentCells; // Temporary compatibility
+                console.log('✅ Using existing grid with', contentCells.length, 'content cells');
+            }
+
             const endTime = performance.now();
-            
-            // Restore saved spot data to new spots
-            this.restoreSpotData();
-            
-            // Update UI
-            this.updateSpotsUI();
+
+            // Phase 4: Re-enable UI updates (ContentCell now has Spot compatibility)
+            this.uiManager.updateSpotsUI();
             this.render();
 
-            // Rebuild grid after spot detection (NEW - keep grid synchronized)
-            if (this.grid) {
-                this.grid.buildFromExisting();
-                console.log('🔄 Grid rebuilt after spot detection');
-
-                // Update visual grid display
-                this.updateVisualGrid();
-            }
+            // Update visual grid display
+            this.uiManager.updateVisualGrid();
 
             // Call the callback if provided
             if (callback && typeof callback === 'function') {
@@ -1839,8 +622,8 @@ class EmployerBrandToolPOC {
             
         } catch (error) {
             console.error('❌ Spot detection failed:', error);
-            this.showError('Spot detection failed. Please try again.');
-            
+            this.uiManager.showError('Spot detection failed. Please try again.');
+
             // Still call callback even if detection failed
             if (callback && typeof callback === 'function') {
                 callback();
@@ -1857,349 +640,20 @@ class EmployerBrandToolPOC {
         return this.mainTextComponent.getTextBounds(this.canvasManager.ctx);
     }
     
-    /**
-     * Update the spots list in the UI
-     * @private
-     */
-    updateSpotsUI() {
-        // Update spot count with waiting spots indicator
-        const waitingText = this.waitingSpots.length > 0 ? ` (+${this.waitingSpots.length} waiting)` : '';
-        this.elements.spotCount.textContent = `${this.spots.length}${waitingText}`;
-        
-        // Clear existing spots list
-        this.elements.spotsList.innerHTML = '';
-        
-        // Add each spot to the UI
-        this.spots.forEach(spot => {
-            const spotItem = this.createSpotItemElement(spot);
-            this.elements.spotsList.appendChild(spotItem);
-        });
-        
-        // Add waiting spots section if any exist
-        if (this.waitingSpots.length > 0) {
-            this.addWaitingSpotsSection();
-        }
-    }
-    
-    /**
-     * Add waiting spots section to the UI
-     * @private
-     */
-    addWaitingSpotsSection() {
-        const waitingSection = document.createElement('div');
-        waitingSection.className = 'waiting-spots-section';
-        waitingSection.innerHTML = `
-            <div class="waiting-spots-header">
-                <h4>⏳ Waiting for Space (${this.waitingSpots.length})</h4>
-                <p>These spots will be restored when layout provides more room:</p>
-            </div>
-        `;
-        
-        // Add each waiting spot as a simple info item
-        this.waitingSpots.forEach((spot, index) => {
-            const waitingItem = document.createElement('div');
-            waitingItem.className = 'waiting-spot-item';
-            
-            const contentPreview = this.getSpotContentPreview(spot);
-            waitingItem.innerHTML = `
-                <span class="waiting-spot-info">
-                    <strong>Spot ${spot.originalId}</strong> (${spot.type})
-                    ${contentPreview ? `: ${contentPreview}` : ''}
-                </span>
-            `;
-            
-            waitingSection.appendChild(waitingItem);
-        });
-        
-        this.elements.spotsList.appendChild(waitingSection);
-    }
-    
-    /**
-     * Get a preview of spot content for display
-     * @param {Object} spot - Spot data
-     * @returns {string} Content preview
-     * @private
-     */
-    getSpotContentPreview(spot) {
-        if (!spot.content) return '';
-        
-        switch (spot.type) {
-            case 'text':
-                return spot.content.text ? `"${spot.content.text.substring(0, 20)}${spot.content.text.length > 20 ? '...' : ''}"` : '';
-            case 'image':
-                return spot.content.imageDataURL ? 'Image' : '';
-            case 'mask':
-                return 'Background reveal';
-            default:
-                return '';
-        }
-    }
-    
-    /**
-     * Create a spot item element for the UI
-     * @param {Spot} spot - Spot object
-     * @returns {HTMLElement} Spot item element
-     * @private
-     */
-    createSpotItemElement(spot) {
-        const item = document.createElement('div');
-        item.className = 'spot-item';
-        item.dataset.spotId = spot.id;
-        
-        // Main spot header with improved readability
-        const header = document.createElement('div');
-        header.className = 'spot-header';
-        
-        // Left section: Spot info
-        const infoSection = document.createElement('div');
-        infoSection.className = 'spot-info';
-        
-        // Spot number with label
-        const numberLabel = document.createElement('div');
-        numberLabel.className = 'spot-number-label';
-        numberLabel.innerHTML = `<strong>Spot ${spot.id}</strong>`;
-        
-        infoSection.appendChild(numberLabel);
-        
-        // Right section: Controls
-        const controlsSection = document.createElement('div');
-        controlsSection.className = 'spot-controls-section';
-        
-        // Type selector with label
-        const typeLabel = document.createElement('label');
-        typeLabel.className = 'spot-type-label';
-        typeLabel.textContent = 'Type:';
-        
-        const typeSelect = document.createElement('select');
-        typeSelect.className = 'spot-type-select';
-        
-        const types = [
-            { value: 'empty', label: 'Empty' },
-            { value: 'image', label: 'Image' },
-            { value: 'text', label: 'Text' },
-            { value: 'mask', label: 'Mask' }
-        ];
-        
-        types.forEach(type => {
-            const option = document.createElement('option');
-            option.value = type.value;
-            option.textContent = type.label;
-            option.selected = type.value === spot.type;
-            typeSelect.appendChild(option);
-        });
-        
-        // Expand/collapse button
-        const toggleBtn = document.createElement('button');
-        toggleBtn.type = 'button';
-        toggleBtn.className = 'spot-toggle';
-        toggleBtn.textContent = '▼ Settings';
-        
-        controlsSection.appendChild(typeLabel);
-        controlsSection.appendChild(typeSelect);
-        controlsSection.appendChild(toggleBtn);
-        
-        // Prevent clicks on header from interfering with controls
-        header.addEventListener('click', (e) => {
-            e.stopPropagation();
-        });
-        
-        // Assemble header
-        header.appendChild(infoSection);
-        header.appendChild(controlsSection);
-        
-        // Expandable controls container
-        const controls = document.createElement('div');
-        controls.className = 'spot-controls';
-        controls.style.display = 'none';
-        
-        // Create type-specific controls
-        this.createSpotTypeControls(spot, controls);
-        
-        // Prevent clicks inside controls from closing the section
-        controls.addEventListener('click', (e) => {
-            e.stopPropagation();
-        });
-        
-        // Toggle functionality
-        toggleBtn.addEventListener('click', (e) => {
-            e.stopPropagation();
-            const isOpen = controls.style.display !== 'none';
-            controls.style.display = isOpen ? 'none' : 'block';
-            toggleBtn.textContent = isOpen ? '▶ Settings' : '▼ Settings';
-        });
-        
-        // Handle type changes
-        typeSelect.addEventListener('change', (e) => {
-            e.stopPropagation();
-            spot.setType(typeSelect.value);
-            this.createSpotTypeControls(spot, controls);
-            this.render();
-
-            // Update grid to reflect spot type change
-            if (this.grid) {
-                this.grid.updateSpotType(spot.id, typeSelect.value);
-            }
-        });
-        
-        // Assemble item
-        item.appendChild(header);
-        item.appendChild(controls);
-        
-        return item;
-    }
-    
-    /**
-     * Create type-specific controls for a spot
-     * @param {Spot} spot - Spot object
-     * @param {HTMLElement} container - Container for controls
-     * @private
-     */
-    createSpotTypeControls(spot, container) {
-        // Clear existing controls
-        container.innerHTML = '';
-        
-        // Use appropriate controller for the spot type
-        const controller = this.spotControllers[spot.type];
-        if (controller) {
-            controller.createControls(spot, container, 'sidebar');
-        }
-        
-        // Add padding control for all non-empty spot types (after type-specific controls)
-        if (spot.type !== 'empty') {
-            controller.createPaddingControl(spot, container, 'sidebar');
-        }
-    }
     
     
-    /**
-     * Handle spot type changes
-     * @param {number} spotId - ID of the spot
-     * @param {string} newType - New spot type
-     * @private
-     */
-    onSpotTypeChanged(spotId, newType) {
-        const spot = this.spots.find(s => s.id === spotId);
-        if (spot) {
-            spot.setType(newType);
-            console.log(`Changed spot ${spotId} to type: ${newType}`);
-            this.render();
-
-            // Update grid to reflect spot type change
-            if (this.grid) {
-                this.grid.updateSpotType(spot.id, typeSelect.value);
-            }
-        }
-    }
     
-    /**
-     * Update spot padding
-     * @param {Spot} spot - Spot object
-     * @param {number} padding - Padding value in pixels
-     * @private
-     */
-    updateSpotPadding(spot, padding) {
-        if (!spot.content) spot.content = {};
-        spot.content.padding = padding;
-        this.render();
-        console.log(`Updated spot ${spot.id} padding: ${padding}px`);
-    }
     
-    /**
-     * Update spot text content
-     * @param {Spot} spot - Spot object
-     * @param {string} text - New text content
-     * @private
-     */
-    updateSpotText(spot, text) {
-        if (!spot.content) spot.content = {};
-        spot.content.text = text;
-        this.render();
-    }
     
-    /**
-     * Update spot text alignment
-     * @param {Spot} spot - Spot object
-     * @param {string} alignment - Text alignment (left, center, right)
-     * @private
-     */
-    updateSpotTextAlignment(spot, alignment) {
-        if (!spot.content) spot.content = {};
-        spot.content.textAlign = alignment;
-        this.render();
-    }
     
-    /**
-     * Toggle spot text style
-     * @param {Spot} spot - Spot object
-     * @param {string} style - Style to toggle (bold, italic, underline)
-     * @private
-     */
-    toggleSpotTextStyle(spot, style) {
-        if (!spot.content) spot.content = {};
-        if (!spot.content.styles) spot.content.styles = {};
-        spot.content.styles[style] = !spot.content.styles[style];
-        this.render();
-    }
     
-    /**
-     * Update spot text color
-     * @param {Spot} spot - Spot object
-     * @param {string} color - New text color
-     * @private
-     */
-    updateSpotTextColor(spot, color) {
-        if (!spot.content) spot.content = {};
-        spot.content.color = color;
-        this.render();
-    }
     
-    /**
-     * Handle spot image upload
-     * @param {Spot} spot - Spot object
-     * @param {Event} event - File input event
-     * @private
-     */
-    handleSpotImageUpload(spot, event) {
-        const file = event.target.files[0];
-        if (!file) return;
-        
-        const reader = new FileReader();
-        reader.onload = (e) => {
-            const img = new Image();
-            img.onload = () => {
-                if (!spot.content) spot.content = {};
-                spot.content.image = img;
-                this.render();
-                console.log(`✅ Image loaded for spot ${spot.id}`);
-            };
-            img.src = e.target.result;
-        };
-        reader.readAsDataURL(file);
-    }
     
-    /**
-     * Update spot image scale
-     * @param {Spot} spot - Spot object
-     * @param {number} scale - New scale value
-     * @private
-     */
-    updateSpotImageScale(spot, scale) {
-        if (!spot.content) spot.content = {};
-        spot.content.scale = scale;
-        this.render();
-    }
     
-    /**
-     * Update spot image rotation
-     * @param {Spot} spot - Spot object
-     * @param {number} rotation - New rotation value in degrees
-     * @private
-     */
-    updateSpotImageRotation(spot, rotation) {
-        if (!spot.content) spot.content = {};
-        spot.content.rotation = rotation;
-        this.render();
-    }
+    
+    
+    
+    
     
     /**
      * Handle canvas clicks
@@ -2228,7 +682,7 @@ class EmployerBrandToolPOC {
             // Render canvas background
             this.canvasManager.renderBackground();
 
-            // NEW: Simple unified rendering (animations always applied if present)
+            // Unified grid rendering (animations applied when present)
             this._renderWithAnimations();
 
             // Render debug overlays if enabled
@@ -2245,8 +699,8 @@ class EmployerBrandToolPOC {
     }
 
     /**
-     * Render content with animations (NEW - Grid-aware per-cell animation rendering)
-     * Applies cell.currentOffset transforms when rendering animated cells
+     * Render content using unified grid architecture
+     * Renders all grid cells (MainTextCell and ContentCell) with animation transforms
      * @private
      */
     _renderWithAnimations() {
@@ -2258,9 +712,9 @@ class EmployerBrandToolPOC {
             const allCells = this.grid.getAllCells();
             const animatedCells = allCells.filter(cell => cell && cell.animation);
 
-            // If we have animated cells, render cell-by-cell with transforms
-            if (animatedCells.length > 0) {
-                // Render all grid cells (both animated and non-animated)
+            // Always render all grid cells (with or without animations)
+            if (allCells.length > 0) {
+                // Render all grid cells
                 allCells.forEach(cell => {
                     if (!cell) return;
 
@@ -2318,43 +772,82 @@ class EmployerBrandToolPOC {
                             ctx.stroke();
                         }
 
-                        ctx.restore();
-                    } else if (cell.type === 'spot') {
-                        // Render spot cells normally (spots handle their own rendering)
-                        const spot = this.spots.find(s => s.id === cell.spotId);
-                        if (spot) {
-                            const showOutline = debugOptions.showSpotOutlines;
-                            const showNumber = debugOptions.showSpotNumbers;
-                            spot.render(ctx, showOutline, showNumber, this.canvasManager.backgroundImage);
+                        // Draw debug outline if enabled
+                        if (debugOptions.showSpotOutlines) {
+                            ctx.strokeStyle = '#00ff00';
+                            ctx.lineWidth = 2;
+                            ctx.strokeRect(cell.bounds.x, cell.bounds.y, cell.bounds.width, cell.bounds.height);
                         }
+
+                        // Draw debug number if enabled
+                        if (debugOptions.showSpotNumbers && cell.id) {
+                            const center = cell.getCenter();
+                            const radius = 15;
+
+                            // Circle background
+                            ctx.fillStyle = '#e5e5e5';
+                            ctx.beginPath();
+                            ctx.arc(center.x, center.y, radius, 0, Math.PI * 2);
+                            ctx.fill();
+
+                            // Number text
+                            ctx.fillStyle = '#121212';
+                            ctx.font = 'bold 14px Arial';
+                            ctx.textAlign = 'center';
+                            ctx.textBaseline = 'middle';
+                            ctx.fillText(cell.id.toString(), center.x, center.y);
+                        }
+
+                        ctx.restore();
+                    } else if (cell.type === 'content' || cell instanceof ContentCell) {
+                        // Render ContentCell with CellRenderer
+                        ctx.save();
+
+                        // Apply animation transforms if cell has animation
+                        const offset = cell.currentOffset || { x: 0, y: 0 };
+
+                        // Calculate transform origin (center of cell bounds)
+                        const centerX = cell.bounds.x + cell.bounds.width / 2;
+                        const centerY = cell.bounds.y + cell.bounds.height / 2;
+
+                        // Move to center, apply transforms, move back
+                        ctx.translate(centerX, centerY);
+                        ctx.translate(offset.x || 0, offset.y || 0);
+                        if (offset.rotation) ctx.rotate(offset.rotation);
+                        if (offset.scale) ctx.scale(offset.scale, offset.scale);
+                        ctx.translate(-centerX, -centerY);
+
+                        // Render ContentCell using CellRenderer
+                        const renderOptions = {
+                            showOutlines: debugOptions.showSpotOutlines,
+                            showNumbers: debugOptions.showSpotNumbers,
+                            backgroundImage: this.canvasManager.backgroundImage
+                        };
+                        CellRenderer.render(ctx, cell, renderOptions);
+
+                        ctx.restore();
                     }
+                    // Note: GridDetector only creates MainTextCell and ContentCell
                 });
 
-                // Render spots that are not part of the grid
-                this.spots.forEach(spot => {
-                    const isInGrid = allCells.some(cell =>
-                        cell && cell.type === 'spot' && cell.spotId === spot.id
-                    );
-
-                    if (!isInGrid) {
-                        const showOutline = debugOptions.showSpotOutlines;
-                        const showNumber = debugOptions.showSpotNumbers;
-                        spot.render(ctx, showOutline, showNumber, this.canvasManager.backgroundImage);
-                    }
-                });
-
-                return; // Done rendering with grid
+                return; // Grid rendering complete
             }
         }
 
-        // Fallback: No grid or no animated cells - use MainTextComponent
+        // Fallback: If grid not ready, use MainTextComponent
+        // This should rarely execute as grid is built on initialization
         this.mainTextComponent.render(ctx);
 
-        // Render all spots normally
+        // Render ContentCells if they exist outside grid
         this.spots.forEach(spot => {
-            const showOutline = debugOptions.showSpotOutlines;
-            const showNumber = debugOptions.showSpotNumbers;
-            spot.render(ctx, showOutline, showNumber, this.canvasManager.backgroundImage);
+            if (spot instanceof ContentCell) {
+                const renderOptions = {
+                    showOutlines: debugOptions.showSpotOutlines,
+                    showNumbers: debugOptions.showSpotNumbers,
+                    backgroundImage: this.canvasManager.backgroundImage
+                };
+                CellRenderer.render(ctx, spot, renderOptions);
+            }
         });
     }
 
@@ -2435,8 +928,13 @@ class EmployerBrandToolPOC {
      * @private
      */
     syncMainTextComponent() {
+        // Safety check: UIManager must be initialized
+        if (!this.uiManager || !this.uiManager.elements) {
+            return;
+        }
+
         // Update text content
-        this.mainTextComponent.text = this.elements.mainText.value;
+        this.mainTextComponent.text = this.uiManager.elements.mainText.value;
         
         // Update container size and position
         this.mainTextComponent.setContainer(
@@ -2446,11 +944,11 @@ class EmployerBrandToolPOC {
         );
         
         // Update color
-        this.mainTextComponent.color = this.elements.textColor.value;
+        this.mainTextComponent.color = this.uiManager.elements.textColor.value;
         
         // Update padding
-        const paddingH = parseInt(this.elements.paddingHorizontal.value);
-        const paddingV = parseInt(this.elements.paddingVertical.value);
+        const paddingH = parseInt(this.uiManager.elements.paddingHorizontal.value);
+        const paddingV = parseInt(this.uiManager.elements.paddingVertical.value);
         this.mainTextComponent.setPaddingIndividual({
             left: paddingH,
             right: paddingH,
@@ -2459,20 +957,20 @@ class EmployerBrandToolPOC {
         });
         
         // Update text mode (auto-size vs manual)
-        if (this.elements.fillCanvasMode.checked) {
+        if (this.uiManager.elements.fillCanvasMode.checked) {
             this.mainTextComponent.fontSize = 'auto';
         } else {
-            this.mainTextComponent.fontSize = parseInt(this.elements.fontSize.value);
+            this.mainTextComponent.fontSize = parseInt(this.uiManager.elements.fontSize.value);
         }
         
         // Update line spacing
-        this.mainTextComponent.lineSpacing = parseInt(this.elements.lineSpacing.value);
+        this.mainTextComponent.lineSpacing = parseInt(this.uiManager.elements.lineSpacing.value);
         
         // Update wrapping
-        this.mainTextComponent.wrapText = this.elements.enableWrap.checked;
+        this.mainTextComponent.wrapText = this.uiManager.elements.enableWrap.checked;
         
         // Update positioning for manual mode
-        if (this.elements.manualMode.checked) {
+        if (this.uiManager.elements.manualMode.checked) {
             const activePos = document.querySelector('.pos-btn.active');
             if (activePos) {
                 this.mainTextComponent.alignH = activePos.dataset.horizontal;
@@ -2489,15 +987,6 @@ class EmployerBrandToolPOC {
     }
     
     
-    /**
-     * Show error message to user
-     * @param {string} message - Error message
-     * @private
-     */
-    showError(message) {
-        // Simple alert for now - could be improved with better UI
-        alert('Error: ' + message);
-    }
     
     /**
      * Get current application state for debugging
@@ -2505,7 +994,7 @@ class EmployerBrandToolPOC {
      */
     getState() {
         return {
-            textContent: this.elements.mainText.value,
+            textContent: this.uiManager.elements.mainText.value,
             textConfig: this.textEngine.getConfig(),
             spots: this.spots.map(spot => ({
                 id: spot.id,
@@ -2571,12 +1060,12 @@ class EmployerBrandToolPOC {
         this.mainTextComponent.setContainer(0, 0, newWidth, newHeight);
 
         // Scale padding
-        const paddingH = Math.round(parseInt(this.elements.paddingHorizontal.value) * scaleX);
-        const paddingV = Math.round(parseInt(this.elements.paddingVertical.value) * scaleY);
-        this.elements.paddingHorizontal.value = paddingH;
-        this.elements.paddingVertical.value = paddingV;
-        this.elements.paddingHorizontalValue.textContent = paddingH + 'px';
-        this.elements.paddingVerticalValue.textContent = paddingV + 'px';
+        const paddingH = Math.round(parseInt(this.uiManager.elements.paddingHorizontal.value) * scaleX);
+        const paddingV = Math.round(parseInt(this.uiManager.elements.paddingVertical.value) * scaleY);
+        this.uiManager.elements.paddingHorizontal.value = paddingH;
+        this.uiManager.elements.paddingVertical.value = paddingV;
+        this.uiManager.elements.paddingHorizontalValue.textContent = paddingH + 'px';
+        this.uiManager.elements.paddingVerticalValue.textContent = paddingV + 'px';
 
         // Update tracking
         this.previousCanvasSize = { width: newWidth, height: newHeight };
@@ -2585,7 +1074,7 @@ class EmployerBrandToolPOC {
         this.render();
 
         // Trigger spot detection if auto-detect is enabled
-        if (this.autoDetectSpots && this.elements.mainText.value.trim()) {
+        if (this.autoDetectSpots && this.uiManager.elements.mainText.value.trim()) {
             this.autoDetectSpotsDebounced(300);
         }
     }
@@ -2599,7 +1088,7 @@ class EmployerBrandToolPOC {
         
         try {
             // Set test text
-            this.elements.mainText.value = 'TEST\nSPOT\nDETECTION';
+            this.uiManager.elements.mainText.value = 'TEST\nSPOT\nDETECTION';
             this.onTextChanged();
             
             // Run detection
@@ -2646,105 +1135,12 @@ class EmployerBrandToolPOC {
         
         if (clickedSpot) {
             console.log(`🎯 Clicked on spot ${clickedSpot.id}`);
-            this.showSpotEditPopup(clickedSpot, e.clientX, e.clientY);
+            this.uiManager.showSpotEditPopup(clickedSpot, e.clientX, e.clientY);
         }
     }
     
-    /**
-     * Show spot edit popup
-     * @param {Spot} spot - Spot to edit
-     * @param {number} clickX - Click X position (screen coordinates)
-     * @param {number} clickY - Click Y position (screen coordinates) 
-     * @private
-     */
-    showSpotEditPopup(spot, clickX, clickY) {
-        const popup = document.getElementById('spotEditPopup');
-        const title = document.getElementById('spotPopupTitle');
-        const body = document.getElementById('spotPopupBody');
-        const closeBtn = document.getElementById('closeSpotPopup');
-        
-        // Set title
-        title.textContent = `Edit Spot ${spot.id}`;
-        
-        // Create popup content
-        this.createPopupSpotControls(spot, body);
-        
-        // Show popup
-        popup.classList.add('show');
-        
-        // Close button handler
-        const closePopup = () => {
-            popup.classList.remove('show');
-            closeBtn.removeEventListener('click', closePopup);
-            popup.removeEventListener('click', outsideClick);
-        };
-        
-        // Outside click handler
-        const outsideClick = (e) => {
-            if (e.target === popup) {
-                closePopup();
-            }
-        };
-        
-        closeBtn.addEventListener('click', closePopup);
-        popup.addEventListener('click', outsideClick);
-        
-        console.log(`📝 Opened popup for spot ${spot.id}`);
-    }
     
     
-    /**
-     * Create spot controls for popup
-     * @param {Spot} spot - Spot object
-     * @param {HTMLElement} container - Container for controls
-     * @private
-     */
-    createPopupSpotControls(spot, container) {
-        container.innerHTML = '';
-        
-        // Spot type selector
-        const typeGroup = document.createElement('div');
-        typeGroup.className = 'chatooly-control-group';
-        typeGroup.innerHTML = `
-            <label>Spot Type</label>
-            <select class="popup-spot-type-select">
-                <option value="empty">Empty</option>
-                <option value="text">Text</option>
-                <option value="image">Image</option>
-                <option value="mask">Mask (Background Reveal)</option>
-            </select>
-        `;
-        
-        const typeSelect = typeGroup.querySelector('.popup-spot-type-select');
-        typeSelect.value = spot.type;
-        
-        typeSelect.addEventListener('change', (e) => {
-            e.stopPropagation();
-            spot.setType(typeSelect.value);
-            this.createPopupSpotControls(spot, container);
-            this.render();
-            this.updateSpotsUI();
-
-            // Update grid to reflect spot type change
-            if (this.grid) {
-                this.grid.updateSpotType(spot.id, typeSelect.value);
-                this.updateVisualGrid();
-            }
-        });
-        
-        container.appendChild(typeGroup);
-        
-        // Add padding control for non-empty types
-        if (spot.type !== 'empty') {
-            this.spotControllers.text.createPaddingControl(spot, container, 'popup');
-        }
-        
-        // Use appropriate controller for the spot type
-        const controller = this.spotControllers[spot.type];
-        if (controller) {
-            controller.createControls(spot, container, 'popup');
-        }
-    }
     
     /**
      * Set background image
@@ -2799,42 +1195,6 @@ class EmployerBrandToolPOC {
         ctx.drawImage(this.backgroundImage, drawX, drawY, drawWidth, drawHeight);
     }
 
-    /**
-     * Initialize shuffler UI event listeners
-     */
-    initShufflerUI() {
-        const shuffleAll = document.getElementById('shuffleAll');
-        const shuffleLayout = document.getElementById('shuffleLayout');
-        const shuffleColors = document.getElementById('shuffleColors');
-        const shuffleSpots = document.getElementById('shuffleSpots');
-        const useDefaultContent = document.getElementById('useDefaultContent');
-
-        if (shuffleAll) {
-            shuffleAll.addEventListener('click', async () => {
-                const useDefaults = useDefaultContent ? useDefaultContent.checked : false;
-                await this.shuffler.shuffleAll(useDefaults);
-            });
-        }
-
-        if (shuffleLayout) {
-            shuffleLayout.addEventListener('click', async () => {
-                await this.shuffler.shuffleLayout();
-            });
-        }
-
-        if (shuffleColors) {
-            shuffleColors.addEventListener('click', async () => {
-                await this.shuffler.shuffleColors();
-            });
-        }
-
-        if (shuffleSpots) {
-            shuffleSpots.addEventListener('click', async () => {
-                const useDefaults = useDefaultContent ? useDefaultContent.checked : false;
-                await this.shuffler.shuffleSpots(useDefaults);
-            });
-        }
-    }
 
 }
 

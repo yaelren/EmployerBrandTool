@@ -12,59 +12,66 @@ class Grid {
         this.snapshot = null; // Saved state for animation mode
         this.isLocked = false; // Layout lock status
         this.isReady = false; // Grid initialization status
+        this.waitingContent = []; // Content waiting to be restored (NEW)
 
         console.log('🔧 Grid system initialized');
     }
 
     /**
-     * Build grid matrix from existing system (MainTextController + spots)
-     * This method converts the current textBounds and spots into a unified grid
+     * Build grid matrix using GridDetector (Phase 2: Unified approach)
+     * This method uses GridDetector to create ContentCell and MainTextCell directly
      *
-     * According to the Animation Design Document, this should:
-     * - Unify text lines and spots into single matrix
-     * - Provide clear row/column access patterns
-     * - Create accurate spatial representation
+     * According to the Unified Grid Architecture:
+     * - GridDetector creates ContentCell and MainTextCell instances directly
+     * - No Spot intermediary objects
+     * - Text is part of the grid matrix with full coordinates
+     * - Animation state is preserved across rebuilds
      */
     buildFromExisting() {
         try {
-            console.log('🔄 Building grid from existing system...');
+            console.log('🔄 Building grid using GridDetector...');
 
-            // Clear existing matrix
-            this.matrix = [];
-            this.rows = 0;
-            this.cols = 0;
+            // Capture animation state before rebuild
+            const animationState = this.captureAnimationState();
 
-            // Check if we have GridBuilder results from spot detection
-            const spotDetector = this.app.spotDetector;
-            if (spotDetector && spotDetector.getGridResult) {
-                const gridResult = spotDetector.getGridResult();
-                if (gridResult && gridResult.matrix) {
-                    console.log('🎯 Using GridBuilder results from spot detection');
-                    this._buildFromGridBuilder(gridResult);
-                    this.isReady = true;
-                    console.log(`✅ Grid built from GridBuilder: ${this.rows} rows, ${this.cols} cols`);
-                    return;
-                }
-            }
-
-            // Fallback to original method
-            console.log('📋 Using fallback grid building method');
+            // Capture disappearing content for waiting system
+            this.captureDisappearingContent();
 
             // Get data from existing system
             const textBounds = this.app.textEngine ? this.app.textEngine.textBounds : [];
-            const spots = this.app.spots || [];
+            const canvas = this.app.canvas || { width: 800, height: 600 };
 
-            if (textBounds.length === 0 && spots.length === 0) {
-                console.log('⚠️ No text or spots found, creating empty grid');
-                this.isReady = true;
-                return;
+            // CRITICAL: Get padding from textEngine config (where text was actually positioned)
+            // NOT from this.app.padding which doesn't exist and defaults to 0
+            const textConfig = this.app.textEngine ? this.app.textEngine.config : {};
+            const padding = {
+                top: textConfig.paddingTop || 0,
+                bottom: textConfig.paddingBottom || 0,
+                left: textConfig.paddingLeft || 0,
+                right: textConfig.paddingRight || 0
+            };
+
+            // Use GridDetector to build unified matrix
+            const gridDetector = this.app.gridDetector || new GridDetector();
+            if (this.app.minSpotSize) {
+                gridDetector.setMinCellSize(this.app.minSpotSize);
             }
 
-            // Build matrix structure
-            this._buildMatrixFromTextAndSpots(textBounds, spots);
+            const gridResult = gridDetector.detect(canvas, textBounds, padding);
 
-            // Calculate grid dimensions
-            this._calculateGridDimensions();
+            // Apply grid result
+            this.matrix = gridResult.matrix;
+            this.rows = gridResult.rows;
+            this.cols = gridResult.cols;
+
+            // Assign sequential IDs (1, 2, 3... left-to-right, top-to-bottom)
+            this.assignSequentialIds();
+
+            // Restore waiting content to nearest available cells
+            this.restoreWaitingContent();
+
+            // Restore animation state using contentId
+            this.restoreAnimationState(animationState);
 
             // Save original bounds for all cells
             this._saveOriginalBounds();
@@ -73,384 +80,12 @@ class Grid {
             console.log(`✅ Grid built successfully: ${this.rows} rows, ${this.cols} cols`);
 
         } catch (error) {
-            console.error('❌ Error building grid from existing system:', error);
+            console.error('❌ Error building grid:', error);
             this.isReady = false;
         }
     }
 
-    /**
-     * Private method to build matrix from text bounds and spots
-     * Creates a spatial grid where each cell represents a real position
-     * @param {Array} textBounds - Text line bounds from MainTextController
-     * @param {Array} spots - Spot objects from app.spots
-     * @private
-     */
-    _buildMatrixFromTextAndSpots(textBounds, spots) {
-        console.log(`🔧 Building matrix from ${textBounds.length} text lines and ${spots.length} spots`);
 
-        // For text-only scenarios (no spots), create simple grid
-        if (spots.length === 0 && textBounds.length > 0) {
-            this._buildTextOnlyMatrix(textBounds);
-            return;
-        }
-
-        // For spots-only scenarios (no text), create spots grid
-        if (textBounds.length === 0 && spots.length > 0) {
-            this._buildSpotsOnlyMatrix(spots);
-            return;
-        }
-
-        // For mixed scenarios, create spatial grid
-        if (textBounds.length > 0 && spots.length > 0) {
-            this._buildMixedMatrix(textBounds, spots);
-            return;
-        }
-
-        console.log('⚠️ No valid elements to build matrix');
-    }
-
-    /**
-     * Build simple text-only matrix (no spots)
-     * @param {Array} textBounds - Text line bounds
-     * @private
-     */
-    _buildTextOnlyMatrix(textBounds) {
-        console.log('📝 Building text-only matrix');
-        this.matrix = [];
-
-        // When we have text only, we should still create a spatial representation
-        // Create virtual grid based on canvas dimensions
-        const canvasWidth = this.app.canvasManager ? this.app.canvasManager.canvas.width : 1080;
-        const canvasHeight = this.app.canvasManager ? this.app.canvasManager.canvas.height : 1350;
-
-        // Create a 3x3 grid for simple spatial representation
-        const gridRowHeight = canvasHeight / 3; // 3 rows
-        const gridColWidth = canvasWidth / 3;   // 3 columns
-        const totalRows = 3;
-        const totalCols = 3;
-
-        // Initialize empty 3x3 matrix
-        for (let i = 0; i < totalRows; i++) {
-            this.matrix[i] = [];
-            for (let j = 0; j < totalCols; j++) {
-                this.matrix[i][j] = null;
-            }
-        }
-
-        // Place text cells based on their actual X,Y position
-        textBounds.forEach((bounds, lineIndex) => {
-            if (bounds.text && bounds.text.trim()) {
-                // Calculate which row and column this text belongs to
-                // Use the center of the text bounds for more accurate positioning
-                const textCenterX = bounds.x + (bounds.width || 0) / 2;
-                const textCenterY = bounds.y + (bounds.height || 0) / 2;
-
-                const rowIndex = Math.min(Math.floor(textCenterY / gridRowHeight), totalRows - 1);
-                const colIndex = Math.min(Math.floor(textCenterX / gridColWidth), totalCols - 1);
-
-                // Ensure indices are valid
-                if (rowIndex >= 0 && rowIndex < totalRows && colIndex >= 0 && colIndex < totalCols) {
-                    const cell = new MainTextCell(bounds.text, lineIndex, rowIndex, colIndex);
-                    cell.bounds = { ...bounds };
-                    cell.style = this._extractTextStyle(bounds);
-
-                    this.matrix[rowIndex][colIndex] = cell;
-                    console.log(`  Placed "${bounds.text}" at row ${rowIndex}, col ${colIndex} (X: ${bounds.x}, Y: ${bounds.y})`);
-                }
-            }
-        });
-
-        console.log(`✅ Text-only spatial matrix: ${totalRows} rows, ${totalCols} columns`);
-    }
-
-    /**
-     * Build spots-only matrix (no text)
-     * @param {Array} spots - Spot objects
-     * @private
-     */
-    _buildSpotsOnlyMatrix(spots) {
-        console.log('📍 Building spots-only matrix');
-        this.matrix = [];
-
-        // Sort spots by position (top to bottom, then left to right)
-        const sortedSpots = spots.slice().sort((a, b) => {
-            const yDiff = a.y - b.y;
-            if (Math.abs(yDiff) > 40) return yDiff;
-            return a.x - b.x;
-        });
-
-        // Group spots into rows
-        const rowGroups = this._groupSpotsIntoRows(sortedSpots);
-
-        rowGroups.forEach((rowSpots, rowIndex) => {
-            this.matrix[rowIndex] = [];
-
-            rowSpots.forEach((spot, colIndex) => {
-                const cell = new SpotCell(spot, rowIndex, colIndex);
-                cell.bounds = {
-                    x: spot.x,
-                    y: spot.y,
-                    width: spot.width,
-                    height: spot.height
-                };
-                this.matrix[rowIndex][colIndex] = cell;
-            });
-        });
-
-        console.log(`✅ Spots-only matrix: ${this.matrix.length} rows`);
-    }
-
-    /**
-     * Build mixed matrix with both text and spots
-     * @param {Array} textBounds - Text line bounds
-     * @param {Array} spots - Spot objects
-     * @private
-     */
-    _buildMixedMatrix(textBounds, spots) {
-        console.log('🎯 Building mixed text+spots matrix');
-
-        // Collect all elements (text + spots) with their spatial positions
-        const allElements = [];
-
-        // Add text elements
-        textBounds.forEach((bounds, index) => {
-            if (bounds.text && bounds.text.trim()) {
-                allElements.push({
-                    type: 'text',
-                    data: bounds,
-                    lineIndex: index,
-                    x: bounds.x,
-                    y: bounds.y,
-                    width: bounds.width,
-                    height: bounds.height
-                });
-            }
-        });
-
-        // Add spot elements
-        spots.forEach(spot => {
-            allElements.push({
-                type: 'spot',
-                data: spot,
-                x: spot.x,
-                y: spot.y,
-                width: spot.width,
-                height: spot.height
-            });
-        });
-
-        // Sort elements by position (top to bottom, then left to right)
-        allElements.sort((a, b) => {
-            const yDiff = a.y - b.y;
-            if (Math.abs(yDiff) > 10) { // 10px threshold for "same row"
-                return yDiff;
-            }
-            return a.x - b.x; // Same row, sort by X
-        });
-
-        // Group elements into rows based on Y position
-        const rowGroups = this._groupElementsIntoRows(allElements);
-
-        // Build matrix from row groups
-        this._buildMatrixFromRowGroups(rowGroups);
-
-        console.log(`✅ Mixed matrix: ${this.matrix.length} rows`);
-    }
-
-    /**
-     * Group spots into rows (helper for spots-only matrix)
-     * @param {Array} spots - Sorted spots
-     * @returns {Array} - Array of row groups
-     * @private
-     */
-    _groupSpotsIntoRows(spots) {
-        const rowGroups = [];
-        let currentRow = [];
-        let currentRowY = null;
-        const rowThreshold = 40;
-
-        spots.forEach(spot => {
-            if (currentRowY === null || Math.abs(spot.y - currentRowY) > rowThreshold) {
-                if (currentRow.length > 0) {
-                    rowGroups.push([...currentRow]);
-                }
-                currentRow = [spot];
-                currentRowY = spot.y;
-            } else {
-                currentRow.push(spot);
-                const rowYSum = currentRow.reduce((sum, s) => sum + s.y, 0);
-                currentRowY = rowYSum / currentRow.length;
-            }
-        });
-
-        if (currentRow.length > 0) {
-            rowGroups.push(currentRow);
-        }
-
-        return rowGroups;
-    }
-
-    /**
-     * Group elements into rows based on Y position
-     * @param {Array} allElements - All elements sorted by position
-     * @returns {Array} - Array of row groups
-     * @private
-     */
-    _groupElementsIntoRows(allElements) {
-        const rowGroups = [];
-        let currentRow = [];
-        let currentRowY = null;
-        const rowThreshold = 40; // Pixels - elements within this distance are in same row
-
-        allElements.forEach(element => {
-            // Check if this element belongs to a new row
-            if (currentRowY === null || Math.abs(element.y - currentRowY) > rowThreshold) {
-                // Start new row
-                if (currentRow.length > 0) {
-                    rowGroups.push([...currentRow]);
-                }
-                currentRow = [element];
-                currentRowY = element.y;
-            } else {
-                // Add to current row - adjust currentRowY to be average of row elements
-                currentRow.push(element);
-                const rowYSum = currentRow.reduce((sum, el) => sum + el.y, 0);
-                currentRowY = rowYSum / currentRow.length;
-            }
-        });
-
-        // Add the last row
-        if (currentRow.length > 0) {
-            rowGroups.push(currentRow);
-        }
-
-        console.log(`🔧 Grouped ${allElements.length} elements into ${rowGroups.length} rows`);
-        return rowGroups;
-    }
-
-    /**
-     * Build matrix from row groups creating a proper spatial grid
-     * @param {Array} rowGroups - Array of row groups
-     * @private
-     */
-    _buildMatrixFromRowGroups(rowGroups) {
-        this.matrix = [];
-
-        // Calculate the maximum number of columns needed
-        let maxCols = 0;
-        rowGroups.forEach(rowElements => {
-            if (rowElements.length > maxCols) {
-                maxCols = rowElements.length;
-            }
-        });
-
-        // Build each row
-        rowGroups.forEach((rowElements, rowIndex) => {
-            this.matrix[rowIndex] = [];
-
-            // Sort elements in this row by X position (left to right)
-            rowElements.sort((a, b) => a.x - b.x);
-
-            // For proper spatial grid, we need to determine actual column positions
-            // based on X coordinates, not just sequential order
-            const sortedElements = [...rowElements];
-
-            sortedElements.forEach((element, elementIndex) => {
-                let cell;
-
-                if (element.type === 'text') {
-                    // Create MainTextCell
-                    cell = new MainTextCell(element.data.text, element.lineIndex, rowIndex, elementIndex);
-                    cell.bounds = { ...element.data };
-                    cell.style = this._extractTextStyle(element.data);
-                } else if (element.type === 'spot') {
-                    // Create SpotCell
-                    cell = new SpotCell(element.data, rowIndex, elementIndex);
-                    cell.bounds = {
-                        x: element.data.x,
-                        y: element.data.y,
-                        width: element.data.width,
-                        height: element.data.height
-                    };
-                }
-
-                if (cell) {
-                    // Update cell with correct column position
-                    cell.col = elementIndex;
-                    this.matrix[rowIndex][elementIndex] = cell;
-                }
-            });
-
-            // Fill any gaps in the row with null values to maintain matrix structure
-            for (let col = rowElements.length; col < maxCols; col++) {
-                this.matrix[rowIndex][col] = null;
-            }
-        });
-
-        console.log(`🔧 Built spatial matrix: ${rowGroups.length} rows, max ${maxCols} columns`);
-    }
-
-    /**
-     * Build grid matrix from GridBuilder results
-     * @param {Object} gridResult - GridBuilder result with matrix and metadata
-     * @private
-     */
-    _buildFromGridBuilder(gridResult) {
-        console.log('🎯 Building grid from GridBuilder logical structure');
-
-        // Set dimensions from GridBuilder
-        this.rows = gridResult.rows;
-        this.cols = gridResult.cols;
-
-        // Initialize matrix directly from GridBuilder's logical structure
-        this.matrix = [];
-
-        // Process each row from GridBuilder
-        for (let r = 0; r < gridResult.matrix.length; r++) {
-            const gridRow = gridResult.matrix[r];
-            this.matrix[r] = [];
-
-            if (!gridRow || gridRow.length === 0) {
-                // Empty row
-                this.matrix[r] = [null];
-            } else {
-                // Process each cell in the logical row
-                for (let c = 0; c < gridRow.length; c++) {
-                    const gridCell = gridRow[c];
-
-                    if (!gridCell) {
-                        // Empty cell
-                        this.matrix[r][c] = null;
-                    } else if (gridCell.type === 'text') {
-                        // Create MainTextCell
-                        const cell = new MainTextCell(gridCell.text, r, c);
-                        cell.bounds = gridCell.bounds;
-                        cell.lineIndex = gridCell.lineIndex;
-                        cell.originalBounds = { ...gridCell.bounds };
-                        cell.style = this._extractTextStyle(gridCell.bounds);
-                        this.matrix[r][c] = cell;
-                        console.log(`  Row ${r}: Text "${gridCell.text}" at logical column ${c}`);
-
-                    } else if (gridCell.type === 'spot') {
-                        // Create SpotCell
-                        const cell = new SpotCell(gridCell.spot, r, c);
-                        cell.originalBounds = {
-                            x: gridCell.spot.x,
-                            y: gridCell.spot.y,
-                            width: gridCell.spot.width,
-                            height: gridCell.spot.height
-                        };
-                        this.matrix[r][c] = cell;
-                        console.log(`  Row ${r}: Spot ${gridCell.spot.id} at logical column ${c}`);
-                    }
-                }
-            }
-
-            console.log(`  Row ${r}: ${this.matrix[r].length} logical columns`);
-        }
-
-        console.log(`✅ Grid built from GridBuilder: ${this.rows} rows x ${this.cols} logical columns`);
-    }
 
     /**
      * Extract text style from bounds object
@@ -587,6 +222,135 @@ class Grid {
     }
 
     /**
+     * Get cell by sequential ID
+     * @param {number} id - Sequential cell ID
+     * @returns {GridCell|null} - Cell with matching ID or null
+     */
+    getCellById(id) {
+        const allCells = this.getAllCells();
+        return allCells.find(cell => cell && cell.id === id) || null;
+    }
+
+    /**
+     * Get cell by content ID (persistent across rebuilds)
+     * @param {string} contentId - Persistent content ID
+     * @returns {GridCell|null} - Cell with matching contentId or null
+     */
+    getCellByContentId(contentId) {
+        const allCells = this.getAllCells();
+        return allCells.find(cell => cell && cell.contentId === contentId) || null;
+    }
+
+    /**
+     * Get cell at specific canvas coordinates (hit detection)
+     * @param {number} x - X coordinate
+     * @param {number} y - Y coordinate
+     * @returns {GridCell|null} - Cell at position or null
+     */
+    getCellAt(x, y) {
+        const allCells = this.getAllCells();
+
+        // Search in reverse order (top cells first)
+        for (let i = allCells.length - 1; i >= 0; i--) {
+            const cell = allCells[i];
+            if (cell && cell.contains && cell.contains(x, y)) {
+                return cell;
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * Get all text cells (MainTextCell instances)
+     * @returns {Array} - Array of MainTextCell instances
+     */
+    getTextCells() {
+        return this.getAllCells().filter(cell =>
+            cell && (cell.type === 'main-text' || cell.type === 'text')
+        );
+    }
+
+    /**
+     * Get all content cells (ContentCell instances - not text)
+     * @returns {Array} - Array of ContentCell instances
+     */
+    getContentCells() {
+        return this.getAllCells().filter(cell =>
+            cell && cell.cellType === 'content'
+        );
+    }
+
+    /**
+     * Get content cells by type
+     * @param {string} contentType - 'empty' | 'image' | 'text' | 'mask'
+     * @returns {Array} - Array of ContentCell instances with matching type
+     */
+    getContentCellsByType(contentType) {
+        return this.getContentCells().filter(cell =>
+            cell.contentType === contentType
+        );
+    }
+
+    /**
+     * Get all empty content cells
+     * @returns {Array} - Array of empty ContentCell instances
+     */
+    getEmptyContentCells() {
+        return this.getContentCells().filter(cell =>
+            cell.isEmpty && cell.isEmpty()
+        );
+    }
+
+    /**
+     * Get all cells in a specific row
+     * @param {number} rowIndex - Row index
+     * @returns {Array} - Array of cells in the row
+     */
+    getCellsInRow(rowIndex) {
+        if (rowIndex < 0 || rowIndex >= this.rows) {
+            return [];
+        }
+        return (this.matrix[rowIndex] || []).filter(cell => cell !== null);
+    }
+
+    /**
+     * Get all cells in a specific column
+     * @param {number} colIndex - Column index
+     * @returns {Array} - Array of cells in the column
+     */
+    getCellsInColumn(colIndex) {
+        const cells = [];
+        for (let row = 0; row < this.rows; row++) {
+            if (this.matrix[row] && this.matrix[row][colIndex]) {
+                cells.push(this.matrix[row][colIndex]);
+            }
+        }
+        return cells;
+    }
+
+    /**
+     * Assign sequential IDs to all cells
+     * Called after grid building to number cells left-to-right, top-to-bottom
+     */
+    assignSequentialIds() {
+        let cellId = 1;
+
+        for (let row = 0; row < this.rows; row++) {
+            if (!this.matrix[row]) continue;
+
+            for (let col = 0; col < this.matrix[row].length; col++) {
+                const cell = this.matrix[row][col];
+                if (cell) {
+                    cell.id = cellId++;
+                }
+            }
+        }
+
+        console.log(`🔢 Assigned sequential IDs to ${cellId - 1} cells`);
+    }
+
+    /**
      * Update spot type in the grid without rebuilding
      * @param {number} spotId - The spot ID to update
      * @param {string} newType - The new spot type
@@ -625,6 +389,7 @@ class Grid {
 
     /**
      * Rebuild grid (Layout Mode only)
+     * Enhanced with animation preservation and waiting content restoration
      */
     rebuild() {
         if (this.isLocked) {
@@ -632,8 +397,202 @@ class Grid {
             return;
         }
 
-        console.log('🔄 Rebuilding grid...');
+        console.log('🔄 Rebuilding grid with animation preservation...');
+
+        // 1. Capture animation state by contentId
+        const animationState = this.captureAnimationState();
+
+        // 2. Capture content from cells that will disappear
+        this.captureDisappearingContent();
+
+        // 3. Rebuild grid structure
         this.buildFromExisting();
+
+        // 4. Restore waiting content to nearest cells
+        this.restoreWaitingContent();
+
+        // 5. Restore animations to matching cells
+        this.restoreAnimationState(animationState);
+
+        console.log('✅ Grid rebuilt with animations and content preserved');
+    }
+
+    /**
+     * Capture all animation state before rebuild
+     * @returns {Object} Map of contentId → animation config
+     */
+    captureAnimationState() {
+        const state = {};
+
+        this.getAllCells().forEach(cell => {
+            if (cell && cell.animation) {
+                state[cell.contentId] = {
+                    type: cell.animation.type,
+                    intensity: cell.animation.intensity,
+                    speed: cell.animation.speed,
+                    isPlaying: cell.animation.isPlaying,
+                    startTime: cell.animation.startTime
+                };
+            }
+        });
+
+        console.log(`📸 Captured animation state for ${Object.keys(state).length} cells`);
+        return state;
+    }
+
+    /**
+     * Restore animation state after rebuild
+     * @param {Object} state - Animation state map
+     */
+    restoreAnimationState(state) {
+        let restored = 0;
+
+        this.getAllCells().forEach(cell => {
+            if (cell && state[cell.contentId]) {
+                const anim = state[cell.contentId];
+
+                // Recreate animation
+                cell.setAnimation(anim.type, anim.intensity, anim.speed);
+
+                // Restore playing state
+                if (anim.isPlaying && cell.animation) {
+                    cell.animation.play();
+                }
+
+                restored++;
+            }
+        });
+
+        console.log(`♻️ Restored animations to ${restored} cells`);
+    }
+
+    /**
+     * Save content from cells before rebuild (waiting content system)
+     */
+    captureDisappearingContent() {
+        if (!this.waitingContent) {
+            this.waitingContent = [];
+        }
+
+        // Get all content cells that have non-empty content
+        const contentCells = this.getContentCells();
+
+        contentCells.forEach(cell => {
+            if (cell.isEmpty && !cell.isEmpty()) {
+                // Save content with spatial position for restoration
+                this.waitingContent.push({
+                    contentId: cell.contentId,
+                    contentType: cell.contentType,
+                    content: cell.content,
+                    lastPosition: {
+                        x: cell.bounds.x + cell.bounds.width / 2,
+                        y: cell.bounds.y + cell.bounds.height / 2
+                    },
+                    animation: cell.animation ? {
+                        type: cell.animation.type,
+                        intensity: cell.animation.intensity,
+                        speed: cell.animation.speed,
+                        isPlaying: cell.animation.isPlaying
+                    } : null
+                });
+            }
+        });
+
+        console.log(`💾 Saved ${this.waitingContent.length} content items to waiting list`);
+    }
+
+    /**
+     * Restore waiting content to nearest available cells
+     */
+    restoreWaitingContent() {
+        if (!this.waitingContent || this.waitingContent.length === 0) {
+            return;
+        }
+
+        const availableCells = this.getEmptyContentCells();
+        let restoredCount = 0;
+        const stillWaiting = [];
+
+        this.waitingContent.forEach(waiting => {
+            // Find nearest empty cell using spatial distance
+            const nearestCell = this.findNearestCell(
+                waiting.lastPosition,
+                availableCells
+            );
+
+            if (nearestCell) {
+                // Restore content
+                nearestCell.contentId = waiting.contentId;
+                nearestCell.setContentType(waiting.contentType);
+                nearestCell.setContent(waiting.content);
+
+                // Restore animation
+                if (waiting.animation) {
+                    nearestCell.setAnimation(
+                        waiting.animation.type,
+                        waiting.animation.intensity,
+                        waiting.animation.speed
+                    );
+                    if (waiting.animation.isPlaying) {
+                        nearestCell.animation.play();
+                    }
+                }
+
+                // Remove from available
+                const index = availableCells.indexOf(nearestCell);
+                if (index > -1) {
+                    availableCells.splice(index, 1);
+                }
+
+                restoredCount++;
+            } else {
+                // No space available, keep waiting
+                stillWaiting.push(waiting);
+            }
+        });
+
+        // Update waiting list
+        this.waitingContent = stillWaiting;
+
+        console.log(`📥 Restored ${restoredCount} content items from waiting list`);
+        if (stillWaiting.length > 0) {
+            console.log(`⏳ ${stillWaiting.length} items still waiting for space`);
+        }
+    }
+
+    /**
+     * Find nearest cell to a position using Euclidean distance
+     * @param {Object} pos - {x, y} position
+     * @param {Array} cells - Available cells
+     * @returns {ContentCell|null} Nearest cell or null
+     */
+    findNearestCell(pos, cells) {
+        if (!cells || cells.length === 0) return null;
+
+        let nearest = cells[0];
+        let minDistance = this.calculateDistance(pos, nearest.getCenter());
+
+        cells.forEach(cell => {
+            const distance = this.calculateDistance(pos, cell.getCenter());
+            if (distance < minDistance) {
+                minDistance = distance;
+                nearest = cell;
+            }
+        });
+
+        return nearest;
+    }
+
+    /**
+     * Calculate Euclidean distance between two points
+     * @param {Object} pos1 - {x, y}
+     * @param {Object} pos2 - {x, y}
+     * @returns {number} Distance
+     */
+    calculateDistance(pos1, pos2) {
+        const dx = pos1.x - pos2.x;
+        const dy = pos1.y - pos2.y;
+        return Math.sqrt(dx * dx + dy * dy);
     }
 
 

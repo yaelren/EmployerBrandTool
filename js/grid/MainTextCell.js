@@ -10,6 +10,10 @@ class MainTextCell extends GridCell {
         this.text = text;
         this.lineIndex = lineIndex;
 
+        // Override contentId with content-based ID for text cells
+        // This ensures text cells with same content get same ID across rebuilds
+        this.contentId = this._generateTextContentId(text, lineIndex);
+
         // Text styling properties
         this.style = {
             fontSize: 48,
@@ -27,11 +31,42 @@ class MainTextCell extends GridCell {
     }
 
     /**
+     * Generate content-based ID for text cells
+     * @param {string} text - Text content
+     * @param {number} lineIndex - Line index
+     * @returns {string} - Content-based ID
+     * @private
+     */
+    _generateTextContentId(text, lineIndex) {
+        // Simple hash function for text
+        const hash = this._hashString(text);
+        return `text-${lineIndex}-${hash}`;
+    }
+
+    /**
+     * Simple string hash function
+     * @param {string} str - String to hash
+     * @returns {string} - Hash string
+     * @private
+     */
+    _hashString(str) {
+        let hash = 0;
+        for (let i = 0; i < str.length; i++) {
+            const char = str.charCodeAt(i);
+            hash = ((hash << 5) - hash) + char;
+            hash = hash & hash; // Convert to 32bit integer
+        }
+        return Math.abs(hash).toString(36);
+    }
+
+    /**
      * Update text content
      * @param {string} newText - New text content
      */
     setText(newText) {
         this.text = newText;
+        // Update contentId when text changes
+        this.contentId = this._generateTextContentId(newText, this.lineIndex);
     }
 
     /**

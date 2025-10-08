@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Phase 1 Validation Tests</title>
+    <style>
+        body {
+            font-family: 'Monaco', 'Courier New', monospace;
+            background: #1e1e1e;
+            color: #d4d4d4;
+            padding: 20px;
+            margin: 0;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        h1 {
+            color: #4ec9b0;
+            border-bottom: 2px solid #4ec9b0;
+            padding-bottom: 10px;
+        }
+        .test-output {
+            background: #252526;
+            border: 1px solid #3e3e42;
+            border-radius: 4px;
+            padding: 20px;
+            margin: 20px 0;
+            min-height: 400px;
+            font-size: 14px;
+            line-height: 1.6;
+            overflow-x: auto;
+        }
+        .button-group {
+            margin: 20px 0;
+        }
+        button {
+            background: #0e639c;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            margin-right: 10px;
+            font-family: inherit;
+        }
+        button:hover {
+            background: #1177bb;
+        }
+        button:active {
+            background: #0d5a8f;
+        }
+        .info-box {
+            background: #2d2d30;
+            border-left: 4px solid #4ec9b0;
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 4px;
+        }
+        .info-box h3 {
+            margin-top: 0;
+            color: #4ec9b0;
+        }
+        .success { color: #4ec9b0; }
+        .error { color: #f48771; }
+        .info { color: #4fc1ff; }
+        .warning { color: #ce9178; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🧪 Phase 1 Validation Tests</h1>
+
+        <div class="info-box">
+            <h3>📋 What This Tests</h3>
+            <ul>
+                <li><strong>GridCell</strong> - Base class with contentId and serialization</li>
+                <li><strong>MainTextCell</strong> - Text cells with content-based IDs</li>
+                <li><strong>ContentCell</strong> - Content cells (image/text/mask/empty)</li>
+                <li><strong>Grid Helper Methods</strong> - getCellById, getContentCells, etc.</li>
+                <li><strong>Animation Persistence</strong> - Capture and restore across rebuilds</li>
+                <li><strong>Waiting Content System</strong> - Spatial restoration algorithm</li>
+                <li><strong>CellRenderer</strong> - Rendering class structure</li>
+            </ul>
+        </div>
+
+        <div class="button-group">
+            <button onclick="runTests()">🚀 Run All Tests</button>
+            <button onclick="clearOutput()">🧹 Clear Output</button>
+        </div>
+
+        <div class="test-output" id="output">
+            <span class="info">Click "Run All Tests" to begin...</span>
+        </div>
+    </div>
+
+    <!-- Load dependencies -->
+    <script src="../js/animations/TextAnimation.js"></script>
+    <script src="../js/grid/GridCell.js"></script>
+    <script src="../js/grid/MainTextCell.js"></script>
+    <script src="../js/grid/ContentCell.js"></script>
+    <script src="../js/grid/Grid.js"></script>
+    <script src="../js/grid/CellRenderer.js"></script>
+
+    <!-- Load test file -->
+    <script src="phase1-validation.js"></script>
+
+    <script>
+        const output = document.getElementById('output');
+
+        // Override console.log to display in page
+        const originalLog = console.log;
+        const originalError = console.error;
+
+        function formatOutput(msg, type = 'log') {
+            const span = document.createElement('div');
+
+            if (msg.includes('✅ PASS:')) {
+                span.className = 'success';
+            } else if (msg.includes('❌ FAIL:')) {
+                span.className = 'error';
+            } else if (msg.includes('🧪') || msg.includes('Test Group')) {
+                span.className = 'info';
+                span.style.fontWeight = 'bold';
+            } else if (msg.includes('⚠️')) {
+                span.className = 'warning';
+            }
+
+            span.textContent = msg;
+            output.appendChild(span);
+
+            // Scroll to bottom
+            output.scrollTop = output.scrollHeight;
+        }
+
+        console.log = function(...args) {
+            originalLog.apply(console, args);
+            formatOutput(args.join(' '), 'log');
+        };
+
+        console.error = function(...args) {
+            originalError.apply(console, args);
+            formatOutput(args.join(' '), 'error');
+        };
+
+        function runTests() {
+            output.innerHTML = '';
+            console.log('🚀 Starting Phase 1 Validation Tests...\n');
+
+            try {
+                const results = runPhase1Tests();
+
+                console.log('\n📊 Test Summary:');
+                console.log(`   Total Tests: ${results.passed + results.failed}`);
+                console.log(`   ✅ Passed: ${results.passed}`);
+                console.log(`   ❌ Failed: ${results.failed}`);
+                console.log(`   📈 Success Rate: ${results.successRate.toFixed(1)}%`);
+
+                if (results.failed === 0) {
+                    console.log('\n🎉 ALL TESTS PASSED!');
+                    console.log('✨ Phase 1 foundation is solid.');
+                    console.log('🚀 Ready to proceed to Phase 2.');
+                } else {
+                    console.log('\n⚠️  Some tests failed. Review output above.');
+                }
+
+            } catch (e) {
+                console.error('💥 Test suite error: ' + e.message);
+                console.error(e.stack);
+            }
+        }
+
+        function clearOutput() {
+            output.innerHTML = '<span class="info">Output cleared. Click "Run All Tests" to begin...</span>';
+        }
+
+        // Show ready message
+        originalLog('✅ Test page loaded successfully');
+        originalLog('💡 Click "Run All Tests" button to validate Phase 1');
+    </script>
+</body>
+</html>

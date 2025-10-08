@@ -1,5 +1,5 @@
 /**
- * TextAnimation.js - Simple per-cell text animation
+ * CellAnimation.js - Simple per-cell animation for any GridCell
  *
  * Core Principles:
  * - Self-contained: Each instance manages its own RAF loop
@@ -8,7 +8,7 @@
  * - Isolated: Cell animation state doesn't affect grid building
  */
 
-class TextAnimation {
+class CellAnimation {
     constructor(cell, config = {}) {
         this.cell = cell;                        // Reference to parent GridCell
         this.type = config.type || 'sway';       // Animation type
@@ -20,7 +20,7 @@ class TextAnimation {
         this.startTime = 0;
         this.animationFrameId = null;
 
-        console.log(`✨ TextAnimation created: ${this.type} (${this.intensity}px, ${this.speed}x speed)`);
+        console.log(`✨ CellAnimation created: ${this.type} (${this.intensity}px, ${this.speed}x speed)`);
     }
 
     /**
@@ -211,6 +211,6 @@ class TextAnimation {
     destroy() {
         this.reset();
         this.cell = null;
-        console.log(`🗑️ TextAnimation destroyed`);
+        console.log(`🗑️ CellAnimation destroyed`);
     }
 }

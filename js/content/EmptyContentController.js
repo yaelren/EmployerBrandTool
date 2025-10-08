@@ -1,41 +1,41 @@
 /**
- * EmptySpotController.js - Handles empty spot controls and interactions
- * Extends SpotController for empty spot functionality (minimal controls)
+ * EmptyContentController.js - Handles empty content controls and interactions
+ * Extends ContentController for empty content functionality (minimal controls)
  */
 
-class EmptySpotController extends SpotController {
+class EmptyContentController extends ContentController {
     constructor(app) {
         super(app);
-        this.spotType = 'empty';
+        this.contentType = 'empty';
     }
-    
+
     /**
-     * Get default content for empty spots
+     * Get default content for empty cells
      * @returns {Object} Default content object
      */
     getDefaultContent() {
-        return {}; // Empty spots have no content
+        return {}; // Empty cells have no content
     }
-    
+
     /**
-     * Create controls for empty spots
-     * @param {Spot} spot - Spot object
+     * Create controls for empty cells
+     * @param {ContentCell} cell - ContentCell object
      * @param {HTMLElement} container - Container for controls
      * @param {string} context - 'sidebar' or 'popup'
-     * @returns {HTMLElement[]} Array of created control elements (empty for empty spots)
+     * @returns {HTMLElement[]} Array of created control elements (empty for empty cells)
      */
-    createControls(spot, container, context = 'sidebar') {
-        // Empty spots don't have any specific controls
+    createControls(cell, container, context = 'sidebar') {
+        // Empty cells don't have any specific controls
         // They only show the type selector and no padding controls
-        
+
         // Could add a placeholder message
         const messageGroup = this.createControlGroup(context);
         messageGroup.innerHTML = `
             <p style="font-size: 12px; color: var(--chatooly-color-text-secondary, #999); text-align: center; margin: 20px 0;">
-                This spot is empty. Select a different type to add content.
+                This cell is empty. Select a different type to add content.
             </p>
         `;
-        
+
         container.appendChild(messageGroup);
         return [messageGroup];
     }

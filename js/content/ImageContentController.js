@@ -1,12 +1,12 @@
 /**
- * ImageSpotController.js - Handles image spot controls and interactions
- * Extends SpotController for image-specific functionality
+ * ImageContentController.js - Handles image cell controls and interactions
+ * Extends ContentController for image-specific functionality
  */
 
-class ImageSpotController extends SpotController {
+class ImageContentController extends ContentController {
     constructor(app) {
         super(app);
-        this.spotType = 'image';
+        this.contentType = 'image';
     }
     
     /**
@@ -26,79 +26,79 @@ class ImageSpotController extends SpotController {
     
     /**
      * Create controls for image spots
-     * @param {Spot} spot - Spot object
+     * @param {ContentCell} cell - Spot object
      * @param {HTMLElement} container - Container for controls
      * @param {string} context - 'sidebar' or 'popup'
      * @returns {HTMLElement[]} Array of created control elements
      */
-    createControls(spot, container, context = 'sidebar') {
+    createControls(cell, container, context = 'sidebar') {
         // Initialize content if needed
-        this.initializeContent(spot);
-        
+        this.initializeContent(cell);
+
         const controls = [];
-        
+
         // Image upload
-        const imageGroup = this.createImageUploadControl(spot, context);
+        const imageGroup = this.createImageUploadControl(cell, context);
         container.appendChild(imageGroup);
         controls.push(imageGroup);
-        
+
         // Position control (always show)
-        const positionGroup = this.createPositionControl(spot, context);
+        const positionGroup = this.createPositionControl(cell, context);
         container.appendChild(positionGroup);
         controls.push(positionGroup);
-        
+
         // If image is loaded, show transform controls
-        if (spot.content?.image) {
+        if (cell.content?.image) {
             // Scale control
-            const scaleGroup = this.createScaleControl(spot, context);
+            const scaleGroup = this.createScaleControl(cell, context);
             container.appendChild(scaleGroup);
             controls.push(scaleGroup);
-            
+
             // Rotation control
-            const rotationGroup = this.createRotationControl(spot, context);
+            const rotationGroup = this.createRotationControl(cell, context);
             container.appendChild(rotationGroup);
             controls.push(rotationGroup);
         }
-        
+
         return controls;
     }
     
     /**
      * Create image upload control
-     * @param {Spot} spot - Spot object
+     * @param {ContentCell} cell - Spot object
      * @param {string} context - 'sidebar' or 'popup'
      * @returns {HTMLElement} Image upload control element
      * @private
      */
-    createImageUploadControl(spot, context) {
+    createImageUploadControl(cell, context) {
         const imageGroup = this.createControlGroup(context);
         imageGroup.innerHTML = `
             <label>Image</label>
             <input type="file" class="spot-image-input" accept="image/*">
         `;
-        
+
         const imageInput = imageGroup.querySelector('.spot-image-input');
         this.addControlListener(imageInput, 'change', (e) => {
-            this.handleImageUpload(spot, e);
+            this.handleImageUpload(cell, e);
         });
-        
+
         return imageGroup;
     }
     
     /**
      * Create position alignment control
-     * @param {Spot} spot - Spot object
+     * @param {ContentCell} cell - Cell object
      * @param {string} context - 'sidebar' or 'popup'
      * @returns {HTMLElement} Position control element
      * @private
      */
-    createPositionControl(spot, context) {
+    createPositionControl(cell, context) {
         const positionGroup = this.createControlGroup(context);
-        positionGroup.innerHTML = `<label>Position in Spot</label>`;
-        
+        positionGroup.innerHTML = `<label>Position in Cell</label>`;
+
         const positionGrid = document.createElement('div');
         positionGrid.className = 'positioning-grid';
-        
+
         const positions = [
             { h: 'left', v: 'top', icon: '↖', title: 'Top Left' },
             { h: 'center', v: 'top', icon: '↑', title: 'Top Center' },
@@ -110,120 +110,120 @@ class ImageSpotController extends SpotController {
             { h: 'center', v: 'bottom', icon: '↓', title: 'Bottom Center' },
             { h: 'right', v: 'bottom', icon: '↘', title: 'Bottom Right' }
         ];
-        
+
         positions.forEach(pos => {
             const btn = document.createElement('button');
             btn.type = 'button';
             btn.className = 'pos-btn';
             btn.textContent = pos.icon;
             btn.title = pos.title;
-            
-            const currentPosH = spot.content.positionH || 'center';
-            const currentPosV = spot.content.positionV || 'middle';
-            
+
+            const currentPosH = cell.content.positionH || 'center';
+            const currentPosV = cell.content.positionV || 'middle';
+
             if (pos.h === currentPosH && pos.v === currentPosV) {
                 btn.classList.add('active');
             }
-            
+
             this.addControlListener(btn, 'click', () => {
                 positionGrid.querySelectorAll('.pos-btn').forEach(b => b.classList.remove('active'));
                 btn.classList.add('active');
-                this.updateContent(spot, { 
-                    positionH: pos.h, 
-                    positionV: pos.v 
+                this.updateContent(cell, {
+                    positionH: pos.h,
+                    positionV: pos.v
                 }, true);
             });
-            
+
             positionGrid.appendChild(btn);
         });
-        
+
         positionGroup.appendChild(positionGrid);
         return positionGroup;
     }
     
     /**
      * Create scale control
-     * @param {Spot} spot - Spot object
+     * @param {ContentCell} cell - Cell object
      * @param {string} context - 'sidebar' or 'popup'
      * @returns {HTMLElement} Scale control element
      * @private
      */
-    createScaleControl(spot, context) {
+    createScaleControl(cell, context) {
         const scaleGroup = this.createControlGroup(context);
         scaleGroup.innerHTML = `
-            <label>Scale: <span class="scale-value">${(spot.content.scale || 1).toFixed(2)}</span></label>
-            <input type="range" class="spot-scale" min="0.1" max="3" step="0.1" value="${spot.content.scale || 1}">
+            <label>Scale: <span class="scale-value">${(cell.content.scale || 1).toFixed(2)}</span></label>
+            <input type="range" class="spot-scale" min="0.1" max="3" step="0.1" value="${cell.content.scale || 1}">
         `;
-        
+
         const scaleSlider = scaleGroup.querySelector('.spot-scale');
         const scaleValue = scaleGroup.querySelector('.scale-value');
-        
+
         this.addControlListener(scaleSlider, 'input', () => {
             const value = parseFloat(scaleSlider.value);
             scaleValue.textContent = value.toFixed(2);
-            this.updateContent(spot, { scale: value }, true);
+            this.updateContent(cell, { scale: value }, true);
         });
-        
+
         return scaleGroup;
     }
     
     /**
      * Create rotation control
-     * @param {Spot} spot - Spot object
+     * @param {ContentCell} cell - Cell object
      * @param {string} context - 'sidebar' or 'popup'
      * @returns {HTMLElement} Rotation control element
      * @private
      */
-    createRotationControl(spot, context) {
+    createRotationControl(cell, context) {
         const rotationGroup = this.createControlGroup(context);
         rotationGroup.innerHTML = `
-            <label>Rotation: <span class="rotation-value">${spot.content.rotation || 0}°</span></label>
-            <input type="range" class="spot-rotation" min="0" max="360" step="5" value="${spot.content.rotation || 0}">
+            <label>Rotation: <span class="rotation-value">${cell.content.rotation || 0}°</span></label>
+            <input type="range" class="spot-rotation" min="0" max="360" step="5" value="${cell.content.rotation || 0}">
         `;
-        
+
         const rotationSlider = rotationGroup.querySelector('.spot-rotation');
         const rotationValue = rotationGroup.querySelector('.rotation-value');
-        
+
         this.addControlListener(rotationSlider, 'input', () => {
             const value = parseInt(rotationSlider.value);
             rotationValue.textContent = value + '°';
-            this.updateContent(spot, { rotation: value }, true);
+            this.updateContent(cell, { rotation: value }, true);
         });
-        
+
         return rotationGroup;
     }
     
     /**
      * Handle image file upload
-     * @param {Spot} spot - Spot object
+     * @param {ContentCell} cell - Cell object
      * @param {Event} event - File input change event
      * @private
      */
-    handleImageUpload(spot, event) {
+    handleImageUpload(cell, event) {
         const file = event.target.files[0];
         if (!file || !file.type.startsWith('image/')) {
             console.warn('Please select a valid image file');
             return;
         }
-        
+
         const reader = new FileReader();
         reader.onload = (e) => {
             const img = new Image();
             img.onload = () => {
-                this.updateContent(spot, {
+                this.updateContent(cell, {
                     image: img,
                     scale: 1,
                     rotation: 0
                 });
-                
+
                 // Recreate controls to show scale/rotation
                 const container = event.target.closest('.spot-controls') || event.target.closest('.spot-popup-body');
                 if (container) {
-                    // Find the parent spot item to recreate controls
-                    this.app.updateSpotsUI();
+                    // Find the parent cell item to recreate controls
+                    this.app.uiManager?.updateSpotsUI();
                 }
-                
-                console.log(`📸 Image loaded for spot ${spot.id}: ${img.width}x${img.height}`);
+
+                console.log(`📸 Image loaded for cell ${cell.id}: ${img.width}x${img.height}`);
             };
             img.src = e.target.result;
         };

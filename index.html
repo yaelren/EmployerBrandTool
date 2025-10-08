@@ -437,37 +437,42 @@ SPOTLIGHT
     <!-- ========== DO NOT EDIT: Your Tool Logic ========== -->
     <!-- JavaScript files in dependency order -->
 
-    <!-- Font Metrics Library for typography-aware measurements -->
-    <script src="js/FontMetrics.js"></script>
+    <!-- Text System -->
+    <script src="js/text/FontMetrics.js"></script>
+    <script src="js/text/TextComponent.js"></script>
+    <script src="js/text/MainTextController.js"></script>
 
-    <script src="js/TextComponent.js"></script>
-    <!-- Spot System -->
-    <script src="js/spots/Spot.js"></script>
-    <script src="js/spots/SpotDetector.js"></script>
-    <script src="js/spots/SpotController.js"></script>
-    <script src="js/spots/EmptySpotController.js"></script>
-    <script src="js/spots/TextSpotController.js"></script>
-    <script src="js/spots/ImageSpotController.js"></script>
-    <script src="js/spots/MaskSpotController.js"></script>
-    <!-- Core Components -->
-    <script src="js/MainTextController.js"></script>
-    <script src="js/CanvasManager.js"></script>
-    <!-- Debug Controller -->
-    <script src="js/DebugController.js"></script>
-    <!-- Asset Management System -->
-    <!-- Shuffler System -->
-    <script src="js/Shuffler.js"></script>
+    <!-- Canvas & Rendering -->
+    <script src="js/canvas/CanvasManager.js"></script>
+    <script src="js/canvas/DebugController.js"></script>
+
+    <!-- Parameter System -->
+    <script src="js/parameters/Shuffler.js"></script>
+
+    <!-- Grid System (Phase 2: Unified Architecture) -->
+    <script src="js/grid/GridDetector.js"></script>
+
+    <!-- Content Controllers (manage content in ContentCells) -->
+    <script src="js/content/ContentController.js"></script>
+    <script src="js/content/EmptyContentController.js"></script>
+    <script src="js/content/TextContentController.js"></script>
+    <script src="js/content/ImageContentController.js"></script>
+    <script src="js/content/MaskContentController.js"></script>
 
     <!-- Grid System -->
     <script src="js/grid/GridCell.js"></script>
     <script src="js/grid/MainTextCell.js"></script>
-    <script src="js/grid/SpotCell.js"></script>
+    <script src="js/grid/ContentCell.js"></script>
+    <script src="js/grid/CellRenderer.js"></script>
     <script src="js/grid/GridBuilder.js"></script>
     <script src="js/grid/GridSnapshot.js"></script>
     <script src="js/grid/Grid.js"></script>
 
-    <!-- Animation System (NEW - Simple per-cell animations) -->
-    <script src="js/animations/TextAnimation.js"></script>
+    <!-- Animation System (Universal cell animations) -->
+    <script src="js/animations/CellAnimation.js"></script>
+
+    <!-- UI Management -->
+    <script src="js/ui/UIManager.js"></script>
 
     <!-- Main Application -->
     <script src="js/app.js"></script>

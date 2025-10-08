@@ -2,8 +2,8 @@
  * GridBuilder.js - Builds spatial grid during spot detection
  * Part of the Grid Animation System
  *
- * This class works with SpotDetector to build an accurate spatial grid
- * that represents the actual layout discovered during spot detection
+ * This class works with GridDetector to build an accurate spatial grid
+ * that represents the actual layout discovered during grid detection
  */
 
 class GridBuilder {

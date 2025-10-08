@@ -148,7 +148,7 @@ class Shuffler {
         console.log('🎲 Shuffling all parameters...');
 
         // Always switch to manual mode when shuffling
-        this.app.setTextMode('manual');
+        this.app.uiManager?.setTextMode('manual');
 
         const changes = {};
 
@@ -191,7 +191,7 @@ class Shuffler {
     async shuffleLayout() {
 
         // Always switch to manual mode when shuffling layout
-        this.app.setTextMode('manual');
+        this.app.uiManager?.setTextMode('manual');
 
         const changes = this.shuffleLayoutOnly();
         await this.applyChanges(changes);
@@ -306,7 +306,7 @@ class Shuffler {
             await this.shuffleIndividualSpot(spot, useDefaults);
         }
 
-        this.app.updateSpotsUI();
+        this.app.uiManager?.updateSpotsUI();
     }
 
     /**
@@ -316,7 +316,7 @@ class Shuffler {
         // Randomly choose spot type with equal probability
         const types = ['text', 'image', 'mask', 'empty'];
         const newType = this.randomFromArray(types);
-        spot.setType(newType);
+        spot.setContentType(newType);
 
         switch (newType) {
             case 'text':
@@ -401,7 +401,7 @@ class Shuffler {
      * Apply parameter changes to the app
      */
     async applyChanges(changes) {
-        const elements = this.app.elements;
+        const elements = this.app.uiManager?.elements || {};
 
         // Apply each change
         for (const [key, value] of Object.entries(changes)) {
@@ -464,7 +464,7 @@ class Shuffler {
 
                 case 'backgroundColor':
                     if (elements.backgroundColor) elements.backgroundColor.value = value;
-                    this.app.updateBackgroundColor();
+                    this.app.uiManager?.updateBackgroundColor();
                     break;
 
                 case 'backgroundOpacity':
@@ -472,12 +472,12 @@ class Shuffler {
                         elements.backgroundOpacity.value = value;
                         elements.backgroundOpacityValue.textContent = value + '%';
                     }
-                    this.app.updateBackgroundColor();
+                    this.app.uiManager?.updateBackgroundColor();
                     break;
 
                 case 'transparentBackground':
                     if (elements.transparentBackground) elements.transparentBackground.checked = value;
-                    this.app.updateBackgroundColor();
+                    this.app.uiManager?.updateBackgroundColor();
                     break;
 
                 case 'paddingHorizontal':
@@ -485,7 +485,7 @@ class Shuffler {
                         elements.paddingHorizontal.value = value;
                         elements.paddingHorizontalValue.textContent = value + 'px';
                     }
-                    this.app.updateSymmetricalPadding('horizontal', value);
+                    this.app.uiManager?.updateSymmetricalPadding('horizontal', value);
                     break;
 
                 case 'paddingVertical':
@@ -493,7 +493,7 @@ class Shuffler {
                         elements.paddingVertical.value = value;
                         elements.paddingVerticalValue.textContent = value + 'px';
                     }
-                    this.app.updateSymmetricalPadding('vertical', value);
+                    this.app.uiManager?.updateSymmetricalPadding('vertical', value);
                     break;
 
                 case 'lineSpacing':
@@ -506,7 +506,7 @@ class Shuffler {
 
                 case 'textAlignment':
                     this.app.mainTextComponent.alignH = value;
-                    this.app.updateLineAlignmentControls?.();
+                    this.app.uiManager?.updateLineAlignmentControls();
                     break;
 
                 case 'perLineAlignment':
@@ -587,7 +587,7 @@ class Shuffler {
                 break;
         }
 
-        this.app.updateLineAlignmentControls?.();
+        this.app.uiManager?.updateLineAlignmentControls();
         this.app.render();
     }
 
@@ -682,7 +682,7 @@ class Shuffler {
             await this.shuffleIndividualSpotRandomly(spot);
         }
 
-        this.app.updateSpotsUI();
+        this.app.uiManager?.updateSpotsUI();
     }
 
     /**
@@ -692,7 +692,7 @@ class Shuffler {
         // Randomly choose spot type with equal probability
         const types = ['text', 'image', 'mask', 'empty'];
         const newType = this.randomFromArray(types);
-        spot.setType(newType);
+        spot.setContentType(newType);
         console.log('shuffling spot with type:', newType);
 
         switch (newType) {
