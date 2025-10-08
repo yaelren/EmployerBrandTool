@@ -246,18 +246,28 @@ class MainTextController {
             this.lines = [];
             return;
         }
-        
+
+        // Save existing line alignments before parsing
+        const previousAlignments = {};
+        if (this.lines) {
+            this.lines.forEach((line, index) => {
+                if (line.alignment) {
+                    previousAlignments[index] = line.alignment;
+                }
+            });
+        }
+
         let rawLines;
         if (this.config.enableWrap) {
             rawLines = this.wrapTextToCanvas(this.rawText);
         } else {
             rawLines = this.rawText.split('\n');
         }
-        
+
         this.lines = rawLines.map((text, index) => ({
             text: text,
             index: index,
-            alignment: this.config.defaultAlignment, // Default, can be changed per line
+            alignment: previousAlignments[index] || this.config.defaultAlignment, // Use previous alignment if exists
             metrics: null,
             bounds: null
         }));
@@ -440,10 +450,17 @@ class MainTextController {
             }
             
             // Override horizontal position if overall text positioning is set (manual mode only)
-            if (this.config.mode === 'manual' && this.config.textPositionHorizontal !== 'center') {
+            // BUT: Only apply if all lines have the same alignment (indicating no per-line customization)
+            const hasCustomAlignments = this.textBounds.some((b, i) =>
+                i > 0 && b.alignment !== this.textBounds[0].alignment
+            );
+
+            if (this.config.mode === 'manual' &&
+                this.config.textPositionHorizontal !== 'center' &&
+                !hasCustomAlignments) {
                 const textBlockWidth = Math.max(...this.textBounds.map(b => b.width));
                 let textBlockX;
-                
+
                 switch (this.config.textPositionHorizontal) {
                     case 'left':
                         textBlockX = this.config.paddingLeft;
@@ -455,7 +472,7 @@ class MainTextController {
                         textBlockX = (canvasWidth - textBlockWidth) / 2;
                         break;
                 }
-                
+
                 // Adjust individual line position relative to text block
                 if (bounds.alignment === 'center') {
                     bounds.x = textBlockX + (textBlockWidth - bounds.width) / 2;

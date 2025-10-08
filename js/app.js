@@ -241,25 +241,32 @@ class EmployerBrandToolPOC {
         // Get lines from main text component (assumes already synced)
         const ctx = this.canvasManager.ctx;
         ctx.save();
-        
+
         let fontSize = this.mainTextComponent.fontSize;
         if (fontSize === 'auto') {
             fontSize = this.mainTextComponent.calculateAutoFontSize(ctx);
         }
-        
+
         ctx.font = this.mainTextComponent.getFontString(fontSize);
         const availableWidth = this.mainTextComponent.getAvailableWidth();
         const lines = this.mainTextComponent.wrapTextToLines(ctx, this.mainTextComponent.text, availableWidth, fontSize);
-        
+
         ctx.restore();
-        
+
         lines.forEach((line, index) => {
             if (line.trim()) {
                 const lineKey = line.trim();
                 const savedAlignment = this.savedLineAlignments[lineKey];
-                
+
                 if (savedAlignment) {
+                    // CRITICAL: Update BOTH systems to keep them in sync
+                    // 1. Update MainTextComponent (for rendering)
                     this.mainTextComponent.setLineAlignment(index, savedAlignment);
+
+                    // 2. Update MainTextController (for grid detection and bounds)
+                    if (this.textEngine) {
+                        this.textEngine.setLineAlignment(index, savedAlignment);
+                    }
                 }
             }
         });
@@ -708,13 +715,26 @@ class EmployerBrandToolPOC {
                         // Render text cell
                         ctx.font = cell.getFontString();
                         ctx.fillStyle = cell.style.color;
-                        ctx.textAlign = cell.getAlignment();
+                        const alignment = cell.getAlignment();
+                        ctx.textAlign = alignment;
                         ctx.textBaseline = 'top';
 
                         // Calculate text position based on alignment
-                        const textX = cell.getAlignment() === 'center'
-                            ? cell.bounds.x + cell.bounds.width / 2
-                            : cell.bounds.x;
+                        // bounds.x is the LEFT edge of the text bounds
+                        let textX;
+                        switch (alignment) {
+                            case 'left':
+                                textX = cell.bounds.x;
+                                break;
+                            case 'center':
+                                textX = cell.bounds.x + cell.bounds.width / 2;
+                                break;
+                            case 'right':
+                                textX = cell.bounds.x + cell.bounds.width; // Right edge for right-aligned text
+                                break;
+                            default:
+                                textX = cell.bounds.x;
+                        }
 
                         // Draw highlight if enabled
                         if (cell.style.highlight) {
@@ -730,9 +750,21 @@ class EmployerBrandToolPOC {
                         if (cell.style.underline) {
                             const textWidth = ctx.measureText(cell.text).width;
                             const underlineY = cell.bounds.y + cell.bounds.height - 2;
-                            const underlineX = cell.getAlignment() === 'center'
-                                ? textX - textWidth / 2
-                                : textX;
+
+                            let underlineX;
+                            switch (alignment) {
+                                case 'left':
+                                    underlineX = textX;
+                                    break;
+                                case 'center':
+                                    underlineX = textX - textWidth / 2;
+                                    break;
+                                case 'right':
+                                    underlineX = textX - textWidth; // Start from left edge
+                                    break;
+                                default:
+                                    underlineX = textX;
+                            }
 
                             ctx.strokeStyle = cell.style.color;
                             ctx.lineWidth = 1;

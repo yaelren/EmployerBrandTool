@@ -997,7 +997,15 @@ class UIManager {
             console.log(`💾 Saved alignment for "${lineKey}": ${alignment}`);
         }
 
+        // CRITICAL: Update BOTH systems to keep them in sync
+        // 1. Update MainTextComponent (for rendering)
         this.app.mainTextComponent.setLineAlignment(lineIndex, alignment);
+
+        // 2. Update MainTextController (for grid detection and bounds)
+        if (this.app.textEngine) {
+            this.app.textEngine.setLineAlignment(lineIndex, alignment);
+        }
+
         this.updateLineAlignmentControls(); // Refresh controls to show active state
         this.app.onTextChanged(); // Trigger auto-detection for layout change
     }

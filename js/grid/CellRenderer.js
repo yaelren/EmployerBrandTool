@@ -37,13 +37,37 @@ class CellRenderer {
     static renderTextCell(ctx, cell, options) {
         ctx.font = cell.getFontString();
         ctx.fillStyle = cell.style.color;
-        ctx.textAlign = cell.getAlignment();
+        const alignment = cell.getAlignment();
+        ctx.textAlign = alignment;
         ctx.textBaseline = 'top';
 
         // Calculate text position based on alignment
-        const textX = cell.getAlignment() === 'center'
-            ? cell.bounds.x + cell.bounds.width / 2
-            : cell.bounds.x;
+        // bounds.x is the LEFT edge of the text bounds
+        let textX;
+        switch (alignment) {
+            case 'left':
+                textX = cell.bounds.x;
+                break;
+            case 'center':
+                textX = cell.bounds.x + cell.bounds.width / 2;
+                break;
+            case 'right':
+                textX = cell.bounds.x + cell.bounds.width; // Right edge for right-aligned text
+                break;
+            default:
+                textX = cell.bounds.x;
+        }
+
+        // DEBUG: Log rendering details for right-aligned text
+        if (alignment === 'right') {
+            console.log(`🔴 Rendering RIGHT-aligned text: "${cell.text}"`, {
+                alignment,
+                boundsX: cell.bounds.x,
+                boundsWidth: cell.bounds.width,
+                textX,
+                ctxTextAlign: ctx.textAlign
+            });
+        }
 
         // Draw highlight if enabled
         if (cell.style.highlight) {
@@ -59,9 +83,21 @@ class CellRenderer {
         if (cell.style.underline) {
             const textWidth = ctx.measureText(cell.text).width;
             const underlineY = cell.bounds.y + cell.bounds.height - 2;
-            const underlineX = cell.getAlignment() === 'center'
-                ? textX - textWidth / 2
-                : textX;
+
+            let underlineX;
+            switch (cell.getAlignment()) {
+                case 'left':
+                    underlineX = textX;
+                    break;
+                case 'center':
+                    underlineX = textX - textWidth / 2;
+                    break;
+                case 'right':
+                    underlineX = textX - textWidth; // Start from left edge
+                    break;
+                default:
+                    underlineX = textX;
+            }
 
             ctx.strokeStyle = cell.style.color;
             ctx.lineWidth = 1;
