@@ -170,38 +170,12 @@ class GridDetector {
             currentRow++;
         });
 
-        // Step 2: Find vertical gaps between text lines and create full-width spot regions
-        // Each gap becomes a single full-width cell in its own row
+        // Step 2: Find vertical gaps between text lines
+        // NOTE: Gaps are NOT added as separate rows to avoid inflating the grid row count
+        // Gaps exist in the layout but don't create grid rows - they're just vertical spacing
         if (nonEmptyBounds.length > 1) {
-            for (let i = 0; i < nonEmptyBounds.length - 1; i++) {
-                const currentLine = nonEmptyBounds[i];
-                const nextLine = nonEmptyBounds[i + 1];
-
-                const gapY = currentLine.y + currentLine.height;
-                const gapHeight = nextLine.y - gapY;
-
-                if (gapHeight >= this.minCellSize) {
-                    const availableWidth = canvas.width - padding.left - padding.right;
-                    const gapCell = {
-                        type: 'content',
-                        contentType: 'empty',
-                        x: padding.left,
-                        y: gapY,
-                        width: availableWidth,
-                        height: gapHeight,
-                        row: currentRow,
-                        col: 0
-                    };
-                    regions.push(gapCell);
-                    this.gridBuilder.addSpotRegion(gapCell);
-
-                    if (this.debugging) {
-                        this.debugData.processingSteps.push(`Found gap between lines: ${Math.round(gapHeight)}px high`);
-                    }
-
-                    currentRow++; // Gap gets its own row
-                }
-            }
+            // Gap detection intentionally disabled
+            // The space between text lines is recognized but not added to the grid structure
         }
 
         // Step 3: Check for remaining space at the TOP (before first line, respecting top padding)
