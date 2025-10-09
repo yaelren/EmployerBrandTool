@@ -157,7 +157,7 @@ class UIManager {
         this.elements.mainTextUnderline.addEventListener('click', () => {
             this.app.mainTextComponent.underline = !this.app.mainTextComponent.underline;
             this.elements.mainTextUnderline.classList.toggle('active', this.app.mainTextComponent.underline);
-            this.app.render(); // Underline doesn't affect layout - just visual
+            this.app.onTextChanged(); // Trigger complete rebuild to apply underline styling
         });
 
         this.elements.mainTextHighlight.addEventListener('click', () => {
@@ -168,7 +168,7 @@ class UIManager {
             const highlightColorGroup = this.elements.mainTextHighlightColor.parentElement;
             highlightColorGroup.style.display = this.app.mainTextComponent.highlight ? 'block' : 'none';
 
-            this.app.render(); // Highlight doesn't affect layout - just visual
+            this.app.onTextChanged(); // Trigger complete rebuild to apply highlight styling
         });
 
         // Highlight color changes

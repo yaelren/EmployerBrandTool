@@ -1,33 +1,26 @@
 /**
  * MainTextCell.js - Grid cell for main text lines
+ * Extends GridCell for grid functionality, uses TextComponent for typography
  * Part of the Grid Animation System
  */
 
 class MainTextCell extends GridCell {
     constructor(text, lineIndex, row, col) {
         super(row, col);
+        
+        // Grid-specific properties
         this.type = 'main-text';
-        this.text = text;
         this.lineIndex = lineIndex;
 
         // Override contentId with content-based ID for text cells
         // This ensures text cells with same content get same ID across rebuilds
         this.contentId = this._generateTextContentId(text, lineIndex);
 
-        // Text styling properties
-        this.style = {
-            fontSize: 48,
-            fontFamily: '"Wix Madefor Display", Arial, sans-serif',
-            color: '#000000',
-            alignment: 'left',
-            bold: false,
-            italic: false,
-            underline: false,
-            highlight: false,
-            highlightColor: '#ffff00'
-        };
+        // Create TextComponent instance for typography and styling
+        this.textComponent = new TextComponent();
+        this.textComponent.text = text;
 
-        // Text cells support animations (set via setAnimation method)
+        // Text cells support animations (inherited from GridCell)
     }
 
     /**
@@ -64,32 +57,55 @@ class MainTextCell extends GridCell {
      * @param {string} newText - New text content
      */
     setText(newText) {
-        this.text = newText;
+        this.textComponent.text = newText;
         // Update contentId when text changes
         this.contentId = this._generateTextContentId(newText, this.lineIndex);
+        // Invalidate TextComponent cache
+        this.textComponent.invalidateCache();
     }
 
     /**
-     * Update text style properties
+     * Get text content
+     * @returns {string} - Text content
+     */
+    get text() {
+        return this.textComponent.text;
+    }
+
+    /**
+     * Set text content
+     * @param {string} value - Text content
+     */
+    set text(value) {
+        this.textComponent.text = value;
+    }
+
+    /**
+     * Update text style properties (delegates to TextComponent)
      * @param {Object} styleUpdates - Style properties to update
      */
     updateStyle(styleUpdates) {
-        Object.assign(this.style, styleUpdates);
+        // Map style updates to TextComponent properties
+        if (styleUpdates.fontSize !== undefined) this.textComponent.fontSize = styleUpdates.fontSize;
+        if (styleUpdates.fontFamily !== undefined) this.textComponent.fontFamily = styleUpdates.fontFamily;
+        if (styleUpdates.color !== undefined) this.textComponent.color = styleUpdates.color;
+        if (styleUpdates.alignment !== undefined) this.textComponent.alignH = styleUpdates.alignment;
+        if (styleUpdates.bold !== undefined) this.textComponent.fontWeight = styleUpdates.bold ? 'bold' : 'normal';
+        if (styleUpdates.italic !== undefined) this.textComponent.fontStyle = styleUpdates.italic ? 'italic' : 'normal';
+        if (styleUpdates.underline !== undefined) this.textComponent.underline = styleUpdates.underline;
+        if (styleUpdates.highlight !== undefined) this.textComponent.highlight = styleUpdates.highlight;
+        if (styleUpdates.highlightColor !== undefined) this.textComponent.highlightColor = styleUpdates.highlightColor;
+        
+        // Invalidate cache when styles change
+        this.textComponent.invalidateCache();
     }
 
     /**
-     * Get text style as CSS font string
+     * Get text style as CSS font string (delegates to TextComponent)
      * @returns {string} - CSS font string
      */
     getFontString() {
-        let fontString = '';
-
-        if (this.style.italic) fontString += 'italic ';
-        if (this.style.bold) fontString += 'bold ';
-
-        fontString += `${this.style.fontSize}px ${this.style.fontFamily}`;
-
-        return fontString;
+        return this.textComponent.getFontString();
     }
 
     /**
@@ -97,15 +113,15 @@ class MainTextCell extends GridCell {
      * @returns {boolean}
      */
     isEmpty() {
-        return !this.text || this.text.trim().length === 0;
+        return !this.textComponent.text || this.textComponent.text.trim().length === 0;
     }
 
     /**
-     * Get the current alignment of this text cell
+     * Get the current alignment of this text cell (delegates to TextComponent)
      * @returns {string} - Alignment value ('left', 'center', 'right')
      */
     getAlignment() {
-        return this.style.alignment || 'left';
+        return this.textComponent.alignH;
     }
 
     /**
@@ -113,12 +129,16 @@ class MainTextCell extends GridCell {
      * @returns {Object} - Serializable representation
      */
     serialize() {
+        // Get base GridCell data
         const baseData = super.serialize();
+        
+        // Get TextComponent data
+        const textData = this.textComponent.toJSON();
+        
         return {
             ...baseData,
-            text: this.text,
-            lineIndex: this.lineIndex,
-            style: { ...this.style }
+            ...textData,
+            lineIndex: this.lineIndex
         };
     }
 
@@ -129,10 +149,28 @@ class MainTextCell extends GridCell {
      */
     static deserialize(data) {
         const cell = new MainTextCell(data.text, data.lineIndex, data.row, data.col);
+        
+        // Restore base GridCell properties
+        cell.id = data.id;
+        cell.contentId = data.contentId;
         cell.bounds = data.bounds;
         cell.originalBounds = data.originalBounds;
-        cell.style = { ...data.style };
-        // Animation state is not restored from serialization
+        
+        // Restore TextComponent properties
+        cell.textComponent.fromJSON(data);
+        
+        // Restore animation if present
+        if (data.animation) {
+            cell.setAnimation(
+                data.animation.type,
+                data.animation.intensity,
+                data.animation.speed
+            );
+            if (data.animation.isPlaying && cell.animation) {
+                cell.animation.play();
+            }
+        }
+        
         return cell;
     }
 }

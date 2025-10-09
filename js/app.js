@@ -178,8 +178,17 @@ class EmployerBrandToolPOC {
         const text = this.uiManager.elements.mainText.value;
         this.mainTextComponent.text = text;
 
-        // Update text engine with new text
+        // Sync styling properties from MainTextComponent to MainTextController
         if (this.textEngine) {
+            this.textEngine.updateConfig({
+                textStyles: {
+                    bold: this.mainTextComponent.fontWeight === 'bold',
+                    italic: this.mainTextComponent.fontStyle === 'italic',
+                    underline: this.mainTextComponent.underline,
+                    highlight: this.mainTextComponent.highlight,
+                    highlightColor: this.mainTextComponent.highlightColor
+                }
+            });
             this.textEngine.setText(text);
         }
 
@@ -678,7 +687,7 @@ class EmployerBrandToolPOC {
 
                         // Render text cell
                         ctx.font = cell.getFontString();
-                        ctx.fillStyle = cell.style.color;
+                        ctx.fillStyle = cell.textComponent.color;
                         const alignment = cell.getAlignment();
                         ctx.textAlign = alignment;
                         ctx.textBaseline = 'top';
@@ -701,17 +710,17 @@ class EmployerBrandToolPOC {
                         }
 
                         // Draw highlight if enabled
-                        if (cell.style.highlight) {
-                            ctx.fillStyle = cell.style.highlightColor;
+                        if (cell.textComponent.highlight) {
+                            ctx.fillStyle = cell.textComponent.highlightColor;
                             ctx.fillRect(cell.bounds.x, cell.bounds.y, cell.bounds.width, cell.bounds.height);
-                            ctx.fillStyle = cell.style.color;
+                            ctx.fillStyle = cell.textComponent.color;
                         }
 
                         // Draw text
                         ctx.fillText(cell.text, textX, cell.bounds.y);
 
                         // Draw underline if enabled
-                        if (cell.style.underline) {
+                        if (cell.textComponent.underline) {
                             const textWidth = ctx.measureText(cell.text).width;
                             const underlineY = cell.bounds.y + cell.bounds.height - 2;
 
@@ -730,7 +739,7 @@ class EmployerBrandToolPOC {
                                     underlineX = textX;
                             }
 
-                            ctx.strokeStyle = cell.style.color;
+                            ctx.strokeStyle = cell.textComponent.color;
                             ctx.lineWidth = 1;
                             ctx.beginPath();
                             ctx.moveTo(underlineX, underlineY);

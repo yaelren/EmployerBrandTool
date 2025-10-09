@@ -43,6 +43,9 @@ class MainTextController {
         this.measureCanvas = document.createElement('canvas');
         this.measureCtx = this.measureCanvas.getContext('2d');
         
+        // TextComponent instance for typography calculations
+        this.textComponent = new TextComponent();
+        
         // Text frame (auto-sized to content)
         this.frame = {
             x: 50,
@@ -60,10 +63,26 @@ class MainTextController {
     updateConfig(newConfig) {
         Object.assign(this.config, newConfig);
         
+        // Sync TextComponent with current config
+        this.syncTextComponent();
+        
         // Recalculate if we have text
         if (this.rawText) {
             this.setText(this.rawText);
         }
+    }
+    
+    /**
+     * Sync TextComponent instance with current config
+     * @private
+     */
+    syncTextComponent() {
+        this.textComponent.fontFamily = this.config.fontFamily;
+        this.textComponent.fontSize = this.config.fontSize;
+        this.textComponent.fontWeight = this.config.textStyles?.bold ? 'bold' : 'normal';
+        this.textComponent.fontStyle = this.config.textStyles?.italic ? 'italic' : 'normal';
+        this.textComponent.color = this.config.color;
+        this.textComponent.lineSpacing = this.config.lineSpacing;
     }
     
     /**
@@ -274,7 +293,7 @@ class MainTextController {
     }
     
     /**
-     * Measure each line of text
+     * Measure each line of text using typography-aware measurements
      * @private
      */
     measureLines() {
@@ -282,6 +301,9 @@ class MainTextController {
             this.textBounds = [];
             return;
         }
+        
+        // Sync TextComponent with current config before measuring
+        this.syncTextComponent();
         
         // Set up measurement context
         let fontStyle = '';
@@ -292,8 +314,6 @@ class MainTextController {
         const fontString = `${fontStyle}${this.config.fontSize}px ${this.config.fontFamily}`;
         this.measureCtx.font = fontString;
         
-        // Line height is just the font size (the actual text height)
-        const lineHeight = this.config.fontSize;
         this.textBounds = [];
         
         this.lines.forEach((line, index) => {
@@ -301,22 +321,34 @@ class MainTextController {
                 // Measure the text
                 const metrics = this.measureCtx.measureText(line.text);
                 
+                // Use TextComponent's typography-aware line height calculation
+                const typographyHeight = this.textComponent.getLineHeight(line.text, this.config.fontSize);
+                
+                // DEBUG: Log the height calculation
+                console.log('🔍 HEIGHT DEBUG:', {
+                    lineText: line.text,
+                    fontSize: this.config.fontSize,
+                    typographyHeight: typographyHeight,
+                    hasCapitals: this.textComponent.hasCapitalLetters(line.text)
+                });
+                
                 // Store metrics on the line object
                 line.metrics = {
                     width: metrics.width,
                     actualBoundingBoxLeft: metrics.actualBoundingBoxLeft || 0,
                     actualBoundingBoxRight: metrics.actualBoundingBoxRight || metrics.width,
                     actualBoundingBoxAscent: metrics.actualBoundingBoxAscent || this.config.fontSize * 0.8,
-                    actualBoundingBoxDescent: metrics.actualBoundingBoxDescent || this.config.fontSize * 0.2
+                    actualBoundingBoxDescent: metrics.actualBoundingBoxDescent || this.config.fontSize * 0.2,
+                    typographyHeight: typographyHeight // Store typography-aware height
                 };
                 
                 // Create bounds object for this line
-                // IMPORTANT: height is just font size, not affected by line spacing
+                // Use typography-aware height instead of basic font size
                 const bounds = {
                     text: line.text,
                     index: index,
                     width: metrics.width,
-                    height: this.config.fontSize, // Only font size, no line spacing
+                    height: typographyHeight, // Typography-aware height
                     actualWidth: metrics.actualBoundingBoxRight - metrics.actualBoundingBoxLeft,
                     actualHeight: (metrics.actualBoundingBoxAscent || this.config.fontSize * 0.8) +
                                  (metrics.actualBoundingBoxDescent || this.config.fontSize * 0.2),
@@ -339,14 +371,16 @@ class MainTextController {
                 
                 this.textBounds.push(bounds);
             } else {
-                // Empty line - still takes up vertical space (font size only)
+                // Empty line - still takes up vertical space (typography-aware height)
+                const emptyLineHeight = this.textComponent.getLineHeight('x', this.config.fontSize); // Use 'x' as reference for x-height
+                
                 const bounds = {
                     text: '',
                     index: index,
                     width: 0,
-                    height: this.config.fontSize, // Only font size, no line spacing
+                    height: emptyLineHeight, // Typography-aware height for empty lines
                     actualWidth: 0,
-                    actualHeight: this.config.fontSize,
+                    actualHeight: emptyLineHeight,
                     x: 0,
                     y: 0, // Will be set in positionLines()
                     alignment: line.alignment
@@ -371,8 +405,14 @@ class MainTextController {
         // Find maximum width of any line
         const maxWidth = Math.max(...this.textBounds.map(b => b.width));
         
-        // Calculate total height with line spacing
-        const totalHeight = this.textBounds.length * this.config.fontSize + (this.textBounds.length - 1) * this.config.lineSpacing;
+        // Calculate total height using typography-aware heights from text bounds
+        let totalHeight = 0;
+        this.textBounds.forEach((bounds, index) => {
+            totalHeight += bounds.height; // Use typography-aware height
+            if (index < this.textBounds.length - 1) {
+                totalHeight += this.config.lineSpacing;
+            }
+        });
         
         // Update frame dimensions (auto-sized to content)
         this.frame.width = maxWidth + this.frame.padding * 2;
@@ -389,10 +429,15 @@ class MainTextController {
         
         const canvasWidth = this.config.canvasWidth;
         const canvasHeight = this.config.canvasHeight;
-        const fontSize = this.config.fontSize;
         
-        // Calculate total height: font size for each line + spacing between lines
-        const totalHeight = this.textBounds.length * fontSize + (this.textBounds.length - 1) * this.config.lineSpacing;
+        // Calculate total height using typography-aware heights from text bounds
+        let totalHeight = 0;
+        this.textBounds.forEach((bounds, index) => {
+            totalHeight += bounds.height; // Use typography-aware height
+            if (index < this.textBounds.length - 1) {
+                totalHeight += this.config.lineSpacing;
+            }
+        });
         
         // Determine vertical positioning
         let startY;
@@ -404,8 +449,7 @@ class MainTextController {
                 // Start from top padding
                 startY = this.config.paddingTop;
                 // Calculate spacing to fill the entire available height
-                const lineHeight = fontSize;
-                const totalTextHeight = this.textBounds.length * lineHeight;
+                const totalTextHeight = this.textBounds.reduce((sum, bounds) => sum + bounds.height, 0);
                 const extraSpace = availableHeight - totalTextHeight;
                 // Distribute extra space between lines (not before first or after last)
                 const spacingBetweenLines = extraSpace / (this.textBounds.length - 1);
@@ -432,8 +476,17 @@ class MainTextController {
         }
         
         this.textBounds.forEach((bounds, index) => {
-            // Vertical position: each line at font size + line spacing
-            bounds.y = startY + index * (fontSize + this.config.lineSpacing);
+            // Vertical position: accumulate heights of previous lines + line spacing
+            if (index === 0) {
+                bounds.y = startY;
+            } else {
+                // Calculate cumulative height of all previous lines
+                let cumulativeHeight = 0;
+                for (let i = 0; i < index; i++) {
+                    cumulativeHeight += this.textBounds[i].height + this.config.lineSpacing;
+                }
+                bounds.y = startY + cumulativeHeight;
+            }
             
             // Horizontal position based on line alignment (for individual lines)
             switch (bounds.alignment) {
@@ -644,4 +697,5 @@ class MainTextController {
             this.positionLines();
         }
     }
+    
 }

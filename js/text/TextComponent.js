@@ -57,21 +57,13 @@ class TextComponent {
         this._cachedLines = null;
         this._cachedFontSize = null;
 
-        // Typography settings
-        this.useTypographyHeight = true; // Set to true to enable FontMetrics-based measurements
-
         /*
-         * 🦆 CURRENT STATE SUMMARY:
+         * 🦆 TYPOGRAPHY-AWARE TEXT SYSTEM:
          *
-         * When useTypographyHeight = true:
          * 1. RENDERING: Text draws with textBaseline='alphabetic' at calculated baseline position
          * 2. BOUNDS: Calculated to show visual text area (capHeight for caps, xHeight for lowercase)
          * 3. POSITIONING: lineY represents where visual TOP of text should appear
-         *
-         * When useTypographyHeight = false:
-         * 1. RENDERING: Text draws with textBaseline='top' at lineY position
-         * 2. BOUNDS: Uses full fontSize height
-         * 3. POSITIONING: lineY represents where font box top appears
+         * 4. HEIGHT: Uses FontMetrics for accurate typography measurements
          */
     }
     
@@ -154,27 +146,20 @@ class TextComponent {
     }
 
     /**
-     * Get line height for text rendering (typography-aware or standard)
+     * Get line height for text rendering (typography-aware)
      * @param {string} line - Text line to measure
      * @param {number} fontSize - Font size in pixels
      * @returns {number} Line height to use for both positioning and bounds
      */
     getLineHeight(line, fontSize) {
-        var lineHeight = fontSize
-        if (!this.useTypographyHeight) {
-            return lineHeight; // Standard behavior
-        }
-
         const metrics = this.getFontMetrics(fontSize);
         if (!metrics) {
-            return lineHeight; // Fallback to standard if FontMetrics fails
+            return fontSize; // Fallback to font size if FontMetrics fails
         }
 
         // Use cap-height if line has capitals, otherwise x-height
-        lineHeight = this.hasCapitalLetters(line) ? metrics.capHeight : metrics.xHeight;
+        const lineHeight = this.hasCapitalLetters(line) ? metrics.capHeight : metrics.xHeight;
         return lineHeight;
-       
-
     }
 
     /**
@@ -184,7 +169,7 @@ class TextComponent {
     debugTextBounds(fontSize = null) {
         // Debug method - kept for development purposes
         const size = fontSize || this.fontSize;
-        const metrics = this.useTypographyHeight ? this.getFontMetrics(size) : null;
+        const metrics = this.getFontMetrics(size);
         // Debug information available for console inspection if needed
     }
 
@@ -214,23 +199,16 @@ class TextComponent {
         const availableWidth = this.getAvailableWidth();
         const lines = this.wrapTextToLines(ctx, this.text, availableWidth, fontSize);
 
-        // Calculate total text height (use typography-aware heights if enabled)
+        // Calculate total text height using typography-aware heights
         let totalHeight = 0;
-        if (this.useTypographyHeight) {
-            // Calculate actual height based on each line's typography
-            lines.forEach((line, index) => {
-                if (line.trim()) {
-                    totalHeight += this.getLineHeight(line, fontSize);
-                    if (index < lines.length - 1) {
-                        totalHeight += this.lineSpacing;
-                    }
+        lines.forEach((line, index) => {
+            if (line.trim()) {
+                totalHeight += this.getLineHeight(line, fontSize);
+                if (index < lines.length - 1) {
+                    totalHeight += this.lineSpacing;
                 }
-            });
-        } else {
-            // Standard calculation
-            const lineHeight = fontSize;
-            totalHeight = lines.length * lineHeight + (lines.length - 1) * this.lineSpacing;
-        }
+            }
+        });
 
         const position = this.calculateTextPosition(totalHeight);
 
@@ -286,7 +264,7 @@ class TextComponent {
             let boundsY = lineY;
             let boundsHeight = lineHeight;
 
-            if (this.useTypographyHeight && lineHeight !== fontSize) {
+            if (lineHeight !== fontSize) {
                 // Get font metrics for typography positioning
                 const fontMetrics = this.getFontMetrics(fontSize);
                 if (fontMetrics) {
@@ -352,11 +330,6 @@ class TextComponent {
     getTypographyAwareAvailableHeight(text = null, fontSize = null) {
         const basicHeight = this.containerHeight - this.paddingTop - this.paddingBottom;
 
-        // If typography height is not enabled, return basic calculation
-        if (!this.useTypographyHeight) {
-            return basicHeight;
-        }
-
         // Use provided text or fall back to component text
         const textToAnalyze = text || this.text;
         if (!textToAnalyze || !textToAnalyze.trim()) {
@@ -420,9 +393,8 @@ class TextComponent {
         // 2. The calculated typographic height (for tighter bounds)
         // This ensures we don't exceed container but can show tighter bounds when appropriate
 
-        // For now, return the basic height to maintain compatibility
-        // The tight bounds should be shown via debug visualization
-        return basicHeight;
+        // Return the calculated typography-aware height
+        return totalTypographicHeight;
     }
 
     /**
@@ -725,32 +697,21 @@ class TextComponent {
         ctx.fillStyle = this.color;
 
         // Use baseline alignment for typography-aware rendering
-        if (this.useTypographyHeight) {
-            ctx.textBaseline = 'alphabetic'; // Align to baseline
-        } else {
-            ctx.textBaseline = 'top'; // Standard behavior
-        }
+        ctx.textBaseline = 'alphabetic'; // Align to baseline
         
         // Get text lines
         const lines = this.wrapTextToLines(ctx, this.text, availableWidth, fontSize);
 
-        // Calculate total text height (use typography-aware heights if enabled)
+        // Calculate total text height using typography-aware heights
         let totalHeight = 0;
-        if (this.useTypographyHeight) {
-            // Calculate actual height based on each line's typography
-            lines.forEach((line, index) => {
-                if (line.trim()) {
-                    totalHeight += this.getLineHeight(line, fontSize);
-                    if (index < lines.length - 1) {
-                        totalHeight += this.lineSpacing;
-                    }
+        lines.forEach((line, index) => {
+            if (line.trim()) {
+                totalHeight += this.getLineHeight(line, fontSize);
+                if (index < lines.length - 1) {
+                    totalHeight += this.lineSpacing;
                 }
-            });
-        } else {
-            // Standard calculation
-            const lineHeight = fontSize;
-            totalHeight = lines.length * lineHeight + (lines.length - 1) * this.lineSpacing;
-        }
+            }
+        });
         
         // Calculate starting position
         const position = this.calculateTextPosition(totalHeight);
@@ -763,7 +724,7 @@ class TextComponent {
         lines.forEach((line, index) => {
             if (!line.trim()) return;
 
-            const lineHeight = this.useTypographyHeight ? this.getLineHeight(line, fontSize) : fontSize;
+            const lineHeight = this.getLineHeight(line, fontSize);
             const lineY = currentY;
             let lineX = position.x;
             
@@ -803,21 +764,16 @@ class TextComponent {
             
             // Calculate rendering position based on baseline alignment
             let renderY = lineY;
-            if (this.useTypographyHeight) {
-                const fontMetrics = this.getFontMetrics(fontSize);
-                if (fontMetrics) {
-                    const hasCapitals = this.hasCapitalLetters(line);
-                    if (hasCapitals) {
-                        // For baseline alignment: baseline = lineY + capHeight
-                        renderY = lineY + fontMetrics.capHeight;
-                    } else {
-                        // For baseline alignment: baseline = lineY + xHeight
-                        renderY = lineY + fontMetrics.xHeight;
-                    }
+            const fontMetrics = this.getFontMetrics(fontSize);
+            if (fontMetrics) {
+                const hasCapitals = this.hasCapitalLetters(line);
+                if (hasCapitals) {
+                    // For baseline alignment: baseline = lineY + capHeight
+                    renderY = lineY + fontMetrics.capHeight;
+                } else {
+                    // For baseline alignment: baseline = lineY + xHeight
+                    renderY = lineY + fontMetrics.xHeight;
                 }
-            } else {
-                // Standard mode: already using lineY with textBaseline='top'
-                renderY = lineY;
             }
 
             // Draw the text (at baseline if typography mode, at top if standard)
@@ -984,32 +940,21 @@ class MainTextComponent extends TextComponent {
         ctx.fillStyle = this.color;
 
         // Use baseline alignment for typography-aware rendering
-        if (this.useTypographyHeight) {
-            ctx.textBaseline = 'alphabetic'; // Align to baseline
-        } else {
-            ctx.textBaseline = 'top'; // Standard behavior
-        }
+        ctx.textBaseline = 'alphabetic'; // Align to baseline
         
         // Get text lines
         const lines = this.wrapTextToLines(ctx, this.text, availableWidth, fontSize);
 
-        // Calculate total text height (use typography-aware heights if enabled)
+        // Calculate total text height using typography-aware heights
         let totalHeight = 0;
-        if (this.useTypographyHeight) {
-            // Calculate actual height based on each line's typography
-            lines.forEach((line, index) => {
-                if (line.trim()) {
-                    totalHeight += this.getLineHeight(line, fontSize);
-                    if (index < lines.length - 1) {
-                        totalHeight += this.lineSpacing;
-                    }
+        lines.forEach((line, index) => {
+            if (line.trim()) {
+                totalHeight += this.getLineHeight(line, fontSize);
+                if (index < lines.length - 1) {
+                    totalHeight += this.lineSpacing;
                 }
-            });
-        } else {
-            // Standard calculation
-            const lineHeight = fontSize;
-            totalHeight = lines.length * lineHeight + (lines.length - 1) * this.lineSpacing;
-        }
+            }
+        });
         
         // Calculate starting position
         const position = this.calculateTextPosition(totalHeight);
@@ -1019,7 +964,7 @@ class MainTextComponent extends TextComponent {
         lines.forEach((line, index) => {
             if (!line.trim()) return;
 
-            const lineHeight = this.useTypographyHeight ? this.getLineHeight(line, fontSize) : fontSize;
+            const lineHeight = this.getLineHeight(line, fontSize);
             const lineY = currentY;
             const lineAlign = this.getLineAlignment(index);
             
@@ -1079,21 +1024,16 @@ class MainTextComponent extends TextComponent {
             
             // Calculate rendering position based on baseline alignment
             let renderY = lineY;
-            if (this.useTypographyHeight) {
-                const fontMetrics = this.getFontMetrics(fontSize);
-                if (fontMetrics) {
-                    const hasCapitals = this.hasCapitalLetters(line);
-                    if (hasCapitals) {
-                        // For baseline alignment: baseline = lineY + capHeight
-                        renderY = lineY + fontMetrics.capHeight;
-                    } else {
-                        // For baseline alignment: baseline = lineY + xHeight
-                        renderY = lineY + fontMetrics.xHeight;
-                    }
+            const fontMetrics = this.getFontMetrics(fontSize);
+            if (fontMetrics) {
+                const hasCapitals = this.hasCapitalLetters(line);
+                if (hasCapitals) {
+                    // For baseline alignment: baseline = lineY + capHeight
+                    renderY = lineY + fontMetrics.capHeight;
+                } else {
+                    // For baseline alignment: baseline = lineY + xHeight
+                    renderY = lineY + fontMetrics.xHeight;
                 }
-            } else {
-                // Standard mode: already using lineY with textBaseline='top'
-                renderY = lineY;
             }
 
             // Draw the text (at baseline if typography mode, at top if standard)

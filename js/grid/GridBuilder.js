@@ -131,7 +131,10 @@ class GridBuilder {
             let cell;
             if (region.type === 'main-text') {
                 cell = new MainTextCell(region.text, region.lineIndex, matrixRow, matrixCol);
-                cell.style = region.style || {};
+                // Apply style updates to the TextComponent instance
+                if (region.style) {
+                    cell.updateStyle(region.style);
+                }
             } else {
                 cell = new ContentCell(region.contentType, matrixRow, matrixCol);
             }
