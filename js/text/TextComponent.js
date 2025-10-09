@@ -762,19 +762,9 @@ class TextComponent {
                 ctx.restore();
             }
             
-            // Calculate rendering position based on baseline alignment
-            let renderY = lineY;
-            const fontMetrics = this.getFontMetrics(fontSize);
-            if (fontMetrics) {
-                const hasCapitals = this.hasCapitalLetters(line);
-                if (hasCapitals) {
-                    // For baseline alignment: baseline = lineY + capHeight
-                    renderY = lineY + fontMetrics.capHeight;
-                } else {
-                    // For baseline alignment: baseline = lineY + xHeight
-                    renderY = lineY + fontMetrics.xHeight;
-                }
-            }
+            // Calculate rendering position using TextPositioning utility
+            const bounds = { x: lineX, y: lineY, width: 0, height: 0 }; // height not needed for baseline calc
+            const renderY = TextPositioning.calculateBaselineY(bounds, this, line, fontSize);
 
             // Draw the text (at baseline if typography mode, at top if standard)
             ctx.fillText(line, lineX, renderY);
@@ -1022,19 +1012,9 @@ class MainTextComponent extends TextComponent {
                 ctx.restore();
             }
             
-            // Calculate rendering position based on baseline alignment
-            let renderY = lineY;
-            const fontMetrics = this.getFontMetrics(fontSize);
-            if (fontMetrics) {
-                const hasCapitals = this.hasCapitalLetters(line);
-                if (hasCapitals) {
-                    // For baseline alignment: baseline = lineY + capHeight
-                    renderY = lineY + fontMetrics.capHeight;
-                } else {
-                    // For baseline alignment: baseline = lineY + xHeight
-                    renderY = lineY + fontMetrics.xHeight;
-                }
-            }
+            // Calculate rendering position using TextPositioning utility
+            const bounds = { x: lineX, y: lineY, width: 0, height: 0 }; // height not needed for baseline calc
+            const renderY = TextPositioning.calculateBaselineY(bounds, this, line, fontSize);
 
             // Draw the text (at baseline if typography mode, at top if standard)
             ctx.fillText(line, lineX, renderY);

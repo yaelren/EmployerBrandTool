@@ -85,7 +85,6 @@ class MainTextCell extends GridCell {
      * @param {Object} styleUpdates - Style properties to update
      */
     updateStyle(styleUpdates) {
-        console.log('🔄 MainTextCell.updateStyle called with:', JSON.stringify(styleUpdates, null, 2));
         
         // Map style updates to TextComponent properties
         if (styleUpdates.fontSize !== undefined) this.textComponent.fontSize = styleUpdates.fontSize;
@@ -98,13 +97,6 @@ class MainTextCell extends GridCell {
         if (styleUpdates.highlight !== undefined) this.textComponent.highlight = styleUpdates.highlight;
         if (styleUpdates.highlightColor !== undefined) this.textComponent.highlightColor = styleUpdates.highlightColor;
         
-        console.log('✅ Updated TextComponent properties:', JSON.stringify({
-            fontWeight: this.textComponent.fontWeight,
-            fontStyle: this.textComponent.fontStyle,
-            underline: this.textComponent.underline,
-            highlight: this.textComponent.highlight,
-            highlightColor: this.textComponent.highlightColor
-        }, null, 2));
         
         // Invalidate cache when styles change
         this.textComponent.invalidateCache();

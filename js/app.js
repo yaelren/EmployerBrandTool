@@ -657,27 +657,11 @@ class EmployerBrandToolPOC {
         const ctx = this.canvasManager.ctx;
         const debugOptions = this.debugController ? this.debugController.getDebugOptions() : {};
 
-        // Check if we have a grid with cells
-        console.log('🔍 Grid rendering check:', {
-            hasGrid: !!this.grid,
-            isReady: this.grid?.isReady,
-            allCells: this.grid?.getAllCells()?.length || 0
-        });
         
         if (this.grid && this.grid.isReady) {
             const allCells = this.grid.getAllCells();
             const animatedCells = allCells.filter(cell => cell && cell.animation);
 
-            console.log('🔍 Grid cells:', {
-                totalCells: allCells.length,
-                animatedCells: animatedCells.length,
-                cellTypes: allCells.map(cell => cell?.type).filter(Boolean),
-                cellDetails: allCells.map(cell => ({
-                    type: cell?.type,
-                    text: cell?.text,
-                    contentType: cell?.contentType
-                }))
-            });
 
             // Always render all grid cells (with or without animations)
             if (allCells.length > 0) {
@@ -686,15 +670,6 @@ class EmployerBrandToolPOC {
                     if (!cell) return;
 
                     if (cell.type === 'main-text') {
-                        console.log('🎯 Rendering MainTextCell:', {
-                            text: cell.text,
-                            bounds: cell.bounds,
-                            textComponent: {
-                                color: cell.textComponent?.color,
-                                underline: cell.textComponent?.underline,
-                                highlight: cell.textComponent?.highlight
-                            }
-                        });
                         ctx.save();
 
                         // Apply animation transforms if cell has animation

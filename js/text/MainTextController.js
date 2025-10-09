@@ -325,13 +325,6 @@ class MainTextController {
                 const typographyHeight = this.textComponent.getLineHeight(line.text, this.config.fontSize);
                 
                 // DEBUG: Log the height calculation
-                console.log('🔍 HEIGHT DEBUG:', {
-                    lineText: line.text,
-                    fontSize: this.config.fontSize,
-                    typographyHeight: typographyHeight,
-                    hasCapitals: this.textComponent.hasCapitalLetters(line.text),
-                    textStyles: this.config.textStyles
-                });
                 
                 // Store metrics on the line object
                 line.metrics = {

@@ -17,11 +17,6 @@ class CellRenderer {
      *   - backgroundImage: HTMLImageElement - Background image for masks
      */
     static render(ctx, cell, options = {}) {
-        console.log('🎯 CellRenderer.render called:', {
-            cellType: cell?.type,
-            cellText: cell?.text,
-            hasOptions: !!options
-        });
         
         if (!cell) return;
 
@@ -41,16 +36,6 @@ class CellRenderer {
      * @param {Object} options
      */
     static renderTextCell(ctx, cell, options) {
-        // DEBUG: Log styling properties
-        console.log('🎨 Rendering MainTextCell:', JSON.stringify({
-            text: cell.text,
-            fontWeight: cell.textComponent.fontWeight,
-            fontStyle: cell.textComponent.fontStyle,
-            underline: cell.textComponent.underline,
-            highlight: cell.textComponent.highlight,
-            fontSize: cell.textComponent.fontSize,
-            fontString: cell.getFontString()
-        }, null, 2));
         
         ctx.font = cell.getFontString();
         ctx.fillStyle = cell.textComponent.color;
@@ -58,36 +43,14 @@ class CellRenderer {
         ctx.textAlign = alignment;
         ctx.textBaseline = 'alphabetic'; // Use baseline alignment like main branch
 
-        // Calculate text position based on alignment
-        // bounds.x is the LEFT edge of the text bounds
-        let textX;
-        switch (alignment) {
-            case 'left':
-                textX = cell.bounds.x;
-                break;
-            case 'center':
-                textX = cell.bounds.x + cell.bounds.width / 2;
-                break;
-            case 'right':
-                textX = cell.bounds.x + cell.bounds.width; // Right edge for right-aligned text
-                break;
-            default:
-                textX = cell.bounds.x;
-        }
-
-        // Calculate rendering position based on baseline alignment (like main branch)
-        let renderY = cell.bounds.y;
-        const fontMetrics = cell.textComponent.getFontMetrics(cell.textComponent.fontSize);
-        if (fontMetrics) {
-            const hasCapitals = cell.textComponent.hasCapitalLetters(cell.text);
-            if (hasCapitals) {
-                // For baseline alignment: baseline = lineY + capHeight
-                renderY = cell.bounds.y + fontMetrics.capHeight;
-            } else {
-                // For baseline alignment: baseline = lineY + xHeight
-                renderY = cell.bounds.y + fontMetrics.xHeight;
-            }
-        }
+        // Calculate text position using TextPositioning utility
+        const positioning = TextPositioning.getTextPositioning(
+            cell.bounds, 
+            cell.textComponent, 
+            cell.text, 
+            alignment, 
+            cell.textComponent.fontSize
+        );
 
         // Draw highlight if enabled
         if (cell.textComponent.highlight) {
@@ -97,43 +60,19 @@ class CellRenderer {
         }
 
         // Draw text at baseline position
-        ctx.fillText(cell.text, textX, renderY);
+        ctx.fillText(cell.text, positioning.textX, positioning.baselineY);
 
         // Draw underline if enabled
         if (cell.textComponent.underline) {
             const textWidth = ctx.measureText(cell.text).width;
             
-            // Calculate underline position based on baseline alignment
-            let underlineY = renderY; // Start from baseline position
-            const fontMetrics = cell.textComponent.getFontMetrics(cell.textComponent.fontSize);
-            if (fontMetrics) {
-                // Add descent to get below the baseline
-                underlineY = renderY + fontMetrics.descent;
-            } else {
-                // Fallback: position below baseline
-                underlineY = renderY + (cell.textComponent.fontSize * 0.2);
-            }
-
-            let underlineX;
-            switch (cell.getAlignment()) {
-                case 'left':
-                    underlineX = textX;
-                    break;
-                case 'center':
-                    underlineX = textX - textWidth / 2;
-                    break;
-                case 'right':
-                    underlineX = textX - textWidth; // Start from left edge
-                    break;
-                default:
-                    underlineX = textX;
-            }
+            const underlineX = TextPositioning.calculateUnderlineX(positioning.textX, alignment, textWidth);
 
             ctx.strokeStyle = cell.textComponent.color;
             ctx.lineWidth = 1;
             ctx.beginPath();
-            ctx.moveTo(underlineX, underlineY);
-            ctx.lineTo(underlineX + textWidth, underlineY);
+            ctx.moveTo(underlineX, positioning.underlineY);
+            ctx.lineTo(underlineX + textWidth, positioning.underlineY);
             ctx.stroke();
         }
     }
