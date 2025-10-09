@@ -18,6 +18,8 @@ class CanvasManager {
         // Background settings
         this.backgroundColor = '#ffffff';
         this.backgroundImage = null;
+        this.backgroundVideo = null;
+        this.backgroundFitMode = 'fit'; // 'fit', 'fill', 'stretch'
 
         // Debug options object for TextComponent system
         this.debugOptions = {
@@ -70,27 +72,160 @@ class CanvasManager {
      */
     setBackgroundImage(image) {
         this.backgroundImage = image;
+        this.backgroundVideo = null; // Clear video when setting image
     }
     
     /**
-     * Render background (color + optional image)
+     * Set background video
+     * @param {HTMLVideoElement} video - Video element
+     */
+    setBackgroundVideo(video) {
+        this.backgroundVideo = video;
+        this.backgroundImage = null; // Clear image when setting video
+    }
+    
+    /**
+     * Set background fit mode
+     * @param {string} mode - 'fit', 'fill', or 'stretch'
+     */
+    setBackgroundFitMode(mode) {
+        this.backgroundFitMode = mode;
+    }
+    
+    /**
+     * Render background (color + optional image/video)
      */
     renderBackground() {
         // Clear the canvas first
         this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
 
-        // If background image exists, draw it first (behind background color)
-        if (this.backgroundImage) {
+        // If background video exists, draw it first (behind background color)
+        if (this.backgroundVideo) {
             this.ctx.save();
-            this.ctx.drawImage(this.backgroundImage, 0, 0, this.canvas.width, this.canvas.height);
+            this.renderBackgroundVideo();
+            this.ctx.restore();
+        }
+        // If background image exists, draw it first (behind background color)
+        else if (this.backgroundImage) {
+            this.ctx.save();
+            this.renderBackgroundImage();
             this.ctx.restore();
         }
 
-        // Apply background color on top of image (if not transparent)
+        // Apply background color on top of image/video (if not transparent)
         if (this.backgroundColor !== 'transparent') {
             this.ctx.fillStyle = this.backgroundColor;
             this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
         }
+    }
+    
+    /**
+     * Render background video with proper fit mode
+     * @private
+     */
+    renderBackgroundVideo() {
+        if (!this.backgroundVideo || this.backgroundVideo.readyState < HTMLMediaElement.HAVE_METADATA) {
+            return;
+        }
+
+        const canvasWidth = this.canvas.width;
+        const canvasHeight = this.canvas.height;
+        const videoWidth = this.backgroundVideo.videoWidth;
+        const videoHeight = this.backgroundVideo.videoHeight;
+
+        const { drawX, drawY, drawWidth, drawHeight } = this.calculateBackgroundDimensions(
+            videoWidth, videoHeight, canvasWidth, canvasHeight
+        );
+
+        try {
+            this.ctx.drawImage(this.backgroundVideo, drawX, drawY, drawWidth, drawHeight);
+        } catch (error) {
+            console.warn('Error drawing background video:', error);
+        }
+    }
+    
+    /**
+     * Render background image with proper fit mode
+     * @private
+     */
+    renderBackgroundImage() {
+        if (!this.backgroundImage) {
+            return;
+        }
+
+        const canvasWidth = this.canvas.width;
+        const canvasHeight = this.canvas.height;
+        const imageWidth = this.backgroundImage.width;
+        const imageHeight = this.backgroundImage.height;
+
+        const { drawX, drawY, drawWidth, drawHeight } = this.calculateBackgroundDimensions(
+            imageWidth, imageHeight, canvasWidth, canvasHeight
+        );
+
+        this.ctx.drawImage(this.backgroundImage, drawX, drawY, drawWidth, drawHeight);
+    }
+    
+    /**
+     * Calculate background dimensions based on fit mode
+     * @param {number} mediaWidth - Width of image/video
+     * @param {number} mediaHeight - Height of image/video
+     * @param {number} canvasWidth - Canvas width
+     * @param {number} canvasHeight - Canvas height
+     * @returns {Object} Drawing dimensions and position
+     * @private
+     */
+    calculateBackgroundDimensions(mediaWidth, mediaHeight, canvasWidth, canvasHeight) {
+        const mediaAspect = mediaWidth / mediaHeight;
+        const canvasAspect = canvasWidth / canvasHeight;
+
+        let drawX, drawY, drawWidth, drawHeight;
+
+        switch (this.backgroundFitMode) {
+            case 'stretch':
+                // Stretch to fill entire canvas (may distort)
+                drawX = 0;
+                drawY = 0;
+                drawWidth = canvasWidth;
+                drawHeight = canvasHeight;
+                break;
+
+            case 'fill':
+                // Fill entire canvas, crop if necessary (maintain aspect ratio)
+                if (mediaAspect > canvasAspect) {
+                    // Media is wider - fit to height, crop width
+                    drawHeight = canvasHeight;
+                    drawWidth = drawHeight * mediaAspect;
+                    drawX = (canvasWidth - drawWidth) / 2;
+                    drawY = 0;
+                } else {
+                    // Media is taller - fit to width, crop height
+                    drawWidth = canvasWidth;
+                    drawHeight = drawWidth / mediaAspect;
+                    drawX = 0;
+                    drawY = (canvasHeight - drawHeight) / 2;
+                }
+                break;
+
+            case 'fit':
+            default:
+                // Fit entire media in canvas (may have letterboxing)
+                if (mediaAspect > canvasAspect) {
+                    // Media is wider - fit to width
+                    drawWidth = canvasWidth;
+                    drawHeight = drawWidth / mediaAspect;
+                    drawX = 0;
+                    drawY = (canvasHeight - drawHeight) / 2;
+                } else {
+                    // Media is taller - fit to height
+                    drawHeight = canvasHeight;
+                    drawWidth = drawHeight * mediaAspect;
+                    drawX = (canvasWidth - drawWidth) / 2;
+                    drawY = 0;
+                }
+                break;
+        }
+
+        return { drawX, drawY, drawWidth, drawHeight };
     }
     
     /**

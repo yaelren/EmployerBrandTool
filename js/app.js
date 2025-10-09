@@ -44,6 +44,7 @@ class EmployerBrandToolPOC {
 
         // Asset Management System
         this.backgroundImage = null; // Currently loaded background image
+        this.backgroundVideo = null; // Currently loaded background video
 
         // Grid Animation System (NEW - simple per-cell animations)
         this.grid = null; // Will be initialized after DOM is ready
@@ -794,7 +795,10 @@ class EmployerBrandToolPOC {
                     cell.content && cell.content.media instanceof HTMLVideoElement
                 );
 
-            if (hasPlayingAnimations || hasVideos) {
+            // Check if background video needs frame updates
+            const hasBackgroundVideo = this.canvasManager.backgroundVideo instanceof HTMLVideoElement;
+
+            if (hasPlayingAnimations || hasVideos || hasBackgroundVideo) {
                 // Re-render canvas
                 this.render();
 
@@ -1068,7 +1072,40 @@ class EmployerBrandToolPOC {
      * Clear background image
      */
     clearBackgroundImage() {
+        this.canvasManager.setBackgroundImage(null);
         this.backgroundImage = null;
+        this.render();
+    }
+    
+    /**
+     * Set background video
+     * @param {HTMLVideoElement} video - Video element
+     */
+    setBackgroundVideo(video) {
+        this.canvasManager.setBackgroundVideo(video);
+        this.backgroundVideo = video;
+        this.backgroundImage = null; // Clear image when setting video
+        this.render();
+        
+        // Start animation loop for video frame updates
+        this._startAnimationLoop();
+    }
+    
+    /**
+     * Clear background video
+     */
+    clearBackgroundVideo() {
+        this.canvasManager.setBackgroundVideo(null);
+        this.backgroundVideo = null;
+        this.render();
+    }
+    
+    /**
+     * Set background fit mode
+     * @param {string} mode - 'fit', 'fill', or 'stretch'
+     */
+    setBackgroundFitMode(mode) {
+        this.canvasManager.setBackgroundFitMode(mode);
         this.render();
     }
     

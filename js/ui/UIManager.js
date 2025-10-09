@@ -29,8 +29,12 @@ class UIManager {
             backgroundOpacity: 'backgroundOpacity',
             backgroundOpacityValue: 'backgroundOpacityValue',
             transparentBackground: 'transparentBackground',
-            backgroundImage: 'backgroundImage',
-            clearBackgroundImage: 'clearBackgroundImage',
+            backgroundMedia: 'backgroundMedia',
+            clearBackgroundMedia: 'clearBackgroundMedia',
+            backgroundVideoControls: 'backgroundVideoControls',
+            backgroundVideoAutoplay: 'backgroundVideoAutoplay',
+            backgroundVideoLoop: 'backgroundVideoLoop',
+            backgroundFitMode: 'backgroundFitMode',
             fontFamily: 'fontFamily',
             fontSize: 'fontSize',
             fontSizeValue: 'fontSizeValue',
@@ -196,14 +200,28 @@ class UIManager {
             this.updateBackgroundColor();
         });
 
-        // Background image upload
-        this.elements.backgroundImage.addEventListener('change', (e) => {
-            this.handleBackgroundImageUpload(e);
+        // Background media upload
+        this.elements.backgroundMedia.addEventListener('change', (e) => {
+            this.handleBackgroundMediaUpload(e);
         });
 
-        // Clear background image
-        this.elements.clearBackgroundImage.addEventListener('click', () => {
-            this.clearBackgroundImage();
+        // Clear background media
+        this.elements.clearBackgroundMedia.addEventListener('click', () => {
+            this.clearBackgroundMedia();
+        });
+
+        // Background video controls
+        this.elements.backgroundVideoAutoplay.addEventListener('change', (e) => {
+            this.updateBackgroundVideoSettings();
+        });
+
+        this.elements.backgroundVideoLoop.addEventListener('change', (e) => {
+            this.updateBackgroundVideoSettings();
+        });
+
+        // Background fit mode
+        this.elements.backgroundFitMode.addEventListener('change', (e) => {
+            this.app.setBackgroundFitMode(e.target.value);
         });
 
         // Font size changes
@@ -1157,34 +1175,126 @@ class UIManager {
     }
 
     /**
-     * Handle background image upload
+     * Handle background media upload (image or video)
      * @param {Event} event - File input change event
      */
-    handleBackgroundImageUpload(event) {
+    handleBackgroundMediaUpload(event) {
         const file = event.target.files[0];
         if (!file) return;
 
         const reader = new FileReader();
         reader.onload = (e) => {
-            const img = new Image();
-            img.onload = () => {
-                this.app.canvasManager.setBackgroundImage(img);
-                this.elements.clearBackgroundImage.style.display = 'inline-block';
-                this.app.render();
-            };
-            img.src = e.target.result;
+            const fileType = file.type;
+            const fileName = file.name.toLowerCase();
+
+            // Determine media type
+            let mediaType = 'other';
+            if (fileType.startsWith('image/')) {
+                mediaType = 'image';
+            } else if (fileType.startsWith('video/')) {
+                mediaType = 'video';
+            }
+
+            if (mediaType === 'image') {
+                // Handle images
+                const img = new Image();
+                img.onload = () => {
+                    this.app.canvasManager.setBackgroundImage(img);
+                    this.elements.clearBackgroundMedia.style.display = 'inline-block';
+                    this.elements.backgroundVideoControls.style.display = 'none';
+                    this.app.render();
+                };
+                img.src = e.target.result;
+            } else if (mediaType === 'video') {
+                // Handle videos
+                const video = document.createElement('video');
+                video.src = e.target.result;
+                video.preload = 'metadata';
+                video.crossOrigin = 'anonymous';
+                video.autoplay = true; // Always enable autoplay attribute
+                video.loop = this.elements.backgroundVideoLoop.checked;
+                video.muted = true; // Always muted for autoplay compatibility
+                video.controls = false;
+                
+                console.log('Setting up background video with autoplay:', video.autoplay, 'loop:', video.loop);
+                
+                video.addEventListener('loadedmetadata', () => {
+                    console.log('Background video metadata loaded:', video.videoWidth, 'x', video.videoHeight);
+                    this.app.setBackgroundVideo(video);
+                    this.elements.clearBackgroundMedia.style.display = 'inline-block';
+                    this.elements.backgroundVideoControls.style.display = 'flex';
+                    this.app.render();
+                    
+                    // Start playing if autoplay is enabled
+                    if (this.elements.backgroundVideoAutoplay.checked) {
+                        console.log('Attempting to start background video playback...');
+                        video.play().then(() => {
+                            console.log('Background video started playing successfully');
+                        }).catch(error => {
+                            console.warn('Background video autoplay failed:', error);
+                        });
+                    }
+                });
+
+                video.addEventListener('canplay', () => {
+                    console.log('Background video can play, current state:', {
+                        paused: video.paused,
+                        autoplay: video.autoplay,
+                        readyState: video.readyState
+                    });
+                    // Ensure video starts playing if autoplay is enabled
+                    if (this.elements.backgroundVideoAutoplay.checked && video.paused) {
+                        console.log('Attempting to start background video playback from canplay event...');
+                        video.play().then(() => {
+                            console.log('Background video started playing from canplay event');
+                        }).catch(error => {
+                            console.warn('Background video autoplay failed from canplay event:', error);
+                        });
+                    }
+                });
+
+                video.addEventListener('error', (event) => {
+                    console.error('Error loading background video:', video.error, event);
+                    alert('Error loading background video file. Please try a different format.');
+                });
+                
+                video.load();
+            } else {
+                console.warn('Unsupported file type:', fileType);
+                alert('Unsupported file type. Please select an image or video file.');
+            }
         };
         reader.readAsDataURL(file);
     }
 
     /**
-     * Clear background image
+     * Clear background media (image or video)
      */
-    clearBackgroundImage() {
+    clearBackgroundMedia() {
         this.app.canvasManager.setBackgroundImage(null);
-        this.elements.backgroundImage.value = '';
-        this.elements.clearBackgroundImage.style.display = 'none';
+        this.app.canvasManager.setBackgroundVideo(null);
+        this.elements.backgroundMedia.value = '';
+        this.elements.clearBackgroundMedia.style.display = 'none';
+        this.elements.backgroundVideoControls.style.display = 'none';
         this.app.render();
+    }
+
+    /**
+     * Update background video settings
+     */
+    updateBackgroundVideoSettings() {
+        if (this.app.canvasManager.backgroundVideo) {
+            const video = this.app.canvasManager.backgroundVideo;
+            video.autoplay = this.elements.backgroundVideoAutoplay.checked;
+            video.loop = this.elements.backgroundVideoLoop.checked;
+            
+            // If autoplay is enabled and video is paused, play it
+            if (video.autoplay && video.paused) {
+                video.play().catch(error => {
+                    console.warn('Background video autoplay failed:', error);
+                });
+            }
+        }
     }
 
     /**

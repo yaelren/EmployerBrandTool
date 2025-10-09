@@ -171,11 +171,33 @@ SPOTLIGHT
                         </label>
                     </div>
                     
-                    <!-- Background Image -->
+                    <!-- Background Media -->
                     <div class="chatooly-control-group">
-                        <label for="backgroundImage">Background Image</label>
-                        <input type="file" id="backgroundImage" accept="image/*">
-                        <button type="button" id="clearBackgroundImage" style="display: none;">Clear Image</button>
+                        <label for="backgroundMedia">Background Media</label>
+                        <input type="file" id="backgroundMedia" accept="image/*,video/*">
+                        <button type="button" id="clearBackgroundMedia" style="display: none;">Clear Media</button>
+                        
+                        <!-- Video Controls (shown only when video is loaded) -->
+                        <div id="backgroundVideoControls" class="background-video-controls" style="display: none;">
+                            <label>
+                                <input type="checkbox" id="backgroundVideoAutoplay" checked>
+                                Autoplay
+                            </label>
+                            <label>
+                                <input type="checkbox" id="backgroundVideoLoop" checked>
+                                Loop
+                            </label>
+                        </div>
+                    </div>
+                    
+                    <!-- Background Fit Mode -->
+                    <div class="chatooly-control-group">
+                        <label for="backgroundFitMode">Background Fit Mode</label>
+                        <select id="backgroundFitMode">
+                            <option value="fit">Fit (Letterbox)</option>
+                            <option value="fill">Fill (Crop)</option>
+                            <option value="stretch">Stretch (Distort)</option>
+                        </select>
                     </div>
                     
                     <!-- Canvas Padding Controls -->
