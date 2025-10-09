@@ -142,7 +142,7 @@ class TextComponent {
      * @returns {boolean} True if text contains capitals
      */
     hasCapitalLetters(text) {
-        return /\p{Lu}/u.test(text);
+        return /\p{Lu}|\d/u.test(text);
     }
 
     /**
