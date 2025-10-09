@@ -17,6 +17,12 @@ class CellRenderer {
      *   - backgroundImage: HTMLImageElement - Background image for masks
      */
     static render(ctx, cell, options = {}) {
+        console.log('🎯 CellRenderer.render called:', {
+            cellType: cell?.type,
+            cellText: cell?.text,
+            hasOptions: !!options
+        });
+        
         if (!cell) return;
 
         if (cell instanceof MainTextCell) {
@@ -35,11 +41,22 @@ class CellRenderer {
      * @param {Object} options
      */
     static renderTextCell(ctx, cell, options) {
+        // DEBUG: Log styling properties
+        console.log('🎨 Rendering MainTextCell:', JSON.stringify({
+            text: cell.text,
+            fontWeight: cell.textComponent.fontWeight,
+            fontStyle: cell.textComponent.fontStyle,
+            underline: cell.textComponent.underline,
+            highlight: cell.textComponent.highlight,
+            fontSize: cell.textComponent.fontSize,
+            fontString: cell.getFontString()
+        }, null, 2));
+        
         ctx.font = cell.getFontString();
         ctx.fillStyle = cell.textComponent.color;
         const alignment = cell.getAlignment();
         ctx.textAlign = alignment;
-        ctx.textBaseline = 'top';
+        ctx.textBaseline = 'alphabetic'; // Use baseline alignment like main branch
 
         // Calculate text position based on alignment
         // bounds.x is the LEFT edge of the text bounds
@@ -58,6 +75,20 @@ class CellRenderer {
                 textX = cell.bounds.x;
         }
 
+        // Calculate rendering position based on baseline alignment (like main branch)
+        let renderY = cell.bounds.y;
+        const fontMetrics = cell.textComponent.getFontMetrics(cell.textComponent.fontSize);
+        if (fontMetrics) {
+            const hasCapitals = cell.textComponent.hasCapitalLetters(cell.text);
+            if (hasCapitals) {
+                // For baseline alignment: baseline = lineY + capHeight
+                renderY = cell.bounds.y + fontMetrics.capHeight;
+            } else {
+                // For baseline alignment: baseline = lineY + xHeight
+                renderY = cell.bounds.y + fontMetrics.xHeight;
+            }
+        }
+
         // Draw highlight if enabled
         if (cell.textComponent.highlight) {
             ctx.fillStyle = cell.textComponent.highlightColor;
@@ -65,13 +96,23 @@ class CellRenderer {
             ctx.fillStyle = cell.textComponent.color;
         }
 
-        // Draw text
-        ctx.fillText(cell.text, textX, cell.bounds.y);
+        // Draw text at baseline position
+        ctx.fillText(cell.text, textX, renderY);
 
         // Draw underline if enabled
         if (cell.textComponent.underline) {
             const textWidth = ctx.measureText(cell.text).width;
-            const underlineY = cell.bounds.y + cell.bounds.height - 2;
+            
+            // Calculate underline position based on baseline alignment
+            let underlineY = renderY; // Start from baseline position
+            const fontMetrics = cell.textComponent.getFontMetrics(cell.textComponent.fontSize);
+            if (fontMetrics) {
+                // Add descent to get below the baseline
+                underlineY = renderY + fontMetrics.descent;
+            } else {
+                // Fallback: position below baseline
+                underlineY = renderY + (cell.textComponent.fontSize * 0.2);
+            }
 
             let underlineX;
             switch (cell.getAlignment()) {

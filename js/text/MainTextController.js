@@ -329,7 +329,8 @@ class MainTextController {
                     lineText: line.text,
                     fontSize: this.config.fontSize,
                     typographyHeight: typographyHeight,
-                    hasCapitals: this.textComponent.hasCapitalLetters(line.text)
+                    hasCapitals: this.textComponent.hasCapitalLetters(line.text),
+                    textStyles: this.config.textStyles
                 });
                 
                 // Store metrics on the line object

@@ -658,9 +658,26 @@ class EmployerBrandToolPOC {
         const debugOptions = this.debugController ? this.debugController.getDebugOptions() : {};
 
         // Check if we have a grid with cells
+        console.log('🔍 Grid rendering check:', {
+            hasGrid: !!this.grid,
+            isReady: this.grid?.isReady,
+            allCells: this.grid?.getAllCells()?.length || 0
+        });
+        
         if (this.grid && this.grid.isReady) {
             const allCells = this.grid.getAllCells();
             const animatedCells = allCells.filter(cell => cell && cell.animation);
+
+            console.log('🔍 Grid cells:', {
+                totalCells: allCells.length,
+                animatedCells: animatedCells.length,
+                cellTypes: allCells.map(cell => cell?.type).filter(Boolean),
+                cellDetails: allCells.map(cell => ({
+                    type: cell?.type,
+                    text: cell?.text,
+                    contentType: cell?.contentType
+                }))
+            });
 
             // Always render all grid cells (with or without animations)
             if (allCells.length > 0) {
@@ -669,6 +686,15 @@ class EmployerBrandToolPOC {
                     if (!cell) return;
 
                     if (cell.type === 'main-text') {
+                        console.log('🎯 Rendering MainTextCell:', {
+                            text: cell.text,
+                            bounds: cell.bounds,
+                            textComponent: {
+                                color: cell.textComponent?.color,
+                                underline: cell.textComponent?.underline,
+                                highlight: cell.textComponent?.highlight
+                            }
+                        });
                         ctx.save();
 
                         // Apply animation transforms if cell has animation
@@ -685,67 +711,8 @@ class EmployerBrandToolPOC {
                         if (offset.scale) ctx.scale(offset.scale, offset.scale);
                         ctx.translate(-centerX, -centerY);
 
-                        // Render text cell
-                        ctx.font = cell.getFontString();
-                        ctx.fillStyle = cell.textComponent.color;
-                        const alignment = cell.getAlignment();
-                        ctx.textAlign = alignment;
-                        ctx.textBaseline = 'top';
-
-                        // Calculate text position based on alignment
-                        // bounds.x is the LEFT edge of the text bounds
-                        let textX;
-                        switch (alignment) {
-                            case 'left':
-                                textX = cell.bounds.x;
-                                break;
-                            case 'center':
-                                textX = cell.bounds.x + cell.bounds.width / 2;
-                                break;
-                            case 'right':
-                                textX = cell.bounds.x + cell.bounds.width; // Right edge for right-aligned text
-                                break;
-                            default:
-                                textX = cell.bounds.x;
-                        }
-
-                        // Draw highlight if enabled
-                        if (cell.textComponent.highlight) {
-                            ctx.fillStyle = cell.textComponent.highlightColor;
-                            ctx.fillRect(cell.bounds.x, cell.bounds.y, cell.bounds.width, cell.bounds.height);
-                            ctx.fillStyle = cell.textComponent.color;
-                        }
-
-                        // Draw text
-                        ctx.fillText(cell.text, textX, cell.bounds.y);
-
-                        // Draw underline if enabled
-                        if (cell.textComponent.underline) {
-                            const textWidth = ctx.measureText(cell.text).width;
-                            const underlineY = cell.bounds.y + cell.bounds.height - 2;
-
-                            let underlineX;
-                            switch (alignment) {
-                                case 'left':
-                                    underlineX = textX;
-                                    break;
-                                case 'center':
-                                    underlineX = textX - textWidth / 2;
-                                    break;
-                                case 'right':
-                                    underlineX = textX - textWidth; // Start from left edge
-                                    break;
-                                default:
-                                    underlineX = textX;
-                            }
-
-                            ctx.strokeStyle = cell.textComponent.color;
-                            ctx.lineWidth = 1;
-                            ctx.beginPath();
-                            ctx.moveTo(underlineX, underlineY);
-                            ctx.lineTo(underlineX + textWidth, underlineY);
-                            ctx.stroke();
-                        }
+                        // Use CellRenderer for consistent rendering
+                        CellRenderer.renderTextCell(ctx, cell, debugOptions);
 
                         // Draw debug outline if enabled
                         if (debugOptions.showSpotOutlines) {
