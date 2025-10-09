@@ -128,12 +128,12 @@ class CellRenderer {
     }
 
     /**
-     * Render image content cell
+     * Render image/media content cell
      * @private
      */
     static renderImage(ctx, cell, options) {
-        // If no image content, show placeholder
-        if (!cell.content || !cell.content.image) {
+        // If no media content, show placeholder
+        if (!cell.content || !cell.content.media) {
             if (cell.fillColor !== 'transparent') {
                 ctx.fillStyle = cell.fillColor;
                 ctx.fillRect(cell.bounds.x, cell.bounds.y, cell.bounds.width, cell.bounds.height);
@@ -151,26 +151,40 @@ class CellRenderer {
 
         if (contentWidth <= 0 || contentHeight <= 0) return;
 
-        const image = cell.content.image;
+        const media = cell.content.media;
         const scale = cell.content.scale || 1;
         const rotation = (cell.content.rotation || 0) * Math.PI / 180; // Convert to radians
 
-        // Calculate image dimensions maintaining aspect ratio
-        const imageAspect = image.width / image.height;
+        // Get media dimensions
+        let mediaWidth, mediaHeight;
+        if (media instanceof HTMLImageElement) {
+            mediaWidth = media.width;
+            mediaHeight = media.height;
+        } else if (media instanceof HTMLVideoElement) {
+            mediaWidth = media.videoWidth;
+            mediaHeight = media.videoHeight;
+        } else {
+            // Fallback for other media types
+            mediaWidth = contentWidth;
+            mediaHeight = contentHeight;
+        }
+
+        // Calculate media dimensions maintaining aspect ratio
+        const mediaAspect = mediaWidth / mediaHeight;
         const contentAspect = contentWidth / contentHeight;
 
         let drawWidth, drawHeight;
-        if (imageAspect > contentAspect) {
-            // Image is wider than content area
+        if (mediaAspect > contentAspect) {
+            // Media is wider than content area
             drawWidth = contentWidth * scale;
-            drawHeight = (contentWidth / imageAspect) * scale;
+            drawHeight = (contentWidth / mediaAspect) * scale;
         } else {
-            // Image is taller than content area
-            drawWidth = (contentHeight * imageAspect) * scale;
+            // Media is taller than content area
+            drawWidth = (contentHeight * mediaAspect) * scale;
             drawHeight = contentHeight * scale;
         }
 
-        // Position the image in content area based on positionH and positionV
+        // Position the media in content area based on positionH and positionV
         const positionH = cell.content.positionH || 'center';
         const positionV = cell.content.positionV || 'middle';
 
@@ -211,8 +225,37 @@ class CellRenderer {
         ctx.rotate(rotation);
         ctx.translate(-drawWidth / 2, -drawHeight / 2);
 
-        // Draw the image
-        ctx.drawImage(image, 0, 0, drawWidth, drawHeight);
+        // Draw the media
+        if (media instanceof HTMLImageElement) {
+            ctx.drawImage(media, 0, 0, drawWidth, drawHeight);
+        } else if (media instanceof HTMLVideoElement) {
+            // For videos, we need to handle the current frame
+            try {
+                // Check if video is ready to be drawn
+                if (media.readyState >= HTMLMediaElement.HAVE_METADATA) {
+                    ctx.drawImage(media, 0, 0, drawWidth, drawHeight);
+                    
+                    // Debug: Log video state occasionally
+                    if (Math.random() < 0.001) { // Very infrequent logging
+                        console.log('Video rendering:', {
+                            readyState: media.readyState,
+                            paused: media.paused,
+                            currentTime: media.currentTime,
+                            duration: media.duration,
+                            videoWidth: media.videoWidth,
+                            videoHeight: media.videoHeight
+                        });
+                    }
+                } else {
+                    // Video not ready, draw placeholder
+                    this.renderVideoPlaceholder(ctx, 0, 0, drawWidth, drawHeight);
+                }
+            } catch (error) {
+                // If video isn't ready, draw a placeholder
+                console.warn('Video rendering error:', error);
+                this.renderVideoPlaceholder(ctx, 0, 0, drawWidth, drawHeight);
+            }
+        }
 
         ctx.restore();
     }
@@ -237,6 +280,25 @@ class CellRenderer {
         ctx.moveTo(iconX + iconSize, iconY);
         ctx.lineTo(iconX, iconY + iconSize);
         ctx.stroke();
+    }
+
+    /**
+     * Render video placeholder when video isn't ready
+     * @private
+     */
+    static renderVideoPlaceholder(ctx, x, y, width, height) {
+        // Draw a play button icon
+        const centerX = x + width / 2;
+        const centerY = y + height / 2;
+        const iconSize = Math.min(width, height) * 0.3;
+
+        ctx.fillStyle = '#6495ED';
+        ctx.beginPath();
+        ctx.moveTo(centerX - iconSize/3, centerY - iconSize/2);
+        ctx.lineTo(centerX - iconSize/3, centerY + iconSize/2);
+        ctx.lineTo(centerX + iconSize/2, centerY);
+        ctx.closePath();
+        ctx.fill();
     }
 
     /**

@@ -1568,7 +1568,7 @@ class UIManager {
             <select class="popup-spot-type-select">
                 <option value="empty">Empty</option>
                 <option value="text">Text</option>
-                <option value="image">Image</option>
+                <option value="image">Media (Image, Video, GIF)</option>
                 <option value="mask">Mask (Background Reveal)</option>
             </select>
         `;

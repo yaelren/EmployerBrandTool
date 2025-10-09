@@ -788,7 +788,13 @@ class EmployerBrandToolPOC {
                     cell.animation && cell.animation.isPlaying
                 );
 
-            if (hasPlayingAnimations) {
+            // Check if any videos need frame updates
+            const hasVideos = this.grid &&
+                this.grid.getAllCells().some(cell =>
+                    cell.content && cell.content.media instanceof HTMLVideoElement
+                );
+
+            if (hasPlayingAnimations || hasVideos) {
                 // Re-render canvas
                 this.render();
 
@@ -808,7 +814,7 @@ class EmployerBrandToolPOC {
                 // Schedule next frame
                 this._animationLoopId = requestAnimationFrame(animate);
             } else {
-                // No more playing animations, stop loop
+                // No more playing animations or videos, stop loop
                 this._stopAnimationLoop();
             }
         };

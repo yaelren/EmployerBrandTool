@@ -1,6 +1,6 @@
 /**
- * ImageContentController.js - Handles image cell controls and interactions
- * Extends ContentController for image-specific functionality
+ * ImageContentController.js - Handles media cell controls and interactions
+ * Extends ContentController for image, video, GIF, and other media functionality
  */
 
 class ImageContentController extends ContentController {
@@ -10,22 +10,29 @@ class ImageContentController extends ContentController {
     }
     
     /**
-     * Get default content for image spots
+     * Get default content for media spots
      * @returns {Object} Default content object
      */
     getDefaultContent() {
         return {
-            image: null,
+            media: null,        // HTMLImageElement, HTMLVideoElement, or HTMLCanvasElement
+            mediaType: null,    // 'image', 'video', 'gif', 'other'
+            mediaUrl: null,     // Original file URL/data URL
             scale: 1,
             rotation: 0,
             padding: 1,
             positionH: 'center',
-            positionV: 'middle'
+            positionV: 'middle',
+            // Video-specific properties
+            autoplay: true,
+            loop: true,
+            muted: true,
+            controls: false
         };
     }
     
     /**
-     * Create controls for image spots
+     * Create controls for media spots
      * @param {ContentCell} cell - Spot object
      * @param {HTMLElement} container - Container for controls
      * @param {string} context - 'sidebar' or 'popup'
@@ -37,18 +44,18 @@ class ImageContentController extends ContentController {
 
         const controls = [];
 
-        // Image upload
-        const imageGroup = this.createImageUploadControl(cell, context);
-        container.appendChild(imageGroup);
-        controls.push(imageGroup);
+        // Media upload
+        const mediaGroup = this.createMediaUploadControl(cell, context);
+        container.appendChild(mediaGroup);
+        controls.push(mediaGroup);
 
         // Position control (always show)
         const positionGroup = this.createPositionControl(cell, context);
         container.appendChild(positionGroup);
         controls.push(positionGroup);
 
-        // If image is loaded, show transform controls
-        if (cell.content?.image) {
+        // If media is loaded, show transform controls
+        if (cell.content?.media) {
             // Scale control
             const scaleGroup = this.createScaleControl(cell, context);
             container.appendChild(scaleGroup);
@@ -58,31 +65,78 @@ class ImageContentController extends ContentController {
             const rotationGroup = this.createRotationControl(cell, context);
             container.appendChild(rotationGroup);
             controls.push(rotationGroup);
+
+            // Video-specific controls
+            if (cell.content.mediaType === 'video') {
+                const videoGroup = this.createVideoControls(cell, context);
+                container.appendChild(videoGroup);
+                controls.push(videoGroup);
+            }
         }
 
         return controls;
     }
     
     /**
-     * Create image upload control
+     * Initialize cell content with defaults and migrate old image property
+     * @param {ContentCell} cell - Cell object
+     * @returns {Object} Initialized content object
+     * @protected
+     */
+    initializeContent(cell) {
+        if (!cell.content) {
+            cell.content = this.getDefaultContent();
+        } else {
+            // Migrate old image property to new media structure
+            if (cell.content.image && !cell.content.media) {
+                cell.content.media = cell.content.image;
+                cell.content.mediaType = 'image';
+                cell.content.mediaUrl = cell.content.image.src || null;
+                delete cell.content.image;
+            }
+        }
+        return cell.content;
+    }
+    
+    /**
+     * Create media upload control
      * @param {ContentCell} cell - Spot object
      * @param {string} context - 'sidebar' or 'popup'
-     * @returns {HTMLElement} Image upload control element
+     * @returns {HTMLElement} Media upload control element
      * @private
      */
-    createImageUploadControl(cell, context) {
-        const imageGroup = this.createControlGroup(context);
-        imageGroup.innerHTML = `
-            <label>Image</label>
-            <input type="file" class="spot-image-input" accept="image/*">
+    createMediaUploadControl(cell, context) {
+        const mediaGroup = this.createControlGroup(context);
+        
+        // Check if there's already a file uploaded
+        const hasFile = cell.content?.media && cell.content?.mediaUrl;
+        const fileName = hasFile ? (cell.content.fileName || this.getFileNameFromUrl(cell.content.mediaUrl)) : '';
+        
+        mediaGroup.innerHTML = `
+            <label>Media (Image, Video, GIF)</label>
+            <input type="file" class="spot-media-input" accept="image/*,video/*,.gif">
+            ${hasFile ? `
+                <div class="uploaded-file-display">
+                    <span class="file-name">${fileName}</span>
+                    <button type="button" class="remove-file-btn" title="Remove file">×</button>
+                </div>
+            ` : ''}
         `;
 
-        const imageInput = imageGroup.querySelector('.spot-image-input');
-        this.addControlListener(imageInput, 'change', (e) => {
-            this.handleImageUpload(cell, e);
+        const mediaInput = mediaGroup.querySelector('.spot-media-input');
+        const removeBtn = mediaGroup.querySelector('.remove-file-btn');
+        
+        this.addControlListener(mediaInput, 'change', (e) => {
+            this.handleMediaUpload(cell, e);
         });
+        
+        if (removeBtn) {
+            this.addControlListener(removeBtn, 'click', () => {
+                this.removeMedia(cell, mediaGroup);
+            });
+        }
 
-        return imageGroup;
+        return mediaGroup;
     }
     
     /**
@@ -194,37 +248,225 @@ class ImageContentController extends ContentController {
     }
     
     /**
-     * Handle image file upload
+     * Create video-specific controls
+     * @param {ContentCell} cell - Cell object
+     * @param {string} context - 'sidebar' or 'popup'
+     * @returns {HTMLElement} Video controls element
+     * @private
+     */
+    createVideoControls(cell, context) {
+        const videoGroup = this.createControlGroup(context);
+        videoGroup.innerHTML = `
+            <label>Video Settings</label>
+            <div class="video-controls">
+                <label>
+                    <input type="checkbox" class="video-autoplay" ${cell.content.autoplay ? 'checked' : ''}>
+                    Autoplay
+                </label>
+                <label>
+                    <input type="checkbox" class="video-loop" ${cell.content.loop ? 'checked' : ''}>
+                    Loop
+                </label>
+            </div>
+        `;
+
+        // Add event listeners for video controls
+        const autoplayCheckbox = videoGroup.querySelector('.video-autoplay');
+        const loopCheckbox = videoGroup.querySelector('.video-loop');
+
+        this.addControlListener(autoplayCheckbox, 'change', () => {
+            this.updateContent(cell, { autoplay: autoplayCheckbox.checked }, true);
+            if (cell.content.media) {
+                cell.content.media.autoplay = autoplayCheckbox.checked;
+            }
+            // Ensure video playback is updated
+            this.ensureVideoPlayback(cell);
+        });
+
+        this.addControlListener(loopCheckbox, 'change', () => {
+            this.updateContent(cell, { loop: loopCheckbox.checked }, true);
+            if (cell.content.media) {
+                cell.content.media.loop = loopCheckbox.checked;
+            }
+        });
+
+        return videoGroup;
+    }
+    
+    /**
+     * Handle media file upload (images, videos, GIFs)
      * @param {ContentCell} cell - Cell object
      * @param {Event} event - File input change event
      * @private
      */
-    handleImageUpload(cell, event) {
+    handleMediaUpload(cell, event) {
         const file = event.target.files[0];
-        if (!file || !file.type.startsWith('image/')) {
-            console.warn('Please select a valid image file');
+        if (!file) {
+            console.warn('Please select a file');
             return;
         }
 
+        // Store the file name for display
+        this.currentFileName = file.name;
+
         const reader = new FileReader();
         reader.onload = (e) => {
-            const img = new Image();
-            img.onload = () => {
-                this.updateContent(cell, {
-                    image: img,
-                    scale: 1,
-                    rotation: 0
+            const fileType = file.type;
+            const fileName = file.name.toLowerCase();
+
+            // Determine media type
+            let mediaType = 'other';
+            if (fileType.startsWith('image/')) {
+                mediaType = fileName.endsWith('.gif') ? 'gif' : 'image';
+            } else if (fileType.startsWith('video/')) {
+                mediaType = 'video';
+            }
+
+            if (mediaType === 'image' || mediaType === 'gif') {
+                // Handle images and GIFs
+                const img = new Image();
+                img.onload = () => {
+                    this.updateContent(cell, {
+                        media: img,
+                        mediaType: mediaType,
+                        mediaUrl: e.target.result,
+                        fileName: file.name, // Store original file name
+                        scale: 1,
+                        rotation: 0
+                    });
+
+                    // Recreate controls to show scale/rotation and file display
+                    this.app.uiManager?.updateSpotsUI();
+                };
+                img.src = e.target.result;
+            } else if (mediaType === 'video') {
+                // Handle videos
+                const video = document.createElement('video');
+                video.src = e.target.result;
+                video.preload = 'metadata';
+                video.crossOrigin = 'anonymous'; // Allow canvas drawing
+                
+                // Set video properties immediately
+                video.autoplay = cell.content.autoplay !== false; // Default to true
+                video.loop = cell.content.loop !== false; // Default to true
+                video.muted = true; // Always muted for autoplay compatibility
+                video.controls = false; // Never show controls
+                
+                video.addEventListener('loadedmetadata', () => {
+                    console.log('Video metadata loaded:', video.videoWidth, 'x', video.videoHeight);
+                    
+                    this.updateContent(cell, {
+                        media: video,
+                        mediaType: mediaType,
+                        mediaUrl: e.target.result,
+                        fileName: file.name, // Store original file name
+                        scale: 1,
+                        rotation: 0
+                    });
+
+                    // Recreate controls to show video controls and file display
+                    this.app.uiManager?.updateSpotsUI();
+                    
+                    // Force a render to show the video
+                    this.app.render();
+                    
+                    // Start animation loop for video frame updates
+                    this.app._startAnimationLoop();
+                    
+                    // Ensure video playback is correct
+                    this.ensureVideoPlayback(cell);
                 });
 
-                // Recreate controls to show scale/rotation
-                const container = event.target.closest('.spot-controls') || event.target.closest('.spot-popup-body');
-                if (container) {
-                    // Find the parent cell item to recreate controls
-                    this.app.uiManager?.updateSpotsUI();
-                }
-            };
-            img.src = e.target.result;
+                video.addEventListener('canplay', () => {
+                    console.log('Video can play');
+                    // Ensure we have a frame to draw
+                    if (video.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA) {
+                        this.app.render();
+                    }
+                });
+
+                video.addEventListener('error', (event) => {
+                    console.error('Error loading video:', video.error, event);
+                    alert('Error loading video file. Please try a different format.');
+                });
+                
+                // Also try to load the video immediately
+                video.load();
+            } else {
+                console.warn('Unsupported file type:', fileType);
+                alert('Unsupported file type. Please select an image, video, or GIF file.');
+            }
         };
         reader.readAsDataURL(file);
+    }
+    
+    /**
+     * Extract file name from data URL or file path
+     * @param {string} url - Data URL or file path
+     * @returns {string} File name
+     * @private
+     */
+    getFileNameFromUrl(url) {
+        if (!url) return '';
+        
+        // For data URLs, try to extract from the original file name if stored
+        if (url.startsWith('data:')) {
+            // If we have the original file name stored, use it
+            return this.currentFileName || 'uploaded-file';
+        }
+        
+        // For regular URLs, extract from path
+        const pathParts = url.split('/');
+        return pathParts[pathParts.length - 1] || 'file';
+    }
+    
+    /**
+     * Remove uploaded media from cell
+     * @param {ContentCell} cell - Cell object
+     * @param {HTMLElement} mediaGroup - Media control group element
+     * @private
+     */
+    removeMedia(cell, mediaGroup) {
+        // Clear the media content
+        this.updateContent(cell, {
+            media: null,
+            mediaType: null,
+            mediaUrl: null,
+            scale: 1,
+            rotation: 0
+        });
+        
+        // Clear the file input
+        const fileInput = mediaGroup.querySelector('.spot-media-input');
+        if (fileInput) {
+            fileInput.value = '';
+        }
+        
+        // Recreate controls to hide file display and video controls
+        this.app.uiManager?.updateSpotsUI();
+    }
+    
+    /**
+     * Ensure video is playing if autoplay is enabled
+     * @param {ContentCell} cell - Cell object
+     * @private
+     */
+    ensureVideoPlayback(cell) {
+        if (cell.content?.media instanceof HTMLVideoElement) {
+            const video = cell.content.media;
+            
+            // If autoplay is enabled and video is paused, play it
+            if (cell.content.autoplay && video.paused) {
+                video.play().catch(error => {
+                    console.warn('Video autoplay failed:', error);
+                    // Autoplay might fail due to browser policies, that's okay
+                });
+            }
+            
+            // If loop is enabled, ensure it's set
+            if (cell.content.loop) {
+                video.loop = true;
+            }
+        }
     }
 }
