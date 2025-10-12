@@ -527,34 +527,15 @@ class ImageContentController extends ContentController {
             <label>Background:</label>
             <label>
                 <input type="checkbox" id="imageFillWithBackgroundColor" ${cell.content.fillWithBackgroundColor ? 'checked' : ''}>
-                Fill with background color
+                Fill with global background color
             </label>
-            <div id="imageBackgroundColorContainer" style="display: ${cell.content.fillWithBackgroundColor ? 'block' : 'none'};">
-                <label for="imageBackgroundColor">Background Color:</label>
-                <input type="color" id="imageBackgroundColor" value="${cell.content.backgroundColor || this.app.canvasManager.backgroundManager.backgroundColor}">
-            </div>
         `;
 
         // Add event listeners
         const checkbox = group.querySelector('#imageFillWithBackgroundColor');
-        const colorContainer = group.querySelector('#imageBackgroundColorContainer');
-        const colorPicker = group.querySelector('#imageBackgroundColor');
 
         checkbox.addEventListener('change', (e) => {
             cell.content.fillWithBackgroundColor = e.target.checked;
-            colorContainer.style.display = e.target.checked ? 'block' : 'none';
-            
-            if (e.target.checked && !cell.content.backgroundColor) {
-                // Set to global background color if no custom color is set
-                cell.content.backgroundColor = this.app.canvasManager.backgroundManager.backgroundColor;
-                colorPicker.value = cell.content.backgroundColor;
-            }
-            
-            this.app.render();
-        });
-
-        colorPicker.addEventListener('change', (e) => {
-            cell.content.backgroundColor = e.target.value;
             this.app.render();
         });
 

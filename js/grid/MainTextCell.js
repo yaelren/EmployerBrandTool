@@ -25,7 +25,6 @@ class MainTextCell extends GridCell {
 
         // Background properties for main text cells
         this.fillWithBackgroundColor = false;  // Default: show global background
-        this.backgroundColor = null;          // Custom color override
 
         // Text cells support animations (inherited from GridCell)
     }
@@ -144,14 +143,8 @@ class MainTextCell extends GridCell {
             return;
         }
         
-        let backgroundColor;
-        if (this.backgroundColor) {
-            backgroundColor = this.backgroundColor;
-        } else {
-            backgroundColor = globalBackground.backgroundColor;
-        }
-        
-        ctx.fillStyle = backgroundColor;
+        // Always use global background color when filled
+        ctx.fillStyle = globalBackground.backgroundColor;
         ctx.fillRect(this.bounds.x, this.bounds.y, this.bounds.width, this.bounds.height);
     }
 
@@ -161,14 +154,6 @@ class MainTextCell extends GridCell {
      */
     setFillWithBackgroundColor(enabled) {
         this.fillWithBackgroundColor = enabled;
-    }
-    
-    /**
-     * Set custom background color for main text cells
-     * @param {string} color - Background color (hex string)
-     */
-    setBackgroundColor(color) {
-        this.backgroundColor = color;
     }
 
     /**
@@ -186,8 +171,7 @@ class MainTextCell extends GridCell {
             ...baseData,
             ...textData,
             lineIndex: this.lineIndex,
-            fillWithBackgroundColor: this.fillWithBackgroundColor,
-            backgroundColor: this.backgroundColor
+            fillWithBackgroundColor: this.fillWithBackgroundColor
         };
     }
 
@@ -210,7 +194,6 @@ class MainTextCell extends GridCell {
         
         // Restore background properties
         cell.fillWithBackgroundColor = data.fillWithBackgroundColor || false;
-        cell.backgroundColor = data.backgroundColor || null;
         
         // Restore animation if present
         if (data.animation) {

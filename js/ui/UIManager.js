@@ -55,8 +55,7 @@ class UIManager {
             mainTextUnderline: 'mainTextUnderline',
             mainTextHighlight: 'mainTextHighlight',
             mainTextHighlightColor: 'mainTextHighlightColor',
-            mainTextFillWithBackgroundColor: 'mainTextFillWithBackgroundColor',
-            mainTextBackgroundColor: 'mainTextBackgroundColor'
+            mainTextFillWithBackgroundColor: 'mainTextFillWithBackgroundColor'
         };
 
         // Cache all elements
@@ -435,36 +434,11 @@ class UIManager {
         if (this.elements.mainTextFillWithBackgroundColor) {
             this.elements.mainTextFillWithBackgroundColor.addEventListener('change', (e) => {
                 const enabled = e.target.checked;
-                const colorContainer = document.getElementById('mainTextBackgroundColorContainer');
                 
-                // Show/hide color picker
-                colorContainer.style.display = enabled ? 'block' : 'none';
-                
-                // Update all main text cells
+                // Update all main text cells - always use global background color
                 this.app.grid?.getAllCells().forEach(cell => {
                     if (cell.type === 'main-text') {
                         cell.setFillWithBackgroundColor(enabled);
-                        
-                        // Set to global background color if no custom color is set
-                        if (enabled && !cell.backgroundColor) {
-                            cell.setBackgroundColor(this.app.canvasManager.backgroundManager.backgroundColor);
-                            this.elements.mainTextBackgroundColor.value = cell.backgroundColor;
-                        }
-                    }
-                });
-                
-                this.app.render();
-            });
-        }
-
-        if (this.elements.mainTextBackgroundColor) {
-            this.elements.mainTextBackgroundColor.addEventListener('input', (e) => {
-                const color = e.target.value;
-                
-                // Update all main text cells
-                this.app.grid?.getAllCells().forEach(cell => {
-                    if (cell.type === 'main-text') {
-                        cell.setBackgroundColor(color);
                     }
                 });
                 

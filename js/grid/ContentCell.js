@@ -57,8 +57,7 @@ class ContentCell extends GridCell {
                     padding: 10,
                     positionH: 'center',
                     positionV: 'middle',
-                    fillWithBackgroundColor: false,  // Default: show image
-                    backgroundColor: null            // Custom color override
+                    fillWithBackgroundColor: false  // Default: show image
                 };
 
             case 'text':
@@ -78,15 +77,12 @@ class ContentCell extends GridCell {
                         highlight: false
                     },
                     highlightColor: '#ffff00',
-                    fillWithBackgroundColor: false,  // Default: show image
-                    backgroundColor: null            // Custom color override
+                    fillWithBackgroundColor: false  // Default: show image
                 };
 
             case 'fill':
                 return {
-                    useGlobalBackground: true,  // Default: use global background color
-                    customColor: null,          // Optional override
-                    padding: 0                  // No padding for solid fills
+                    padding: 0  // No padding for solid fills
                 };
 
             default:  // 'empty'
@@ -340,16 +336,8 @@ class ContentCell extends GridCell {
     renderFillBackground(ctx, globalBackground) {
         if (!this.content) return;
         
-        let fillColor;
-        if (this.content.useGlobalBackground) {
-            fillColor = globalBackground.backgroundColor;
-        } else if (this.content.customColor) {
-            fillColor = this.content.customColor;
-        } else {
-            fillColor = globalBackground.backgroundColor; // Fallback
-        }
-        
-        ctx.fillStyle = fillColor;
+        // Always use global background color
+        ctx.fillStyle = globalBackground.backgroundColor;
         ctx.fillRect(this.bounds.x, this.bounds.y, this.bounds.width, this.bounds.height);
     }
     
@@ -365,14 +353,8 @@ class ContentCell extends GridCell {
             return;
         }
         
-        let backgroundColor;
-        if (this.content.backgroundColor) {
-            backgroundColor = this.content.backgroundColor;
-        } else {
-            backgroundColor = globalBackground.backgroundColor;
-        }
-        
-        ctx.fillStyle = backgroundColor;
+        // Always use global background color when filled
+        ctx.fillStyle = globalBackground.backgroundColor;
         ctx.fillRect(this.bounds.x, this.bounds.y, this.bounds.width, this.bounds.height);
     }
     
@@ -383,40 +365,6 @@ class ContentCell extends GridCell {
     setFillWithBackgroundColor(enabled) {
         if (this.content && (this.contentType === 'image' || this.contentType === 'text')) {
             this.content.fillWithBackgroundColor = enabled;
-        }
-    }
-    
-    /**
-     * Set background color for image/text cells
-     * @param {string} color - Background color
-     */
-    setBackgroundColor(color) {
-        if (this.content && (this.contentType === 'image' || this.contentType === 'text')) {
-            this.content.backgroundColor = color;
-        }
-    }
-    
-    /**
-     * Set custom color for fill cells
-     * @param {string} color - Custom color
-     */
-    setCustomColor(color) {
-        if (this.content && this.contentType === 'fill') {
-            this.content.customColor = color;
-            this.content.useGlobalBackground = false;
-        }
-    }
-    
-    /**
-     * Set use global background for fill cells
-     * @param {boolean} useGlobal - Whether to use global background
-     */
-    setUseGlobalBackground(useGlobal) {
-        if (this.content && this.contentType === 'fill') {
-            this.content.useGlobalBackground = useGlobal;
-            if (useGlobal) {
-                this.content.customColor = null;
-            }
         }
     }
 }
