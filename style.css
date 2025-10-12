@@ -949,9 +949,6 @@ select option {
 
 .tab-content.active {
     display: block;
-    overflow-y: auto;
-    max-height: calc(100vh - 200px);
-    padding-bottom: 20px;
 }
 
 /* Tab-specific styling adjustments */
@@ -1217,13 +1214,13 @@ select option {
 .cell-control-sections {
     display: flex;
     flex-direction: column;
-    gap: 6px;
+    gap: 20px;
 }
 
 /* Simplified control sections - minimal like main text tab */
 .control-section-simple {
     padding: 0;
-    margin-bottom: 6px;
+    margin-bottom: 0;
 }
 
 .content-type-header {
@@ -1294,10 +1291,9 @@ select option {
 }
 
 .collapsible-content.expanded {
-    max-height: 800px;
+    max-height: 1000px;
     margin-top: 6px;
     transition: max-height 0.3s ease-in;
-    overflow-y: auto;
 }
 
 .content-specific-controls,

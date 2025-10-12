@@ -60,13 +60,28 @@
                         </div>
                     </div>
                     
-                    <!-- Background Controls (Collapsible) -->
+                    <!-- Canvas & Background Controls (Collapsible) -->
                     <div class="chatooly-control-group compact-padding-section">
                         <div class="padding-header" onclick="toggleBackgroundControls()">
-                            <label>Background</label>
+                            <label>Canvas & Background</label>
                             <span class="padding-toggle-icon">▼</span>
                         </div>
                         <div id="backgroundControls" class="padding-controls-collapsed">
+                            <!-- Canvas Padding Controls -->
+                            <div class="chatooly-control-group">
+                                <label>Canvas Padding</label>
+                                <div class="compact-padding-row">
+                                    <label for="paddingHorizontal">H:</label>
+                                    <input type="range" id="paddingHorizontal" min="0" max="100" value="20">
+                                    <span id="paddingHorizontalValue">20px</span>
+                                </div>
+                                <div class="compact-padding-row">
+                                    <label for="paddingVertical">V:</label>
+                                    <input type="range" id="paddingVertical" min="0" max="100" value="20">
+                                    <span id="paddingVerticalValue">20px</span>
+                                </div>
+                            </div>
+                            
                             <!-- Background Color with inline color picker -->
                             <div class="chatooly-control-group compact-row">
                                 <div class="compact-control">
@@ -104,26 +119,6 @@
                                         </select>
                                     </div>
                                 </div>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <!-- Canvas Padding Controls (Collapsible) -->
-                    <div class="chatooly-control-group compact-padding-section">
-                        <div class="padding-header" onclick="togglePaddingControls()">
-                            <label>Canvas Padding</label>
-                            <span class="padding-toggle-icon">▼</span>
-                        </div>
-                        <div id="paddingControls" class="padding-controls-collapsed">
-                            <div class="compact-padding-row">
-                                <label for="paddingHorizontal">H:</label>
-                                <input type="range" id="paddingHorizontal" min="0" max="100" value="20">
-                                <span id="paddingHorizontalValue">20px</span>
-                            </div>
-                            <div class="compact-padding-row">
-                                <label for="paddingVertical">V:</label>
-                                <input type="range" id="paddingVertical" min="0" max="100" value="20">
-                                <span id="paddingVerticalValue">20px</span>
                             </div>
                         </div>
                     </div>
@@ -395,9 +390,10 @@ SPOTLIGHT
     
     <!-- Collapsible Controls Toggle Functions -->
     <script>
-        function togglePaddingControls() {
-            const controls = document.getElementById('paddingControls');
-            const icon = document.querySelector('.padding-toggle-icon');
+        function toggleBackgroundControls() {
+            const controls = document.getElementById('backgroundControls');
+            const header = controls.previousElementSibling;
+            const icon = header.querySelector('.padding-toggle-icon');
             
             if (controls.classList.contains('expanded')) {
                 controls.classList.remove('expanded');
@@ -412,22 +408,8 @@ SPOTLIGHT
         
         function toggleMainTextControls() {
             const controls = document.getElementById('mainTextControls');
-            const icon = document.querySelector('.padding-toggle-icon');
-            
-            if (controls.classList.contains('expanded')) {
-                controls.classList.remove('expanded');
-                icon.classList.remove('expanded');
-                icon.textContent = '▼';
-            } else {
-                controls.classList.add('expanded');
-                icon.classList.add('expanded');
-                icon.textContent = '▲';
-            }
-        }
-        
-        function toggleBackgroundControls() {
-            const controls = document.getElementById('backgroundControls');
-            const icon = document.querySelector('.padding-toggle-icon');
+            const header = controls.previousElementSibling;
+            const icon = header.querySelector('.padding-toggle-icon');
             
             if (controls.classList.contains('expanded')) {
                 controls.classList.remove('expanded');
