@@ -177,6 +177,10 @@ class CellRenderer {
         } else if (media instanceof HTMLVideoElement) {
             mediaWidth = media.videoWidth;
             mediaHeight = media.videoHeight;
+        } else if (media instanceof HTMLCanvasElement) {
+            // Handle canvas elements (including Lottie animations)
+            mediaWidth = media.width;
+            mediaHeight = media.height;
         } else {
             // Fallback for other media types
             mediaWidth = contentWidth;
@@ -303,6 +307,9 @@ class CellRenderer {
                 console.warn('Video rendering error:', error);
                 this.renderVideoPlaceholder(ctx, 0, 0, drawWidth, drawHeight);
             }
+        } else if (media instanceof HTMLCanvasElement) {
+            // Handle canvas elements (including Lottie animations)
+            ctx.drawImage(media, 0, 0, drawWidth, drawHeight);
         }
 
         ctx.restore();

@@ -16,7 +16,7 @@ class ImageContentController extends ContentController {
     getDefaultContent() {
         return {
             media: null,        // HTMLImageElement, HTMLVideoElement, or HTMLCanvasElement
-            mediaType: null,    // 'image', 'video', 'gif', 'other'
+            mediaType: null,    // 'image', 'video', 'gif', 'lottie', 'other'
             mediaUrl: null,     // Original file URL/data URL
             fillMode: 'fit',    // 'fill', 'fit', or 'stretch'
             scale: 1,
@@ -28,7 +28,10 @@ class ImageContentController extends ContentController {
             autoplay: true,
             loop: true,
             muted: true,
-            controls: false
+            controls: false,
+            // Lottie-specific properties
+            lottieAnimation: null,  // Lottie animation instance
+            lottieContainer: null   // Hidden container element for Lottie
         };
     }
     
@@ -131,20 +134,20 @@ class ImageContentController extends ContentController {
         });
         
         mediaGroup.innerHTML = `
-            <label>Media (Image, Video, GIF, MP4)</label>
+            <label>Media (Image, Video, GIF, MP4, Lottie JSON)</label>
             <div class="media-upload-row">
                 ${!hasFile ? `
-                    <input type="file" class="spot-media-input" accept="image/*,video/*,.gif,.mp4,.webm,.mov">
+                    <input type="file" class="spot-media-input" accept="image/*,video/*,.gif,.mp4,.webm,.mov,.json,application/json">
                 ` : `
                     <div class="uploaded-file-inline">
                         <span class="file-name">${fileName}</span>
                         <button type="button" class="remove-file-btn" title="Remove file">×</button>
                         <button type="button" class="change-file-btn" title="Change file">Change</button>
                     </div>
-                    <input type="file" class="spot-media-input" accept="image/*,video/*,.gif,.mp4,.webm,.mov" style="display: none;">
+                    <input type="file" class="spot-media-input" accept="image/*,video/*,.gif,.mp4,.webm,.mov,.json,application/json" style="display: none;">
                 `}
             </div>
-            ${hasFile && cell.content.mediaType === 'video' ? `
+            ${hasFile && (cell.content.mediaType === 'video' || cell.content.mediaType === 'lottie') ? `
                 <div class="video-loop-control">
                     <label class="loop-toggle">
                         <input type="checkbox" class="media-loop" ${cell.content.loop !== false ? 'checked' : ''}>
@@ -179,7 +182,14 @@ class ImageContentController extends ContentController {
             this.addControlListener(loopToggle, 'change', () => {
                 this.updateContent(cell, { loop: loopToggle.checked }, true);
                 if (cell.content.media) {
-                    cell.content.media.loop = loopToggle.checked;
+                    // Handle video loop
+                    if (cell.content.mediaType === 'video') {
+                        cell.content.media.loop = loopToggle.checked;
+                    }
+                    // Handle Lottie loop
+                    else if (cell.content.mediaType === 'lottie' && cell.content.lottieAnimation) {
+                        cell.content.lottieAnimation.loop = loopToggle.checked;
+                    }
                 }
             });
         }
@@ -383,6 +393,20 @@ class ImageContentController extends ContentController {
         // Store the file name for display
         this.currentFileName = file.name;
 
+        // Check if this is a Lottie JSON file
+        const fileName = file.name.toLowerCase();
+        const isJSON = fileName.endsWith('.json') || file.type === 'application/json';
+
+        if (isJSON) {
+            // Handle Lottie JSON file
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                this.handleLottieUpload(cell, e.target.result, file.name);
+            };
+            reader.readAsText(file);
+            return;
+        }
+
         const reader = new FileReader();
         reader.onload = (e) => {
             const fileType = file.type;
@@ -494,6 +518,98 @@ class ImageContentController extends ContentController {
     }
     
     /**
+     * Handle Lottie JSON file upload
+     * @param {ContentCell} cell - Cell object
+     * @param {string} jsonData - Lottie JSON data as string
+     * @param {string} fileName - Original file name
+     * @private
+     */
+    handleLottieUpload(cell, jsonData, fileName) {
+        try {
+            // Parse JSON to validate it
+            const animationData = JSON.parse(jsonData);
+            
+            // Check if lottie library is available
+            if (typeof lottie === 'undefined') {
+                console.error('Lottie library not loaded');
+                alert('Lottie library not loaded. Please refresh the page.');
+                return;
+            }
+            
+            // Get animation dimensions
+            const width = animationData.w || 512;
+            const height = animationData.h || 512;
+            
+            // Create a hidden container div for Lottie canvas
+            const container = document.createElement('div');
+            container.style.position = 'absolute';
+            container.style.left = '-9999px';
+            container.style.width = width + 'px';
+            container.style.height = height + 'px';
+            container.style.pointerEvents = 'none';
+            document.body.appendChild(container);
+            
+            // Create Lottie animation instance with canvas renderer
+            const lottieAnimation = lottie.loadAnimation({
+                container: container,
+                renderer: 'canvas',
+                loop: true,
+                autoplay: true,
+                animationData: animationData,
+                rendererSettings: {
+                    preserveAspectRatio: 'xMidYMid meet',
+                    clearCanvas: true,
+                    progressiveLoad: false
+                }
+            });
+            
+            // Get the canvas that Lottie created
+            const canvas = container.querySelector('canvas');
+            
+            if (!canvas) {
+                console.error('Lottie did not create a canvas element');
+                document.body.removeChild(container);
+                alert('Failed to initialize Lottie animation.');
+                return;
+            }
+            
+            // Store canvas, animation instance, and container for cleanup
+            this.updateContent(cell, {
+                media: canvas,
+                mediaType: 'lottie',
+                mediaUrl: jsonData, // Store JSON data
+                fileName: fileName,
+                lottieAnimation: lottieAnimation, // Store animation instance for control
+                lottieContainer: container, // Store container for cleanup
+                scale: 1,
+                rotation: 0
+            });
+            
+            console.log('Lottie animation loaded:', {
+                fileName: fileName,
+                width: width,
+                height: height,
+                canvas: canvas
+            });
+            
+            // Recreate controls to show file display
+            if (this.app.uiManager && this.app.uiManager.showSelectedCellControls) {
+                const selectedCell = this.app.selectedCell;
+                if (selectedCell) {
+                    this.app.uiManager.showSelectedCellControls(selectedCell.cell, selectedCell.row, selectedCell.col);
+                }
+            }
+            
+            // Start animation loop to continuously render Lottie frames
+            this.app._startAnimationLoop();
+            
+        } catch (error) {
+            console.error('Error loading Lottie animation:', error);
+            alert('Invalid Lottie JSON file. Please make sure the file is a valid Lottie animation.');
+        }
+    }
+    
+    /**
      * Extract file name from data URL or file path
      * @param {string} url - Data URL or file path
      * @returns {string} File name
@@ -520,12 +636,34 @@ class ImageContentController extends ContentController {
      * @private
      */
     removeMedia(cell, mediaGroup) {
+        // Clean up Lottie animation if present
+        if (cell.content?.lottieAnimation) {
+            try {
+                cell.content.lottieAnimation.destroy();
+                console.log('Lottie animation destroyed');
+            } catch (error) {
+                console.warn('Error destroying Lottie animation:', error);
+            }
+        }
+        
+        // Clean up Lottie container if present
+        if (cell.content?.lottieContainer && cell.content.lottieContainer.parentNode) {
+            try {
+                document.body.removeChild(cell.content.lottieContainer);
+                console.log('Lottie container removed');
+            } catch (error) {
+                console.warn('Error removing Lottie container:', error);
+            }
+        }
+        
         // Actually remove the file completely
         this.updateContent(cell, {
             media: null,
             mediaType: null,
             mediaUrl: null,
             fileName: null,
+            lottieAnimation: null,
+            lottieContainer: null,
             scale: 1,
             rotation: 0,
             autoplay: true,

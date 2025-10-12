@@ -795,10 +795,16 @@ class EmployerBrandToolPOC {
                     cell.content && cell.content.media instanceof HTMLVideoElement
                 );
 
+            // Check if any Lottie animations need frame updates
+            const hasLottieAnimations = this.grid &&
+                this.grid.getAllCells().some(cell =>
+                    cell.content && cell.content.mediaType === 'lottie' && cell.content.lottieAnimation
+                );
+
             // Check if background video needs frame updates
             const hasBackgroundVideo = this.canvasManager.backgroundVideo instanceof HTMLVideoElement;
 
-            if (hasPlayingAnimations || hasVideos || hasBackgroundVideo) {
+            if (hasPlayingAnimations || hasVideos || hasLottieAnimations || hasBackgroundVideo) {
                 // Re-render canvas
                 this.render();
 
