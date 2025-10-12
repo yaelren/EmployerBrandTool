@@ -949,6 +949,9 @@ select option {
 
 .tab-content.active {
     display: block;
+    overflow-y: auto;
+    max-height: calc(100vh - 200px);
+    padding-bottom: 20px;
 }
 
 /* Tab-specific styling adjustments */
@@ -1291,9 +1294,10 @@ select option {
 }
 
 .collapsible-content.expanded {
-    max-height: 500px;
+    max-height: 800px;
     margin-top: 6px;
     transition: max-height 0.3s ease-in;
+    overflow-y: auto;
 }
 
 .content-specific-controls,
