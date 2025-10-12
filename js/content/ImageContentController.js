@@ -86,7 +86,7 @@ class ImageContentController extends ContentController {
     }
     
     /**
-     * Initialize cell content with defaults and migrate old image property
+     * Initialize cell content with defaults
      * @param {ContentCell} cell - Cell object
      * @returns {Object} Initialized content object
      * @protected
@@ -94,20 +94,13 @@ class ImageContentController extends ContentController {
     initializeContent(cell) {
         if (!cell.content) {
             cell.content = this.getDefaultContent();
-        } else {
-            // Migrate old image property to new media structure
-            if (cell.content.image && !cell.content.media) {
-                cell.content.media = cell.content.image;
-                cell.content.mediaType = 'image';
-                cell.content.mediaUrl = cell.content.image.src || null;
-                delete cell.content.image;
-            }
-            
-            // Ensure fillMode exists (for backward compatibility)
-            if (!cell.content.fillMode) {
-                cell.content.fillMode = 'fit';
-            }
         }
+        
+        // Ensure fillMode exists (for backward compatibility)
+        if (!cell.content.fillMode) {
+            cell.content.fillMode = 'fit';
+        }
+        
         return cell.content;
     }
     
