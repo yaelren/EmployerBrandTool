@@ -741,7 +741,7 @@ class UIManager {
     }
 
     /**
-     * Update visual grid display showing all cells
+     * Update visual grid display showing only filled cells, preserving row structure
      */
     updateVisualGrid() {
         const container = document.getElementById('visualGrid');
@@ -758,58 +758,106 @@ class UIManager {
             return;
         }
 
-        // Set grid columns based on actual grid dimensions
-        const cols = this.app.grid.cols || 3;
-        container.style.gridTemplateColumns = `repeat(${cols}, 1fr)`;
-
-        // Create grid cells
+        // Collect cells by row, only including non-empty cells
+        const rowsWithCells = [];
+        let spotNumber = 1;
+        
         for (let row = 0; row < this.app.grid.rows; row++) {
+            const rowCells = [];
             for (let col = 0; col < this.app.grid.cols; col++) {
                 const cell = this.app.grid.getCell(row, col);
+                if (cell) {
+                    rowCells.push({
+                        cell: cell,
+                        row: row,
+                        col: col,
+                        spotNumber: spotNumber++
+                    });
+                }
+            }
+            // Only add rows that have at least one cell
+            if (rowCells.length > 0) {
+                rowsWithCells.push(rowCells);
+            }
+        }
 
+        // If no cells, show message
+        if (rowsWithCells.length === 0) {
+            container.innerHTML = '<p class="no-text-message">No content cells. Add text to see grid...</p>';
+            return;
+        }
+
+        // Set container to use vertical flexbox
+        container.style.display = 'flex';
+        container.style.flexDirection = 'column';
+        container.style.gap = '6px';
+
+        // Create a row container for each row with cells
+        rowsWithCells.forEach(rowCells => {
+            const rowDiv = document.createElement('div');
+            rowDiv.className = 'grid-row';
+            rowDiv.style.display = 'flex';
+            rowDiv.style.justifyContent = 'center';
+            rowDiv.style.gap = '6px';
+            rowDiv.style.flexWrap = 'wrap';
+
+            // Create cells for this row
+            rowCells.forEach(({ cell, row, col, spotNumber }) => {
                 const gridCellDiv = document.createElement('div');
                 gridCellDiv.className = 'grid-cell';
                 gridCellDiv.dataset.row = row;
                 gridCellDiv.dataset.col = col;
 
-                if (!cell) {
-                    // Empty cell
-                    gridCellDiv.classList.add('empty-cell');
-                    gridCellDiv.innerHTML = `
-                        <div class="grid-cell-content">—</div>
-                        <div class="grid-cell-position">[${row},${col}]</div>
-                    `;
+                // Style main text cells differently
+                const isMainText = cell.type === 'main-text';
+                if (isMainText) {
+                    gridCellDiv.classList.add('main-text-cell');
+                }
+
+                // Check for animation
+                const hasAnimation = cell.animation !== null;
+                if (hasAnimation) {
+                    gridCellDiv.classList.add('has-animation');
+                }
+
+                // Determine content display
+                let contentDisplay = '';
+                if (cell.type === 'main-text') {
+                    contentDisplay = cell.text || 'Text';
+                } else if (cell.type === 'content') {
+                    // Show just the content type, with different styling for empty
+                    contentDisplay = cell.contentType;
+                    if (cell.contentType === 'empty') {
+                        gridCellDiv.classList.add('empty-content');
+                    }
+                } else if (cell.type === 'spot') {
+                    contentDisplay = cell.spotType || 'Spot';
                 } else {
-                    // Cell with content
-                    const hasAnimation = cell.animation !== null;
-                    if (hasAnimation) {
-                        gridCellDiv.classList.add('has-animation');
-                    }
+                    contentDisplay = 'Unknown';
+                }
 
-                    const content = cell.type === 'main-text' ? cell.text :
-                                   cell.type === 'content' ? `Content: ${cell.contentType}` :
-                                   cell.type === 'spot' ? `Spot: ${cell.spotType}` :
-                                   'Unknown';
+                let animInfo = '';
+                if (hasAnimation) {
+                    const status = cell.animation.getStatus();
+                    animInfo = `<div class="grid-cell-animation">${status.type}</div>`;
+                }
 
-                    let animInfo = '';
-                    if (hasAnimation) {
-                        const status = cell.animation.getStatus();
-                        animInfo = `<div class="grid-cell-animation">${status.type}</div>`;
-                    }
+                gridCellDiv.innerHTML = `
+                    <div class="grid-cell-number">${spotNumber}</div>
+                    <div class="grid-cell-content">${contentDisplay}</div>
+                    ${animInfo}
+                `;
 
-                    gridCellDiv.innerHTML = `
-                        <div class="grid-cell-content">${content}</div>
-                        <div class="grid-cell-position">[${row},${col}]</div>
-                        ${animInfo}
-                    `;
-
-                    // Add click handler for non-empty cells
+                // Add click handler only for non-main-text cells
+                if (!isMainText) {
                     gridCellDiv.addEventListener('click', () => this.selectGridCell(row, col));
                 }
 
-                container.appendChild(gridCellDiv);
-            }
-        }
+                rowDiv.appendChild(gridCellDiv);
+            });
+
+            container.appendChild(rowDiv);
+        });
     }
 
     /**
@@ -853,14 +901,28 @@ class UIManager {
         // Show controls container
         controlsContainer.style.display = 'block';
 
-        // Update cell info
-        const content = cell.type === 'main-text' ? `"${cell.text}"` :
-                       cell.type === 'content' ? `Content (${cell.contentType})` :
-                       cell.type === 'spot' ? `Spot (${cell.spotType})` :
-                       'Unknown';
+        // Calculate spot number (same logic as updateVisualGrid)
+        let spotNumber = 1;
+        for (let r = 0; r < this.app.grid.rows; r++) {
+            for (let c = 0; c < this.app.grid.cols; c++) {
+                const gridCell = this.app.grid.getCell(r, c);
+                if (gridCell) {
+                    if (r === row && c === col) {
+                        break;
+                    }
+                    spotNumber++;
+                }
+            }
+            if (spotNumber > 1) {
+                const checkCell = this.app.grid.getCell(row, col);
+                if (checkCell === cell) break;
+            }
+        }
+
+        // Update cell info - just show cell number
         infoContainer.innerHTML = `
             <div class="selected-cell-header">
-                <h4>${content} [${row},${col}]</h4>
+                <h4>Cell ${spotNumber}</h4>
             </div>
         `;
 
@@ -879,13 +941,14 @@ class UIManager {
      * @param {HTMLElement} container - Container for controls
      */
     createContentControls(cell, container) {
-        const section = this.createControlSection('Content', 'content');
+        const section = document.createElement('div');
+        section.className = 'control-section-simple';
         
-        // Content type selector
+        // Content type selector as main header
         const typeGroup = document.createElement('div');
-        typeGroup.className = 'chatooly-control-group';
+        typeGroup.className = 'content-type-header';
         typeGroup.innerHTML = `
-            <label>Content Type:</label>
+            <label>Content:</label>
             <select class="cell-content-type">
                 <option value="empty">Empty</option>
                 <option value="text">Text</option>
@@ -897,9 +960,9 @@ class UIManager {
         const typeSelect = typeGroup.querySelector('.cell-content-type');
         typeSelect.value = cell.contentType || 'empty';
 
-        // Content-specific controls container
+        // Content-specific controls container (collapsible)
         const contentControls = document.createElement('div');
-        contentControls.className = 'content-specific-controls';
+        contentControls.className = 'content-specific-controls collapsible-content expanded';
 
         // Add event listener for type changes
         typeSelect.addEventListener('change', (e) => {
@@ -912,8 +975,16 @@ class UIManager {
         // Add content-specific controls
         this.updateContentSpecificControls(cell, contentControls, cell.contentType || 'empty');
 
-        section.querySelector('.control-section-content').appendChild(typeGroup);
-        section.querySelector('.control-section-content').appendChild(contentControls);
+        // Make controls collapsible (click anywhere to toggle)
+        typeGroup.style.cursor = 'pointer';
+        typeGroup.addEventListener('click', (e) => {
+            if (e.target !== typeSelect && !e.target.closest('select')) {
+                contentControls.classList.toggle('expanded');
+            }
+        });
+
+        section.appendChild(typeGroup);
+        section.appendChild(contentControls);
         container.appendChild(section);
     }
 
@@ -923,12 +994,14 @@ class UIManager {
      * @param {HTMLElement} container - Container for controls
      */
     createAnimationControls(cell, container) {
-        const section = this.createControlSection('Animation', 'animation');
+        const section = document.createElement('div');
+        section.className = 'control-section-simple';
         
+        // Animation type selector as main header
         const animGroup = document.createElement('div');
-        animGroup.className = 'chatooly-control-group';
+        animGroup.className = 'content-type-header';
         animGroup.innerHTML = `
-            <label>Animation Type:</label>
+            <label>Animation:</label>
             <select class="cell-animation-type">
                 <option value="none">None</option>
                 <option value="sway">Sway</option>
@@ -946,9 +1019,9 @@ class UIManager {
             animSelect.value = 'none';
         }
 
-        // Animation-specific controls container
+        // Animation-specific controls container (collapsible)
         const animControls = document.createElement('div');
-        animControls.className = 'animation-specific-controls';
+        animControls.className = 'animation-specific-controls collapsible-content expanded';
 
         // Add event listener for animation changes
         animSelect.addEventListener('change', (e) => {
@@ -969,8 +1042,16 @@ class UIManager {
         // Add animation-specific controls
         this.updateAnimationSpecificControls(cell, animControls, animSelect.value);
 
-        section.querySelector('.control-section-content').appendChild(animGroup);
-        section.querySelector('.control-section-content').appendChild(animControls);
+        // Make controls collapsible (click anywhere to toggle)
+        animGroup.style.cursor = 'pointer';
+        animGroup.addEventListener('click', (e) => {
+            if (e.target !== animSelect && !e.target.closest('select')) {
+                animControls.classList.toggle('expanded');
+            }
+        });
+
+        section.appendChild(animGroup);
+        section.appendChild(animControls);
         container.appendChild(section);
     }
 
@@ -980,12 +1061,14 @@ class UIManager {
      * @param {HTMLElement} container - Container for controls
      */
     createLayerControls(cell, container) {
-        const section = this.createControlSection('Layer', 'layer');
+        const section = document.createElement('div');
+        section.className = 'control-section-simple';
         
+        // Layer controls - non-collapsible
         const layerGroup = document.createElement('div');
-        layerGroup.className = 'chatooly-control-group';
+        layerGroup.className = 'content-type-header';
         layerGroup.innerHTML = `
-            <label>Layer Position:</label>
+            <label>Layer:</label>
             <select class="cell-layer-position">
                 <option value="background">Background</option>
                 <option value="behind-main-text">Behind Main Text</option>
@@ -1004,7 +1087,7 @@ class UIManager {
             this.app.render();
         });
 
-        section.querySelector('.control-section-content').appendChild(layerGroup);
+        section.appendChild(layerGroup);
         container.appendChild(section);
     }
 
