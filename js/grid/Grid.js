@@ -78,10 +78,7 @@ class Grid {
 
             this.isReady = true;
             
-            // Refresh layer panel if debug controller exists
-            if (this.app.debugController && this.app.debugController.refreshLayerPanel) {
-                this.app.debugController.refreshLayerPanel();
-            }
+            // Layer panel removed - no longer needed
 
         } catch (error) {
             console.error('❌ Error building grid:', error);
