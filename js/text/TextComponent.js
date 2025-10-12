@@ -163,33 +163,21 @@ class TextComponent {
     }
 
     /**
-     * Get line height for text rendering
-     * Returns the proper line box height for spacing between lines
+     * Get line height for text rendering (typography-aware for main text)
      * @param {string} line - Text line to measure
      * @param {number} fontSize - Font size in pixels
-     * @returns {number} Line height to use for positioning
+     * @returns {number} Line height to use for both positioning and bounds
      */
     getLineHeight(line, fontSize) {
-        // Use standard line height (1.2x fontSize) for proper line spacing
-        // This ensures lines don't overlap
-        return fontSize * 1.2;
-    }
-    
-    /**
-     * Get visual height of text for bounds calculations (typography-aware)
-     * @param {string} line - Text line to measure
-     * @param {number} fontSize - Font size in pixels
-     * @returns {number} Visual height for bounds
-     */
-    getVisualHeight(line, fontSize) {
         const metrics = this.getFontMetrics(fontSize);
         if (!metrics) {
             return fontSize; // Fallback to font size if FontMetrics fails
         }
 
         // Use cap-height if line has capitals, otherwise x-height
-        const visualHeight = this.hasCapitalLetters(line) ? metrics.capHeight : metrics.xHeight;
-        return visualHeight;
+        // This gives tight, typography-aware spacing for main text
+        const lineHeight = this.hasCapitalLetters(line) ? metrics.capHeight : metrics.xHeight;
+        return lineHeight;
     }
 
     /**
@@ -290,9 +278,9 @@ class TextComponent {
                     break;
             }
 
-            // Calculate typography-aligned bounds using visual height
+            // Calculate typography-aligned bounds
             let boundsY = lineY;
-            let boundsHeight = this.getVisualHeight(line, fontSize);
+            let boundsHeight = lineHeight;
 
             if (lineHeight !== fontSize) {
                 // Get font metrics for typography positioning
@@ -403,8 +391,14 @@ class TextComponent {
 
         for (let i = 0; i < lines.length; i++) {
             const line = lines[i];
-            // Each line gets proper line height for spacing
-            totalTypographicHeight += this.getLineHeight(line, effectiveFontSize);
+            // Each line gets its appropriate height based on its content
+            if (this.hasCapitalLetters(line)) {
+                // Lines with capitals need cap-height
+                totalTypographicHeight += metrics.capHeight;
+            } else {
+                // Lowercase-only lines need only x-height
+                totalTypographicHeight += metrics.xHeight;
+            }
 
             // Add line spacing between lines (but not after the last line)
             if (i < lines.length - 1) {
@@ -1113,6 +1107,19 @@ class SpotTextComponent extends TextComponent {
         
         // Spot-specific properties
         this.spotId = null;
+    }
+    
+    /**
+     * Override getLineHeight for grid/spot text to use standard line spacing
+     * This prevents overlapping in multi-line spot text
+     * @param {string} line - Text line to measure
+     * @param {number} fontSize - Font size in pixels
+     * @returns {number} Line height to use for positioning
+     */
+    getLineHeight(line, fontSize) {
+        // Use standard line height (1.2x fontSize) for proper line spacing in spots
+        // This ensures lines don't overlap in grid cells
+        return fontSize * 1.2;
     }
     
     /**
