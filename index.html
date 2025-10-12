@@ -41,21 +41,12 @@
             <div class="chatooly-controls-content">
                 <!-- ========== EDIT BELOW: Add Your Tool Controls Here ========== -->
                 
-                <!-- Spot Detection Controls -->
-                <div class="chatooly-control-group">
-                    <button id="findSpots">Find Open Spots</button>
-                    <label class="auto-detect-toggle">
-                        <input type="checkbox" id="autoDetectSpots" checked>
-                        Auto-detect on text changes
-                    </label>
-                </div>
+                <!-- Spot Detection Controls removed - auto-detection is now permanently enabled -->
                 
                 <!-- Tab Navigation -->
                 <div class="tab-navigation">
                     <button class="tab-btn active" data-tab="mainText">Main Text</button>
-                    <button class="tab-btn" data-tab="canvas">Canvas</button>
-                    <button class="tab-btn" data-tab="spots">Spots</button>
-                    <button class="tab-btn" data-tab="animation">🎬 Animation</button>
+                    <button class="tab-btn" data-tab="grid">Grid</button>
                     <button class="tab-btn" data-tab="parameters">🎲 Parameters</button>
                 </div>
                 
@@ -157,140 +148,101 @@ SPOTLIGHT
                     </div>
                 </div>
                 
-                <!-- Canvas & Background Tab -->
-                <div id="canvasTab" class="tab-content">
-                    <!-- Background Color -->
-                    <div class="chatooly-control-group">
-                        <label for="backgroundColor">Background Color</label>
-                        <input type="color" id="backgroundColor" value="#ffffff">
-                        <label for="backgroundOpacity">Opacity: <span id="backgroundOpacityValue">100%</span></label>
-                        <input type="range" id="backgroundOpacity" min="0" max="100" step="5" value="100">
-                        <label>
-                            <input type="checkbox" id="transparentBackground">
-                            Transparent Background
-                        </label>
-                    </div>
-                    
-                    <!-- Background Media -->
-                    <div class="chatooly-control-group">
-                        <label for="backgroundMedia">Background Media</label>
-                        <input type="file" id="backgroundMedia" accept="image/*,video/*">
-                        <button type="button" id="clearBackgroundMedia" style="display: none;">Clear Media</button>
-                        
-                        <!-- Video Controls (shown only when video is loaded) -->
-                        <div id="backgroundVideoControls" class="background-video-controls" style="display: none;">
-                            <label>
-                                <input type="checkbox" id="backgroundVideoAutoplay" checked>
-                                Autoplay
-                            </label>
-                            <label>
-                                <input type="checkbox" id="backgroundVideoLoop" checked>
-                                Loop
-                            </label>
-                        </div>
-                    </div>
-                    
-                    <!-- Background Fit Mode -->
-                    <div class="chatooly-control-group">
-                        <label for="backgroundFitMode">Background Fit Mode</label>
-                        <select id="backgroundFitMode">
-                            <option value="fit">Fit (Letterbox)</option>
-                            <option value="fill">Fill (Crop)</option>
-                            <option value="stretch">Stretch (Distort)</option>
-                        </select>
-                    </div>
-                    
-                    <!-- Canvas Padding Controls -->
-                    <div class="chatooly-control-group">
-                        <label>Canvas Padding</label>
-                        <div class="padding-controls">
-                            <!-- Symmetrical padding controls -->
-                            <div class="padding-row">
-                                <label for="paddingHorizontal">Horizontal (L+R)</label>
-                                <input type="range" id="paddingHorizontal" min="0" max="100" value="20">
-                                <span id="paddingHorizontalValue">20px</span>
-                            </div>
-                            <div class="padding-row">
-                                <label for="paddingVertical">Vertical (T+B)</label>
-                                <input type="range" id="paddingVertical" min="0" max="100" value="20">
-                                <span id="paddingVerticalValue">20px</span>
-                            </div>
-                        </div>
-                    </div>
+                <!-- Canvas & Background Tab - REMOVED (moved to Grid tab) -->
+                <div id="canvasTab" class="tab-content" style="display: none;">
+                    <!-- All content moved to Grid tab -->
                 </div>
                 
-                <!-- Spots Tab -->
-                <div id="spotsTab" class="tab-content">
+                <!-- Grid Tab -->
+                <div id="gridTab" class="tab-content">
+                    <!-- Background Controls -->
                     <div class="chatooly-control-group">
-                        <label for="minSpotSize">Min Spot Size (px)</label>
-                        <input type="number" id="minSpotSize" value="50" min="20" max="200">
-                    </div>
-                    
-                    <!-- Spots List -->
-                    <div class="chatooly-control-group">
-                        <label>Open Spots: <span id="spotCount">0</span></label>
-                        <div id="spotsList" class="spots-list">
-                            <!-- Dynamically populated with expandable spot controls -->
+                        <h3>Background</h3>
+                        
+                        <!-- Background Color -->
+                        <div class="chatooly-control-group">
+                            <label for="backgroundColor">Background Color</label>
+                            <input type="color" id="backgroundColor" value="#ffffff">
+                            <label for="backgroundOpacity">Opacity: <span id="backgroundOpacityValue">100%</span></label>
+                            <input type="range" id="backgroundOpacity" min="0" max="100" step="5" value="100">
+                            <label>
+                                <input type="checkbox" id="transparentBackground">
+                                Transparent Background
+                            </label>
+                        </div>
+                        
+                        <!-- Background Media -->
+                        <div class="chatooly-control-group">
+                            <label for="backgroundMedia">Background Media</label>
+                            <input type="file" id="backgroundMedia" accept="image/*,video/*">
+                            <button type="button" id="clearBackgroundMedia" style="display: none;">Clear Media</button>
+                            
+                            <!-- Video Controls (shown only when video is loaded) -->
+                            <div id="backgroundVideoControls" class="background-video-controls" style="display: none;">
+                                <label>
+                                    <input type="checkbox" id="backgroundVideoAutoplay" checked>
+                                    Autoplay
+                                </label>
+                                <label>
+                                    <input type="checkbox" id="backgroundVideoLoop" checked>
+                                    Loop
+                                </label>
+                            </div>
+                        </div>
+                        
+                        <!-- Background Fit Mode -->
+                        <div class="chatooly-control-group">
+                            <label for="backgroundFitMode">Background Fit Mode</label>
+                            <select id="backgroundFitMode">
+                                <option value="fit">Fit (Letterbox)</option>
+                                <option value="fill">Fill (Crop)</option>
+                                <option value="stretch">Stretch (Distort)</option>
+                            </select>
+                        </div>
+                        
+                        <!-- Canvas Padding Controls -->
+                        <div class="chatooly-control-group">
+                            <label>Canvas Padding</label>
+                            <div class="padding-controls">
+                                <!-- Symmetrical padding controls -->
+                                <div class="padding-row">
+                                    <label for="paddingHorizontal">Horizontal (L+R)</label>
+                                    <input type="range" id="paddingHorizontal" min="0" max="100" value="20">
+                                    <span id="paddingHorizontalValue">20px</span>
+                                </div>
+                                <div class="padding-row">
+                                    <label for="paddingVertical">Vertical (T+B)</label>
+                                    <input type="range" id="paddingVertical" min="0" max="100" value="20">
+                                    <span id="paddingVerticalValue">20px</span>
+                                </div>
+                            </div>
                         </div>
                     </div>
-                </div>
-
-                <!-- Animation Tab -->
-                <div id="animationTab" class="tab-content">
-
-                    <!-- Interactive Grid Display -->
+                    
+                    <!-- Grid Visualization -->
                     <div class="chatooly-control-group">
-                        <h3>🎯 Grid Animation Editor</h3>
-                        <p class="control-description">Click any cell to set its animation</p>
-
-                        <!-- Visual Grid -->
+                        <h3>Grid</h3>
+                        <p class="control-description">Click any cell to configure its content, animation, and layer</p>
+                        
                         <div id="visualGrid" class="visual-grid">
                             <!-- Grid cells will be dynamically generated here -->
                         </div>
-
-                        <!-- Selected Cell Info -->
-                        <div id="selectedCellInfo" class="selected-cell-info" style="display: none;">
-                            <h4>Selected: <span id="selectedCellLabel"></span></h4>
-                            <div class="animation-config">
-                                <label>Animation Type:</label>
-                                <select id="cellAnimationType">
-                                    <option value="none">None</option>
-                                    <option value="sway">Sway</option>
-                                    <option value="bounce">Bounce</option>
-                                    <option value="rotate">Rotate</option>
-                                    <option value="pulse">Pulse</option>
-                                </select>
-
-                                <label>Intensity: <span id="intensityValue">20</span>px</label>
-                                <input type="range" id="cellAnimationIntensity" min="5" max="50" value="20">
-
-                                <label>Speed: <span id="speedValue">1.0</span>x</label>
-                                <input type="range" id="cellAnimationSpeed" min="0.5" max="2" step="0.1" value="1.0">
-
-                                <button id="applyCellAnimation" class="anim-btn">✓ Apply</button>
-                                <button id="removeCellAnimation" class="anim-btn clear-btn">✗ Remove</button>
-                            </div>
+                    </div>
+                    
+                    <!-- Selected Cell Controls -->
+                    <div id="selectedCellControls" class="selected-cell-controls" style="display: none;">
+                        <h3>Cell Configuration</h3>
+                        <div id="selectedCellInfo" class="selected-cell-info">
+                            <!-- Cell info will be populated here -->
+                        </div>
+                        
+                        <div class="cell-control-sections">
+                            <!-- Content, Animation, and Layer controls will be added here -->
                         </div>
                     </div>
-
-                    <!-- Global Animation Controls -->
-                    <div class="chatooly-control-group">
-                        <h3>🎬 Playback Controls</h3>
-                        <div class="animation-playback">
-                            <button id="playAnimation" class="anim-btn play-btn">▶ Play</button>
-                            <button id="pauseAnimation" class="anim-btn pause-btn">⏸ Pause</button>
-                            <button id="resetAnimation" class="anim-btn reset-btn">↺ Reset</button>
-                            <button id="clearAnimations" class="anim-btn clear-btn">🧹 Clear All</button>
-                        </div>
-
-                        <div class="animation-status">
-                            <span id="animationCount">0 animations set</span>
-                            <span id="playbackStatus">Stopped</span>
-                            <span id="fpsDisplay">0 FPS</span>
-                        </div>
-                    </div>
-
                 </div>
+
+                <!-- Spots and Animation tabs removed - functionality moved to Grid tab -->
 
                 <!-- Parameters Tab -->
                 <div id="parametersTab" class="tab-content">
@@ -379,18 +331,7 @@ SPOTLIGHT
                 </div>
             </div>
             
-            <!-- Spot Edit Popup -->
-            <div id="spotEditPopup" class="spot-popup">
-                <div class="spot-popup-content">
-                    <div class="spot-popup-header">
-                        <h4 id="spotPopupTitle">Edit Spot</h4>
-                        <button id="closeSpotPopup" class="popup-close">×</button>
-                    </div>
-                    <div id="spotPopupBody" class="spot-popup-body">
-                        <!-- Dynamic content will be populated here -->
-                    </div>
-                </div>
-            </div>
+            <!-- Spot Edit Popup removed - functionality moved to unified sidebar -->
             
             <!-- ========== DO NOT EDIT: Required Export Container ========== -->
             <div id="chatooly-container">

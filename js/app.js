@@ -98,8 +98,8 @@ class EmployerBrandToolPOC {
             // Update line alignment controls for initial text
             this.uiManager.updateLineAlignmentControls();
 
-            // Sync auto-detect setting with UI
-            this.autoDetectSpots = this.uiManager.elements.autoDetectSpots.checked;
+            // Auto-detection is now permanently enabled
+            this.autoDetectSpots = true;
 
             // Initial render
             this.render();
@@ -1020,21 +1020,8 @@ class EmployerBrandToolPOC {
     }
     
     /**
-     * Handle canvas click to detect spot selection
-     * @param {MouseEvent} e - Mouse event
-     * @private
+     * Canvas click handler removed - spot editing now handled through unified sidebar
      */
-    handleCanvasClick(e) {
-        const rect = this.canvasManager.canvas.getBoundingClientRect();
-        const canvasCoords = this.canvasManager.screenToCanvas(e.clientX, e.clientY);
-        
-        // Find clicked spot
-        const clickedSpot = this.canvasManager.findSpotAt(canvasCoords.x, canvasCoords.y, this.spots);
-        
-        if (clickedSpot) {
-            this.uiManager.showSpotEditPopup(clickedSpot, e.clientX, e.clientY);
-        }
-    }
     
     
     

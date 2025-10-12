@@ -823,11 +823,16 @@ input[type="radio"] {
 .debug-toggle {
     background: none;
     border: none;
-    font-size: 16px;
+    font-size: 12px;
     cursor: pointer;
-    padding: 4px;
+    padding: 2px;
     border-radius: 4px;
     transition: background-color 0.2s;
+    width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
 .debug-toggle:hover {
@@ -1163,98 +1168,106 @@ select option {
     border-color: var(--chatooly-color-primary, #e5e5e5);
 }
 
-/* Spot Edit Popup */
-.spot-popup {
-    display: none;
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: rgba(0, 0, 0, 0.7);
-    z-index: 2000;
+/* Spot Edit Popup styles removed - functionality moved to unified sidebar */
+
+/* Grid Tab Styles */
+.visual-grid {
+    display: grid;
+    gap: 4px;
+    padding: 10px;
+    background: var(--chatooly-color-surface, #f5f5f5);
+    border-radius: 8px;
+    margin: 10px 0;
+}
+
+.grid-cell {
+    aspect-ratio: 1;
+    border: 2px solid var(--chatooly-color-border, #ddd);
+    border-radius: 4px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
     justify-content: center;
-    align-items: center;
-    backdrop-filter: blur(2px);
-}
-
-.spot-popup.show {
-    display: flex;
-}
-
-.spot-popup-content {
-    background: var(--chatooly-color-surface, #1a1a1a);
-    border: 1px solid var(--chatooly-color-border, #3a3a3a);
-    border-radius: 12px;
-    width: 350px;
-    max-height: 80vh;
-    overflow: hidden;
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
-}
-
-.spot-popup-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 16px 20px;
-    border-bottom: 1px solid var(--chatooly-color-border, #3a3a3a);
-    background: var(--chatooly-color-surface-elevated, #2a2a2a);
-}
-
-.spot-popup-header h4 {
-    margin: 0;
-    font-size: 16px;
-    color: var(--chatooly-color-text, #e5e5e5);
-}
-
-.popup-close {
-    background: none;
-    border: none;
-    font-size: 20px;
-    color: var(--chatooly-color-text-secondary, #999);
     cursor: pointer;
-    padding: 4px;
-    border-radius: 4px;
-    transition: all 0.2s;
-    line-height: 1;
+    transition: all 0.2s ease;
+    background: white;
 }
 
-.popup-close:hover {
-    background: var(--chatooly-color-surface, #1a1a1a);
-    color: var(--chatooly-color-text, #e5e5e5);
+.grid-cell:hover {
+    border-color: var(--chatooly-color-primary, #007bff);
+    background: var(--chatooly-color-primary-light, #e3f2fd);
 }
 
-.spot-popup-body {
-    padding: 20px;
-    max-height: 60vh;
-    overflow-y: auto;
+.grid-cell.selected {
+    border-color: var(--chatooly-color-primary, #007bff);
+    background: var(--chatooly-color-primary-light, #e3f2fd);
+    box-shadow: 0 0 0 2px var(--chatooly-color-primary, #007bff);
 }
 
-.spot-popup-body .chatooly-control-group {
-    margin-bottom: 16px;
-}
-
-.spot-popup-body .chatooly-control-group:last-child {
-    margin-bottom: 0;
-}
-
-.spot-popup-body label {
+.grid-cell-content {
     font-size: 12px;
-    color: var(--chatooly-color-text-secondary, #999);
-    display: block;
-    margin-bottom: 6px;
+    font-weight: bold;
+    text-align: center;
 }
 
-/* Spot type selector in popup */
-.popup-spot-type-select {
-    width: 100%;
-    background: var(--chatooly-color-surface-elevated, #2a2a2a);
-    border: 1px solid var(--chatooly-color-border, #3a3a3a);
-    border-radius: 4px;
-    padding: 8px;
-    color: var(--chatooly-color-text, #e5e5e5);
-    font-size: 13px;
+.grid-cell-position {
+    font-size: 10px;
+    color: var(--chatooly-color-text-secondary, #666);
+    margin-top: 2px;
 }
+
+.grid-cell-animation {
+    font-size: 10px;
+    color: var(--chatooly-color-success, #28a745);
+    margin-top: 2px;
+}
+
+.selected-cell-controls {
+    margin-top: 20px;
+    padding: 15px;
+    background: var(--chatooly-color-surface, #f5f5f5);
+    border-radius: 8px;
+}
+
+.cell-control-sections {
+    margin-top: 15px;
+}
+
+.control-section {
+    margin-bottom: 15px;
+    border: 1px solid var(--chatooly-color-border, #ddd);
+    border-radius: 6px;
+    overflow: hidden;
+}
+
+.control-section-header {
+    background: var(--chatooly-color-surface-secondary, #e9ecef);
+    padding: 10px 15px;
+    cursor: pointer;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.control-section-header:hover {
+    background: var(--chatooly-color-surface-hover, #dee2e6);
+}
+
+.control-section-content {
+    padding: 15px;
+    display: none;
+}
+
+.control-section-content.expanded {
+    display: block;
+}
+
+.section-toggle {
+    font-size: 12px;
+    color: var(--chatooly-color-text-secondary, #666);
+}
+
+/* Shuffle buttons styling */
 
 /* Shuffle buttons styling */
 .shuffle-controls {

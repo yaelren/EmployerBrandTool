@@ -49,11 +49,7 @@ class UIManager {
             paddingVertical: 'paddingVertical',
             paddingVerticalValue: 'paddingVerticalValue',
             lineAlignmentControls: 'lineAlignmentControls',
-            minSpotSize: 'minSpotSize',
-            findSpots: 'findSpots',
-            autoDetectSpots: 'autoDetectSpots',
-            spotCount: 'spotCount',
-            spotsList: 'spotsList',
+            // Removed: minSpotSize, findSpots, autoDetectSpots, spotCount, spotsList
             // Main text styling buttons
             mainTextBold: 'mainTextBold',
             mainTextItalic: 'mainTextItalic',
@@ -66,7 +62,7 @@ class UIManager {
         for (const [key, id] of Object.entries(requiredElements)) {
             const element = document.getElementById(id);
             if (!element) {
-                throw new Error(`Required UI element not found: ${id}`);
+                console.warn(`UI element not found: ${id} - this may be expected if the element was removed`);
             }
             this.elements[key] = element;
         }
@@ -184,45 +180,67 @@ class UIManager {
         });
 
         // Background color changes
-        this.elements.backgroundColor.addEventListener('input', () => {
-            this.updateBackgroundColor();
-        });
+        if (this.elements.backgroundColor) {
+            console.log('Background color element found, adding event listener');
+            this.elements.backgroundColor.addEventListener('input', () => {
+                console.log('Background color changed:', this.elements.backgroundColor.value);
+                this.updateBackgroundColor();
+            });
+        } else {
+            console.warn('Background color element not found');
+        }
 
         // Background opacity changes
-        this.elements.backgroundOpacity.addEventListener('input', () => {
-            const opacity = parseInt(this.elements.backgroundOpacity.value);
-            this.elements.backgroundOpacityValue.textContent = opacity + '%';
-            this.updateBackgroundColor();
-        });
+        if (this.elements.backgroundOpacity) {
+            this.elements.backgroundOpacity.addEventListener('input', () => {
+                const opacity = parseInt(this.elements.backgroundOpacity.value);
+                if (this.elements.backgroundOpacityValue) {
+                    this.elements.backgroundOpacityValue.textContent = opacity + '%';
+                }
+                this.updateBackgroundColor();
+            });
+        }
 
         // Transparent background toggle
-        this.elements.transparentBackground.addEventListener('change', () => {
-            this.updateBackgroundColor();
-        });
+        if (this.elements.transparentBackground) {
+            this.elements.transparentBackground.addEventListener('change', () => {
+                this.updateBackgroundColor();
+            });
+        }
 
         // Background media upload
-        this.elements.backgroundMedia.addEventListener('change', (e) => {
-            this.handleBackgroundMediaUpload(e);
-        });
+        if (this.elements.backgroundMedia) {
+            this.elements.backgroundMedia.addEventListener('change', (e) => {
+                this.handleBackgroundMediaUpload(e);
+            });
+        }
 
         // Clear background media
-        this.elements.clearBackgroundMedia.addEventListener('click', () => {
-            this.clearBackgroundMedia();
-        });
+        if (this.elements.clearBackgroundMedia) {
+            this.elements.clearBackgroundMedia.addEventListener('click', () => {
+                this.clearBackgroundMedia();
+            });
+        }
 
         // Background video controls
-        this.elements.backgroundVideoAutoplay.addEventListener('change', (e) => {
-            this.updateBackgroundVideoSettings();
-        });
+        if (this.elements.backgroundVideoAutoplay) {
+            this.elements.backgroundVideoAutoplay.addEventListener('change', (e) => {
+                this.updateBackgroundVideoSettings();
+            });
+        }
 
-        this.elements.backgroundVideoLoop.addEventListener('change', (e) => {
-            this.updateBackgroundVideoSettings();
-        });
+        if (this.elements.backgroundVideoLoop) {
+            this.elements.backgroundVideoLoop.addEventListener('change', (e) => {
+                this.updateBackgroundVideoSettings();
+            });
+        }
 
         // Background fit mode
-        this.elements.backgroundFitMode.addEventListener('change', (e) => {
-            this.app.setBackgroundFitMode(e.target.value);
-        });
+        if (this.elements.backgroundFitMode) {
+            this.elements.backgroundFitMode.addEventListener('change', (e) => {
+                this.app.setBackgroundFitMode(e.target.value);
+            });
+        }
 
         // Font size changes
         this.elements.fontSize.addEventListener('input', () => {
@@ -273,29 +291,37 @@ class UIManager {
         });
 
         // Symmetrical padding controls
-        this.elements.paddingHorizontal.addEventListener('input', () => {
-            const padding = parseInt(this.elements.paddingHorizontal.value);
-            this.elements.paddingHorizontalValue.textContent = padding + 'px';
-            this.updateSymmetricalPaddingDisplay('horizontal', padding); // Update display only
-        });
+        if (this.elements.paddingHorizontal) {
+            this.elements.paddingHorizontal.addEventListener('input', () => {
+                const padding = parseInt(this.elements.paddingHorizontal.value);
+                if (this.elements.paddingHorizontalValue) {
+                    this.elements.paddingHorizontalValue.textContent = padding + 'px';
+                }
+                this.updateSymmetricalPaddingDisplay('horizontal', padding); // Update display only
+            });
 
-        // Padding auto-detection on release
-        this.elements.paddingHorizontal.addEventListener('change', () => {
-            const padding = parseInt(this.elements.paddingHorizontal.value);
-            this.updateSymmetricalPadding('horizontal', padding); // Trigger auto-detection
-        });
+            // Padding auto-detection on release
+            this.elements.paddingHorizontal.addEventListener('change', () => {
+                const padding = parseInt(this.elements.paddingHorizontal.value);
+                this.updateSymmetricalPadding('horizontal', padding); // Trigger auto-detection
+            });
+        }
 
-        this.elements.paddingVertical.addEventListener('input', () => {
-            const padding = parseInt(this.elements.paddingVertical.value);
-            this.elements.paddingVerticalValue.textContent = padding + 'px';
-            this.updateSymmetricalPaddingDisplay('vertical', padding); // Update display only
-        });
+        if (this.elements.paddingVertical) {
+            this.elements.paddingVertical.addEventListener('input', () => {
+                const padding = parseInt(this.elements.paddingVertical.value);
+                if (this.elements.paddingVerticalValue) {
+                    this.elements.paddingVerticalValue.textContent = padding + 'px';
+                }
+                this.updateSymmetricalPaddingDisplay('vertical', padding); // Update display only
+            });
 
-        // Padding auto-detection on release
-        this.elements.paddingVertical.addEventListener('change', () => {
-            const padding = parseInt(this.elements.paddingVertical.value);
-            this.updateSymmetricalPadding('vertical', padding); // Trigger auto-detection
-        });
+            // Padding auto-detection on release
+            this.elements.paddingVertical.addEventListener('change', () => {
+                const padding = parseInt(this.elements.paddingVertical.value);
+                this.updateSymmetricalPadding('vertical', padding); // Trigger auto-detection
+            });
+        }
 
         // Text positioning controls (manual mode only)
         document.querySelectorAll('.pos-btn').forEach(btn => {
@@ -322,32 +348,9 @@ class UIManager {
             });
         });
 
-        // Canvas click detection for spots
-        this.app.canvasManager.canvas.addEventListener('click', (e) => {
-            this.app.handleCanvasClick(e);
-        });
+        // Canvas click handler removed - spot editing now handled through unified sidebar
 
-        // Minimum spot size changes
-        this.elements.minSpotSize.addEventListener('input', () => {
-            const minSize = parseInt(this.elements.minSpotSize.value);
-            this.app.gridDetector.setMinCellSize(minSize);
-            this.app.minSpotSize = minSize; // Store for Grid.buildFromExisting()
-        });
-
-        // Find spots button
-        this.elements.findSpots.addEventListener('click', () => {
-            this.app.detectSpots();
-        });
-
-        // Auto-detect toggle
-        this.elements.autoDetectSpots.addEventListener('change', () => {
-            this.app.autoDetectSpots = this.elements.autoDetectSpots.checked;
-
-            // If enabled and we have text but no spots, trigger detection
-            if (this.app.autoDetectSpots && this.elements.mainText.value.trim() && this.app.spots.length === 0) {
-                this.app.autoDetectSpotsDebounced(100); // Quick detection when enabling
-            }
-        });
+        // Removed spot detection controls - auto-detection is now permanently enabled
 
         // Animation Controls Event Handlers
         this.setupAnimationEventListeners();
@@ -357,74 +360,23 @@ class UIManager {
     }
 
     /**
-     * Set up animation control event listeners
+     * Animation event listeners removed - auto-preview handles animation display
      */
     setupAnimationEventListeners() {
-        // Animation playback controls
-        const playBtn = document.getElementById('playAnimation');
-        const pauseBtn = document.getElementById('pauseAnimation');
-        const resetBtn = document.getElementById('resetAnimation');
-        const clearBtn = document.getElementById('clearAnimations');
-
-        if (playBtn) {
-            playBtn.addEventListener('click', () => {
-                if (this.app.grid) {
-                    this.app.grid.playAllAnimations();
-                    this.app._startAnimationLoop();  // Start render loop
-                    this.updateAnimationStatus();
-                }
-            });
-        }
-
-        if (pauseBtn) {
-            pauseBtn.addEventListener('click', () => {
-                if (this.app.grid) {
-                    this.app.grid.pauseAllAnimations();
-                    this.app._stopAnimationLoop();  // Stop render loop
-                    this.updateAnimationStatus();
-                }
-            });
-        }
-
-        if (resetBtn) {
-            resetBtn.addEventListener('click', () => {
-                if (this.app.grid) {
-                    this.app.grid.resetAllAnimations();
-                    this.app._stopAnimationLoop();  // Stop render loop
-                    this.updateAnimationStatus();
-                    this.app.render(); // Re-render to show reset
-                }
-            });
-        }
-
-        if (clearBtn) {
-            clearBtn.addEventListener('click', () => {
-                // Clear all animations from all cells
-                if (this.app.grid) {
-                    this.app.grid.getAllCells().forEach(cell => {
-                        if (cell && cell.animation) {
-                            cell.removeAnimation();
-                        }
-                    });
-                    this.app._stopAnimationLoop();  // Stop render loop
-                    this.updateAnimationStatus();
-                    this.updateTextLineAnimations(); // Refresh sidebar controls
-                    this.updateVisualGrid();  // Refresh visual grid
-                    this.app.render();  // Re-render canvas
-                }
-            });
-        }
-
+        // Manual animation controls removed - auto-preview handles animation display
         // Initialize text line animation controls on first setup
         this.updateTextLineAnimations();
     }
 
     /**
-     * Update animation status display
+     * Update animation status display (updated for auto-preview mode)
      */
     updateAnimationStatus() {
         const animationCount = document.getElementById('animationCount');
         const playbackStatus = document.getElementById('playbackStatus');
+
+        // These elements may not exist if animation tab was removed
+        if (!animationCount && !playbackStatus) return;
 
         if (this.app.grid) {
             const animatedCells = this.app.grid.getAnimatedCells();
@@ -435,7 +387,7 @@ class UIManager {
             }
 
             if (playbackStatus) {
-                const statusText = playingCount > 0 ? 'Playing' : 'Stopped';
+                const statusText = playingCount > 0 ? 'Previewing' : 'Ready';
                 playbackStatus.textContent = statusText;
             }
         }
@@ -626,42 +578,317 @@ class UIManager {
             selectedDiv.classList.add('selected');
         }
 
-        // Show selected cell info panel
-        const infoPanel = document.getElementById('selectedCellInfo');
-        const cellLabel = document.getElementById('selectedCellLabel');
-        const typeSelect = document.getElementById('cellAnimationType');
-        const intensityInput = document.getElementById('cellAnimationIntensity');
-        const speedInput = document.getElementById('cellAnimationSpeed');
-        const intensityValue = document.getElementById('intensityValue');
-        const speedValue = document.getElementById('speedValue');
+        // Show selected cell controls
+        this.showSelectedCellControls(cell, row, col);
+    }
 
-        if (infoPanel) {
-            infoPanel.style.display = 'block';
-        }
+    /**
+     * Show unified controls for selected cell
+     * @param {Object} cell - Selected cell
+     * @param {number} row - Row index
+     * @param {number} col - Column index
+     */
+    showSelectedCellControls(cell, row, col) {
+        const controlsContainer = document.getElementById('selectedCellControls');
+        const infoContainer = document.getElementById('selectedCellInfo');
+        const sectionsContainer = document.querySelector('.cell-control-sections');
 
-        if (cellLabel) {
-            const content = cell.type === 'main-text' ? `"${cell.text}"` :
-                           cell.type === 'content' ? `Content (${cell.contentType})` :
-                           cell.type === 'spot' ? `Spot (${cell.spotType})` :
-                           'Unknown';
-            cellLabel.textContent = `${content} [${row},${col}]`;
-        }
+        if (!controlsContainer || !infoContainer || !sectionsContainer) return;
 
-        // Set current animation values
+        // Show controls container
+        controlsContainer.style.display = 'block';
+
+        // Update cell info
+        const content = cell.type === 'main-text' ? `"${cell.text}"` :
+                       cell.type === 'content' ? `Content (${cell.contentType})` :
+                       cell.type === 'spot' ? `Spot (${cell.spotType})` :
+                       'Unknown';
+        infoContainer.innerHTML = `
+            <div class="selected-cell-header">
+                <h4>${content} [${row},${col}]</h4>
+            </div>
+        `;
+
+        // Clear existing control sections
+        sectionsContainer.innerHTML = '';
+
+        // Create control sections
+        this.createContentControls(cell, sectionsContainer);
+        this.createAnimationControls(cell, sectionsContainer);
+        this.createLayerControls(cell, sectionsContainer);
+    }
+
+    /**
+     * Create content controls section
+     * @param {Object} cell - Selected cell
+     * @param {HTMLElement} container - Container for controls
+     */
+    createContentControls(cell, container) {
+        const section = this.createControlSection('Content', 'content');
+        
+        // Content type selector
+        const typeGroup = document.createElement('div');
+        typeGroup.className = 'chatooly-control-group';
+        typeGroup.innerHTML = `
+            <label>Content Type:</label>
+            <select class="cell-content-type">
+                <option value="empty">Empty</option>
+                <option value="text">Text</option>
+                <option value="image">Image</option>
+                <option value="mask">Mask</option>
+            </select>
+        `;
+
+        const typeSelect = typeGroup.querySelector('.cell-content-type');
+        typeSelect.value = cell.contentType || 'empty';
+
+        // Content-specific controls container
+        const contentControls = document.createElement('div');
+        contentControls.className = 'content-specific-controls';
+
+        // Add event listener for type changes
+        typeSelect.addEventListener('change', (e) => {
+            const newType = e.target.value;
+            cell.setContentType(newType);
+            this.updateContentSpecificControls(cell, contentControls, newType);
+            this.app.render();
+        });
+
+        // Add content-specific controls
+        this.updateContentSpecificControls(cell, contentControls, cell.contentType || 'empty');
+
+        section.querySelector('.control-section-content').appendChild(typeGroup);
+        section.querySelector('.control-section-content').appendChild(contentControls);
+        container.appendChild(section);
+    }
+
+    /**
+     * Create animation controls section
+     * @param {Object} cell - Selected cell
+     * @param {HTMLElement} container - Container for controls
+     */
+    createAnimationControls(cell, container) {
+        const section = this.createControlSection('Animation', 'animation');
+        
+        const animGroup = document.createElement('div');
+        animGroup.className = 'chatooly-control-group';
+        animGroup.innerHTML = `
+            <label>Animation Type:</label>
+            <select class="cell-animation-type">
+                <option value="none">None</option>
+                <option value="sway">Sway</option>
+                <option value="bounce">Bounce</option>
+                <option value="rotate">Rotate</option>
+                <option value="pulse">Pulse</option>
+            </select>
+        `;
+
+        const animSelect = animGroup.querySelector('.cell-animation-type');
         if (cell.animation) {
             const status = cell.animation.getStatus();
-            if (typeSelect) typeSelect.value = status.type;
-            if (intensityInput) intensityInput.value = status.intensity;
-            if (speedInput) speedInput.value = status.speed;
-            if (intensityValue) intensityValue.textContent = status.intensity;
-            if (speedValue) speedValue.textContent = status.speed.toFixed(1);
+            animSelect.value = status.type;
         } else {
-            if (typeSelect) typeSelect.value = 'none';
-            if (intensityInput) intensityInput.value = 20;
-            if (speedInput) speedInput.value = 1.0;
-            if (intensityValue) intensityValue.textContent = '20';
-            if (speedValue) speedValue.textContent = '1.0';
+            animSelect.value = 'none';
         }
+
+        // Animation-specific controls container
+        const animControls = document.createElement('div');
+        animControls.className = 'animation-specific-controls';
+
+        // Add event listener for animation changes
+        animSelect.addEventListener('change', (e) => {
+            const animType = e.target.value;
+            if (animType === 'none') {
+                cell.removeAnimation();
+            } else {
+                const intensity = 20;
+                const speed = 1.0;
+                cell.setAnimation(animType, intensity, speed);
+                // Auto-preview animation
+                this.previewAnimation(cell, animType);
+            }
+            this.updateAnimationSpecificControls(cell, animControls, animType);
+            this.app.render();
+        });
+
+        // Add animation-specific controls
+        this.updateAnimationSpecificControls(cell, animControls, animSelect.value);
+
+        section.querySelector('.control-section-content').appendChild(animGroup);
+        section.querySelector('.control-section-content').appendChild(animControls);
+        container.appendChild(section);
+    }
+
+    /**
+     * Create layer controls section
+     * @param {Object} cell - Selected cell
+     * @param {HTMLElement} container - Container for controls
+     */
+    createLayerControls(cell, container) {
+        const section = this.createControlSection('Layer', 'layer');
+        
+        const layerGroup = document.createElement('div');
+        layerGroup.className = 'chatooly-control-group';
+        layerGroup.innerHTML = `
+            <label>Layer Position:</label>
+            <select class="cell-layer-position">
+                <option value="background">Background</option>
+                <option value="behind-main-text">Behind Main Text</option>
+                <option value="main-text">Main Text</option>
+                <option value="above-main-text">Above Main Text</option>
+            </select>
+        `;
+
+        const layerSelect = layerGroup.querySelector('.cell-layer-position');
+        layerSelect.value = cell.layerId || 'main-text';
+
+        // Add event listener for layer changes
+        layerSelect.addEventListener('change', (e) => {
+            const newLayerId = e.target.value;
+            cell.setLayer(newLayerId);
+            this.app.render();
+        });
+
+        section.querySelector('.control-section-content').appendChild(layerGroup);
+        container.appendChild(section);
+    }
+
+    /**
+     * Create expandable control section
+     * @param {string} title - Section title
+     * @param {string} id - Section ID
+     * @returns {HTMLElement} Control section element
+     */
+    createControlSection(title, id) {
+        const section = document.createElement('div');
+        section.className = 'control-section';
+        section.innerHTML = `
+            <div class="control-section-header" data-section="${id}">
+                <span>${title}</span>
+                <span class="section-toggle">▼</span>
+            </div>
+            <div class="control-section-content">
+                <!-- Controls will be added here -->
+            </div>
+        `;
+
+        // Add toggle functionality
+        const header = section.querySelector('.control-section-header');
+        const content = section.querySelector('.control-section-content');
+        const toggle = section.querySelector('.section-toggle');
+
+        header.addEventListener('click', () => {
+            const isExpanded = content.classList.contains('expanded');
+            if (isExpanded) {
+                content.classList.remove('expanded');
+                toggle.textContent = '▼';
+            } else {
+                content.classList.add('expanded');
+                toggle.textContent = '▲';
+            }
+        });
+
+        return section;
+    }
+
+    /**
+     * Update content-specific controls based on content type
+     * @param {Object} cell - Selected cell
+     * @param {HTMLElement} container - Container for controls
+     * @param {string} contentType - Content type
+     */
+    updateContentSpecificControls(cell, container, contentType) {
+        // Clear existing controls
+        container.innerHTML = '';
+
+        // Use appropriate controller for the content type
+        const controller = this.app.contentControllers[contentType];
+        if (controller) {
+            controller.createControls(cell, container, 'sidebar');
+
+            // Add padding control for all non-empty content types
+            if (contentType !== 'empty' && controller.createPaddingControl) {
+                controller.createPaddingControl(cell, container, 'sidebar');
+            }
+        }
+    }
+
+    /**
+     * Update animation-specific controls based on animation type
+     * @param {Object} cell - Selected cell
+     * @param {HTMLElement} container - Container for controls
+     * @param {string} animType - Animation type
+     */
+    updateAnimationSpecificControls(cell, container, animType) {
+        // Clear existing controls
+        container.innerHTML = '';
+
+        if (animType === 'none') {
+            container.innerHTML = '<p class="no-animation-message">No animation selected</p>';
+            return;
+        }
+
+        // Create intensity control
+        const intensityGroup = document.createElement('div');
+        intensityGroup.className = 'chatooly-control-group';
+        intensityGroup.innerHTML = `
+            <label>Intensity: <span class="intensity-value">20px</span></label>
+            <input type="range" class="animation-intensity" min="5" max="50" value="20">
+        `;
+
+        const intensitySlider = intensityGroup.querySelector('.animation-intensity');
+        const intensityValue = intensityGroup.querySelector('.intensity-value');
+
+        intensitySlider.addEventListener('input', () => {
+            const value = parseInt(intensitySlider.value);
+            intensityValue.textContent = value + 'px';
+            if (cell.animation) {
+                cell.animation.updateConfig({ intensity: value });
+                this.app.render();
+            }
+        });
+
+        // Create speed control
+        const speedGroup = document.createElement('div');
+        speedGroup.className = 'chatooly-control-group';
+        speedGroup.innerHTML = `
+            <label>Speed: <span class="speed-value">1.0x</span></label>
+            <input type="range" class="animation-speed" min="0.5" max="2" step="0.1" value="1.0">
+        `;
+
+        const speedSlider = speedGroup.querySelector('.animation-speed');
+        const speedValue = speedGroup.querySelector('.speed-value');
+
+        speedSlider.addEventListener('input', () => {
+            const value = parseFloat(speedSlider.value);
+            speedValue.textContent = value.toFixed(1) + 'x';
+            if (cell.animation) {
+                cell.animation.updateConfig({ speed: value });
+                this.app.render();
+            }
+        });
+
+        container.appendChild(intensityGroup);
+        container.appendChild(speedGroup);
+    }
+
+    /**
+     * Preview animation for selected cell
+     * @param {Object} cell - Selected cell
+     * @param {string} animType - Animation type
+     */
+    previewAnimation(cell, animType) {
+        if (!this.app.grid) return;
+
+        // Start animation preview
+        this.app.grid.playAllAnimations();
+        this.app._startAnimationLoop();
+
+        // Stop preview after 3 seconds
+        setTimeout(() => {
+            this.app.grid.pauseAllAnimations();
+            this.app._stopAnimationLoop();
+        }, 3000);
     }
 
     /**
@@ -1065,14 +1292,8 @@ class UIManager {
             case 'mainText':
                 contentId = 'mainTextTab';
                 break;
-            case 'canvas':
-                contentId = 'canvasTab';
-                break;
-            case 'spots':
-                contentId = 'spotsTab';
-                break;
-            case 'animation':
-                contentId = 'animationTab';
+            case 'grid':
+                contentId = 'gridTab';
                 break;
             case 'parameters':
                 contentId = 'parametersTab';
@@ -1082,6 +1303,172 @@ class UIManager {
         const activeContent = document.getElementById(contentId);
         if (activeContent) {
             activeContent.classList.add('active');
+        }
+
+        // Update visual grid when switching to grid tab
+        if (tabName === 'grid') {
+            setTimeout(() => {
+                this.updateVisualGrid();
+                this.setupGridTabEventListeners();
+            }, 50);
+        }
+    }
+
+    /**
+     * Setup event listeners for Grid tab controls
+     * Called when Grid tab is shown to ensure elements are accessible
+     */
+    setupGridTabEventListeners() {
+        console.log('Setting up Grid tab event listeners');
+        
+        // Re-cache background elements from the Grid tab
+        const backgroundColor = document.getElementById('backgroundColor');
+        const backgroundOpacity = document.getElementById('backgroundOpacity');
+        const backgroundOpacityValue = document.getElementById('backgroundOpacityValue');
+        const transparentBackground = document.getElementById('transparentBackground');
+        const backgroundMedia = document.getElementById('backgroundMedia');
+        const clearBackgroundMedia = document.getElementById('clearBackgroundMedia');
+        const backgroundVideoAutoplay = document.getElementById('backgroundVideoAutoplay');
+        const backgroundVideoLoop = document.getElementById('backgroundVideoLoop');
+        const backgroundFitMode = document.getElementById('backgroundFitMode');
+        const paddingHorizontal = document.getElementById('paddingHorizontal');
+        const paddingHorizontalValue = document.getElementById('paddingHorizontalValue');
+        const paddingVertical = document.getElementById('paddingVertical');
+        const paddingVerticalValue = document.getElementById('paddingVerticalValue');
+
+        // Background color changes
+        if (backgroundColor) {
+            console.log('Background color element found in Grid tab');
+            // Remove existing listeners to avoid duplicates
+            backgroundColor.removeEventListener('input', this.handleBackgroundColorChange);
+            this.handleBackgroundColorChange = () => {
+                console.log('Background color changed:', backgroundColor.value);
+                this.updateBackgroundColor();
+            };
+            backgroundColor.addEventListener('input', this.handleBackgroundColorChange);
+        }
+
+        // Background opacity changes
+        if (backgroundOpacity) {
+            console.log('Background opacity element found in Grid tab');
+            backgroundOpacity.removeEventListener('input', this.handleBackgroundOpacityChange);
+            this.handleBackgroundOpacityChange = () => {
+                const opacity = parseInt(backgroundOpacity.value);
+                if (backgroundOpacityValue) {
+                    backgroundOpacityValue.textContent = opacity + '%';
+                }
+                console.log('Background opacity changed:', opacity);
+                this.updateBackgroundColor();
+            };
+            backgroundOpacity.addEventListener('input', this.handleBackgroundOpacityChange);
+        }
+
+        // Transparent background toggle
+        if (transparentBackground) {
+            console.log('Transparent background element found in Grid tab');
+            transparentBackground.removeEventListener('change', this.handleTransparentBackgroundChange);
+            this.handleTransparentBackgroundChange = () => {
+                console.log('Transparent background changed:', transparentBackground.checked);
+                this.updateBackgroundColor();
+            };
+            transparentBackground.addEventListener('change', this.handleTransparentBackgroundChange);
+        }
+
+        // Background media upload
+        if (backgroundMedia) {
+            console.log('Background media element found in Grid tab');
+            const handler = (e) => {
+                console.log('Background media upload triggered');
+                this.handleBackgroundMediaUpload(e);
+            };
+            backgroundMedia.removeEventListener('change', handler);
+            backgroundMedia.addEventListener('change', handler);
+        }
+
+        // Clear background media
+        if (clearBackgroundMedia) {
+            console.log('Clear background media element found in Grid tab');
+            const handler = () => {
+                console.log('Clear background media clicked');
+                this.clearBackgroundMedia();
+            };
+            clearBackgroundMedia.removeEventListener('click', handler);
+            clearBackgroundMedia.addEventListener('click', handler);
+        }
+
+        // Background video controls
+        if (backgroundVideoAutoplay) {
+            backgroundVideoAutoplay.removeEventListener('change', this.handleBackgroundVideoChange);
+            this.handleBackgroundVideoChange = () => {
+                console.log('Background video settings changed');
+                this.updateBackgroundVideoSettings();
+            };
+            backgroundVideoAutoplay.addEventListener('change', this.handleBackgroundVideoChange);
+        }
+
+        if (backgroundVideoLoop) {
+            backgroundVideoLoop.removeEventListener('change', this.handleBackgroundVideoChange);
+            backgroundVideoLoop.addEventListener('change', this.handleBackgroundVideoChange);
+        }
+
+        // Background fit mode
+        if (backgroundFitMode) {
+            console.log('Background fit mode element found in Grid tab');
+            backgroundFitMode.removeEventListener('change', this.handleBackgroundFitModeChange);
+            this.handleBackgroundFitModeChange = (e) => {
+                console.log('Background fit mode changed:', e.target.value);
+                this.app.setBackgroundFitMode(e.target.value);
+            };
+            backgroundFitMode.addEventListener('change', this.handleBackgroundFitModeChange);
+        }
+
+        // Padding controls
+        if (paddingHorizontal) {
+            console.log('Padding horizontal element found in Grid tab');
+            paddingHorizontal.removeEventListener('input', this.handlePaddingHorizontalInput);
+            paddingHorizontal.removeEventListener('change', this.handlePaddingHorizontalChange);
+            
+            this.handlePaddingHorizontalInput = () => {
+                const padding = parseInt(paddingHorizontal.value);
+                if (paddingHorizontalValue) {
+                    paddingHorizontalValue.textContent = padding + 'px';
+                }
+                console.log('Padding horizontal input:', padding);
+                this.updateSymmetricalPaddingDisplay('horizontal', padding);
+            };
+            
+            this.handlePaddingHorizontalChange = () => {
+                const padding = parseInt(paddingHorizontal.value);
+                console.log('Padding horizontal change:', padding);
+                this.updateSymmetricalPadding('horizontal', padding);
+            };
+            
+            paddingHorizontal.addEventListener('input', this.handlePaddingHorizontalInput);
+            paddingHorizontal.addEventListener('change', this.handlePaddingHorizontalChange);
+        }
+
+        if (paddingVertical) {
+            console.log('Padding vertical element found in Grid tab');
+            paddingVertical.removeEventListener('input', this.handlePaddingVerticalInput);
+            paddingVertical.removeEventListener('change', this.handlePaddingVerticalChange);
+            
+            this.handlePaddingVerticalInput = () => {
+                const padding = parseInt(paddingVertical.value);
+                if (paddingVerticalValue) {
+                    paddingVerticalValue.textContent = padding + 'px';
+                }
+                console.log('Padding vertical input:', padding);
+                this.updateSymmetricalPaddingDisplay('vertical', padding);
+            };
+            
+            this.handlePaddingVerticalChange = () => {
+                const padding = parseInt(paddingVertical.value);
+                console.log('Padding vertical change:', padding);
+                this.updateSymmetricalPadding('vertical', padding);
+            };
+            
+            paddingVertical.addEventListener('input', this.handlePaddingVerticalInput);
+            paddingVertical.addEventListener('change', this.handlePaddingVerticalChange);
         }
     }
 
@@ -1104,8 +1491,8 @@ class UIManager {
         }
 
         // Update main text component padding
-        const paddingH = parseInt(this.elements.paddingHorizontal.value);
-        const paddingV = parseInt(this.elements.paddingVertical.value);
+        const paddingH = this.elements.paddingHorizontal ? parseInt(this.elements.paddingHorizontal.value) : 20;
+        const paddingV = this.elements.paddingVertical ? parseInt(this.elements.paddingVertical.value) : 20;
         this.app.mainTextComponent.setPaddingIndividual({
             left: paddingH,
             right: paddingH,
@@ -1140,13 +1527,23 @@ class UIManager {
      * Update background color with opacity
      */
     updateBackgroundColor() {
+        console.log('updateBackgroundColor called');
+        // Check if elements exist before accessing them
+        if (!this.elements.transparentBackground || !this.elements.backgroundColor || !this.elements.backgroundOpacity) {
+            console.warn('Background control elements not found');
+            return;
+        }
+
         const isTransparent = this.elements.transparentBackground.checked;
+        console.log('Transparent:', isTransparent);
 
         if (isTransparent) {
+            console.log('Setting transparent background');
             this.app.canvasManager.setBackgroundColor('transparent');
         } else {
             const hexColor = this.elements.backgroundColor.value;
             const opacity = parseInt(this.elements.backgroundOpacity.value);
+            console.log('Setting background color:', hexColor, 'opacity:', opacity);
 
             if (opacity === 100) {
                 // Fully opaque, use hex color
@@ -1298,25 +1695,34 @@ class UIManager {
     }
 
     /**
-     * Update the spots list in the UI
+     * Update spots UI (updated for new Grid tab structure)
      */
     updateSpotsUI() {
+        // Check if spots UI elements exist (they may not if spots tab was removed)
+        if (!this.elements.spotCount && !this.elements.spotsList) {
+            return; // Spots UI elements removed - functionality moved to Grid tab
+        }
+
         // Update spot count with waiting spots indicator
         const waitingText = this.app.waitingSpots.length > 0 ? ` (+${this.app.waitingSpots.length} waiting)` : '';
-        this.elements.spotCount.textContent = `${this.app.spots.length}${waitingText}`;
+        if (this.elements.spotCount) {
+            this.elements.spotCount.textContent = `${this.app.spots.length}${waitingText}`;
+        }
 
         // Clear existing spots list
-        this.elements.spotsList.innerHTML = '';
+        if (this.elements.spotsList) {
+            this.elements.spotsList.innerHTML = '';
 
-        // Add each spot to the UI
-        this.app.spots.forEach(spot => {
-            const spotItem = this.createSpotItemElement(spot);
-            this.elements.spotsList.appendChild(spotItem);
-        });
+            // Add each spot to the UI
+            this.app.spots.forEach(spot => {
+                const spotItem = this.createSpotItemElement(spot);
+                this.elements.spotsList.appendChild(spotItem);
+            });
 
-        // Add waiting spots section if any exist
-        if (this.app.waitingSpots.length > 0) {
-            this.addWaitingSpotsSection();
+            // Add waiting spots section if any exist
+            if (this.app.waitingSpots.length > 0) {
+                this.addWaitingSpotsSection();
+            }
         }
     }
 
@@ -1624,95 +2030,8 @@ class UIManager {
     }
 
     /**
-     * Show spot edit popup
-     * @param {Spot} spot - Spot to edit
-     * @param {number} clickX - Click X position (screen coordinates)
-     * @param {number} clickY - Click Y position (screen coordinates)
+     * Spot popup methods removed - functionality moved to unified sidebar
      */
-    showSpotEditPopup(spot, clickX, clickY) {
-        const popup = document.getElementById('spotEditPopup');
-        const title = document.getElementById('spotPopupTitle');
-        const body = document.getElementById('spotPopupBody');
-        const closeBtn = document.getElementById('closeSpotPopup');
-
-        // Set title
-        title.textContent = `Edit Spot ${spot.id}`;
-
-        // Create popup content
-        this.createPopupSpotControls(spot, body);
-
-        // Show popup
-        popup.classList.add('show');
-
-        // Close button handler
-        const closePopup = () => {
-            popup.classList.remove('show');
-            closeBtn.removeEventListener('click', closePopup);
-            popup.removeEventListener('click', outsideClick);
-        };
-
-        // Outside click handler
-        const outsideClick = (e) => {
-            if (e.target === popup) {
-                closePopup();
-            }
-        };
-
-        closeBtn.addEventListener('click', closePopup);
-        popup.addEventListener('click', outsideClick);
-    }
-
-    /**
-     * Create spot controls for popup
-     * @param {Spot} spot - Spot object
-     * @param {HTMLElement} container - Container for controls
-     */
-    createPopupSpotControls(spot, container) {
-        container.innerHTML = '';
-
-        // Spot type selector
-        const typeGroup = document.createElement('div');
-        typeGroup.className = 'chatooly-control-group';
-        typeGroup.innerHTML = `
-            <label>Spot Type</label>
-            <select class="popup-spot-type-select">
-                <option value="empty">Empty</option>
-                <option value="text">Text</option>
-                <option value="image">Media (Image, Video, GIF)</option>
-                <option value="mask">Mask (Background Reveal)</option>
-            </select>
-        `;
-
-        const typeSelect = typeGroup.querySelector('.popup-spot-type-select');
-        typeSelect.value = spot.contentType;
-
-        typeSelect.addEventListener('change', (e) => {
-            e.stopPropagation();
-            spot.setContentType(typeSelect.value);
-            this.createPopupSpotControls(spot, container);
-            this.app.render();
-            this.updateSpotsUI();
-
-            // Update grid to reflect spot type change
-            if (this.app.grid) {
-                this.app.grid.updateSpotType(spot.id, typeSelect.value);
-                this.updateVisualGrid();
-            }
-        });
-
-        container.appendChild(typeGroup);
-
-        // Add padding control for non-empty types
-        if (spot.contentType !== 'empty') {
-            this.app.contentControllers.text.createPaddingControl(spot, container, 'popup');
-        }
-
-        // Use appropriate controller for the spot type
-        const controller = this.app.contentControllers[spot.contentType];
-        if (controller) {
-            controller.createControls(spot, container, 'popup');
-        }
-    }
 
     /**
      * Initialize shuffler UI event listeners

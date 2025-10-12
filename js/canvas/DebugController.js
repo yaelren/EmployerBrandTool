@@ -18,14 +18,13 @@ class DebugController {
         // UI element references
         this.elements = {};
         
-        // Layer panel
-        this.layerPanel = null;
+        // Layer panel removed - no longer needed in debug panel
         
         // Initialize
         this.cacheElements();
         this.setupEventListeners();
         this.initializeState();
-        this.initializeLayerPanel();
+        // Layer panel initialization removed
     }
     
     /**
@@ -122,25 +121,8 @@ class DebugController {
     }
     
     /**
-     * Initialize the layer panel
-     * @private
+     * Layer panel methods removed - no longer needed in debug panel
      */
-    initializeLayerPanel() {
-        try {
-            this.layerPanel = new LayerPanel(this.app);
-        } catch (error) {
-            console.error('Failed to initialize layer panel:', error);
-        }
-    }
-    
-    /**
-     * Refresh the layer panel (call when grid changes)
-     */
-    refreshLayerPanel() {
-        if (this.layerPanel) {
-            this.layerPanel.refresh();
-        }
-    }
     
     /**
      * Handle keyboard shortcuts
