@@ -886,9 +886,42 @@ class EmployerBrandToolPOC {
         
         // Apply saved line alignments by converting content keys to numeric indices
         this.applySavedAlignments();
+        
+        // Sync styling to all grid cells
+        this.syncGridCellStyling();
     }
     
-    
+    /**
+     * Sync styling from main text component to all grid cells
+     * @private
+     */
+    syncGridCellStyling() {
+        if (!this.grid || !this.grid.matrix) return;
+        
+        // Get all text cells from the grid
+        const textCells = this.grid.getAllCells().filter(cell => cell && cell.type === 'main-text');
+        
+        textCells.forEach(cell => {
+            // Sync color
+            cell.textComponent.color = this.mainTextComponent.color;
+            
+            // Sync highlight color
+            cell.textComponent.highlightColor = this.mainTextComponent.highlightColor;
+            
+            // Sync highlight state
+            cell.textComponent.highlight = this.mainTextComponent.highlight;
+            
+            // Sync other styling properties
+            cell.textComponent.fontWeight = this.mainTextComponent.fontWeight;
+            cell.textComponent.fontStyle = this.mainTextComponent.fontStyle;
+            cell.textComponent.underline = this.mainTextComponent.underline;
+            
+            // Sync font properties
+            cell.textComponent.fontFamily = this.mainTextComponent.fontFamily;
+            cell.textComponent.fontSize = this.mainTextComponent.fontSize;
+            cell.textComponent.lineSpacing = this.mainTextComponent.lineSpacing;
+        });
+    }
     
     /**
      * Get current application state for debugging

@@ -19,6 +19,11 @@ class UIManager {
         
         // Set default mode to manual
         this.setTextMode('manual');
+        
+        // Initialize highlight color picker visibility
+        if (this.elements.mainTextHighlightColor) {
+            this.elements.mainTextHighlightColor.style.display = 'none';
+        }
     }
 
     /**
@@ -125,7 +130,9 @@ class UIManager {
         // Text color changes
         this.elements.textColor.addEventListener('input', () => {
             const color = this.elements.textColor.value;
+            console.log('Text color changed to:', color);
             this.app.mainTextComponent.color = color;
+            this.app.syncGridCellStyling(); // Sync to grid cells
             this.app.render();
         });
 
@@ -163,15 +170,17 @@ class UIManager {
             this.elements.mainTextHighlight.classList.toggle('active', this.app.mainTextComponent.highlight);
 
             // Show/hide highlight color picker based on highlight state
-            const highlightColorGroup = this.elements.mainTextHighlightColor.parentElement;
-            highlightColorGroup.style.display = this.app.mainTextComponent.highlight ? 'block' : 'none';
+            this.elements.mainTextHighlightColor.style.display = this.app.mainTextComponent.highlight ? 'inline-block' : 'none';
 
             this.app.onTextChanged(); // Trigger complete rebuild to apply highlight styling
         });
 
         // Highlight color changes
         this.elements.mainTextHighlightColor.addEventListener('input', () => {
-            this.app.mainTextComponent.highlightColor = this.elements.mainTextHighlightColor.value;
+            const color = this.elements.mainTextHighlightColor.value;
+            console.log('Highlight color changed to:', color);
+            this.app.mainTextComponent.highlightColor = color;
+            this.app.syncGridCellStyling(); // Sync to grid cells
             if (this.app.mainTextComponent.highlight) {
                 this.app.render();
             }

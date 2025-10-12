@@ -2280,9 +2280,9 @@ select option {
 .compact-row {
     display: flex !important;
     align-items: center !important;
-    gap: 8px !important;
+    gap: 6px !important; /* Further reduced from 8px */
     flex-wrap: wrap !important;
-    margin-bottom: 6px !important;
+    margin-bottom: 3px !important; /* Further reduced from 6px */
 }
 
 .compact-control {
@@ -2351,6 +2351,7 @@ select option {
 .compact-control .main-text-styling {
     display: flex !important;
     gap: 2px !important;
+    align-items: center !important;
 }
 
 .compact-control .main-style-btn {
@@ -2379,11 +2380,109 @@ select option {
     color: white !important;
 }
 
+/* Highlight color picker in styling section */
+.compact-control .main-text-styling input[type="color"] {
+    width: 24px !important;
+    height: 24px !important;
+    border: 1px solid #444 !important;
+    border-radius: 3px !important;
+    cursor: pointer !important;
+    background: none !important;
+    margin: 0 !important;
+    margin-left: 2px !important;
+}
+
+.compact-control .main-text-styling input[type="color"]::-webkit-color-swatch-wrapper {
+    padding: 0 !important;
+}
+
+.compact-control .main-text-styling input[type="color"]::-webkit-color-swatch {
+    border: none !important;
+    border-radius: 2px !important;
+}
+
 /* Override chatooly-control-group for compact rows */
 .compact-row.chatooly-control-group {
-    padding: 4px 0 !important;
-    margin-bottom: 4px !important;
+    padding: 2px 0 !important;
+    margin-bottom: 2px !important;
 }
+
+
+/* Smaller main text textarea */
+#mainText {
+    height: 60px !important;
+    resize: vertical !important;
+    font-size: 12px !important;
+    line-height: 1.3 !important;
+}
+
+/* Smaller text wrapping control */
+.compact-row label[for="enableWrap"] {
+    font-size: 10px !important;
+    color: #999 !important;
+    margin: 0 !important;
+}
+
+.compact-row #enableWrap {
+    width: 12px !important;
+    height: 12px !important;
+    margin-right: 4px !important;
+}
+
+/* Text positioning section styling */
+.text-positioning-section {
+    text-align: left !important;
+    padding: 8px 0 !important;
+}
+
+.text-positioning-section label {
+    display: block !important;
+    font-size: 12px !important;
+    font-weight: 600 !important;
+    color: #e5e5e5 !important;
+    margin-bottom: 8px !important;
+    text-align: left !important;
+}
+
+.text-positioning-section .positioning-grid {
+    display: grid !important;
+    grid-template-columns: repeat(3, 1fr) !important;
+    gap: 3px !important;
+    width: fit-content !important;
+    margin: 0 !important;
+}
+
+.text-positioning-section .pos-btn {
+    width: 24px !important;
+    height: 24px !important;
+    font-size: 12px !important;
+    border: 1px solid #444 !important;
+    border-radius: 3px !important;
+    background: #1a1a1a !important;
+    color: #e5e5e5 !important;
+    cursor: pointer !important;
+    transition: all 0.2s ease !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+}
+
+.text-positioning-section .pos-btn:hover {
+    background: #2a2a2a !important;
+    border-color: #3b82f6 !important;
+}
+
+.text-positioning-section .pos-btn.active {
+    background: #3b82f6 !important;
+    border-color: #3b82f6 !important;
+    color: white !important;
+}
+
+
+
+
 
 /* Responsive adjustments for compact layout */
 @media (max-width: 600px) {
