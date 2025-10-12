@@ -15,6 +15,7 @@ class UIManager {
         // Initialize UI
         this.cacheUIElements();
         this.initializeFontFamilyDropdown();
+        this.initializeFontUpload();
         this.setupEventListeners();
         
         // Set default mode to manual
@@ -88,11 +89,187 @@ class UIManager {
             const option = document.createElement('option');
             option.value = font.value;
             option.textContent = font.name;
+            
+            // Mark custom fonts
+            if (font.isCustom) {
+                option.textContent += ' (Custom)';
+                option.style.fontStyle = 'italic';
+            }
+            
             fontFamilySelect.appendChild(option);
         });
 
+        // Add separator and upload option
+        const separator = document.createElement('option');
+        separator.disabled = true;
+        separator.textContent = '───────────────';
+        fontFamilySelect.appendChild(separator);
+
+        const uploadOption = document.createElement('option');
+        uploadOption.value = '__upload_font__';
+        uploadOption.textContent = '📁 Upload custom font...';
+        uploadOption.style.fontStyle = 'italic';
+        uploadOption.style.color = '#999';
+        fontFamilySelect.appendChild(uploadOption);
+
         // Set initial value to default
         fontFamilySelect.value = '"Wix Madefor Display", Arial, sans-serif';
+    }
+
+    /**
+     * Refresh font family dropdown when custom fonts change
+     */
+    refreshFontFamilyDropdown() {
+        this.initializeFontFamilyDropdown();
+    }
+
+    /**
+     * Initialize font upload functionality
+     */
+    initializeFontUpload() {
+        // Initialize FontManager if not already done
+        if (typeof FontManager !== 'undefined' && !window.fontManager) {
+            window.fontManager = new FontManager();
+        }
+
+        // Initialize FontUploadComponent if not already done
+        if (typeof FontUploadComponent !== 'undefined' && !this.fontUploadComponent) {
+            this.fontUploadComponent = new FontUploadComponent(window.fontManager);
+        }
+    }
+
+    /**
+     * Show font upload modal
+     */
+    showFontUploadModal() {
+        // Initialize FontManager if not already done
+        if (typeof FontManager !== 'undefined' && !window.fontManager) {
+            window.fontManager = new FontManager();
+        }
+
+        // Initialize FontUploadComponent if not already done
+        if (typeof FontUploadComponent !== 'undefined' && !this.fontUploadComponent) {
+            this.fontUploadComponent = new FontUploadComponent(window.fontManager);
+        }
+
+        // Create modal
+        const modal = document.createElement('div');
+        modal.className = 'font-upload-modal';
+        modal.innerHTML = `
+            <div class="modal-overlay">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h3>Upload Custom Font</h3>
+                        <button type="button" class="modal-close">&times;</button>
+                    </div>
+                    <div class="modal-body">
+                        <!-- Font upload UI will be populated here -->
+                    </div>
+                </div>
+            </div>
+        `;
+
+        // Add styles
+        modal.style.cssText = `
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        `;
+
+        const overlay = modal.querySelector('.modal-overlay');
+        overlay.style.cssText = `
+            background: rgba(0, 0, 0, 0.8);
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        `;
+
+        const content = modal.querySelector('.modal-content');
+        content.style.cssText = `
+            background: var(--chatooly-color-surface, #1a1a1a);
+            border-radius: 8px;
+            max-width: 500px;
+            max-height: 80vh;
+            overflow: hidden;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+            border: 1px solid var(--chatooly-color-border, #3a3a3a);
+        `;
+
+        const header = modal.querySelector('.modal-header');
+        header.style.cssText = `
+            padding: 20px;
+            border-bottom: 1px solid var(--chatooly-color-border, #3a3a3a);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: var(--chatooly-color-background, #121212);
+        `;
+
+        const headerTitle = header.querySelector('h3');
+        headerTitle.style.cssText = `
+            margin: 0;
+            color: var(--chatooly-color-text, #e5e5e5);
+            font-size: 18px;
+        `;
+
+        const body = modal.querySelector('.modal-body');
+        body.style.cssText = `
+            padding: 20px;
+            max-height: 60vh;
+            overflow-y: auto;
+        `;
+
+        const closeBtn = modal.querySelector('.modal-close');
+        closeBtn.style.cssText = `
+            background: none;
+            border: none;
+            font-size: 24px;
+            cursor: pointer;
+            padding: 0;
+            width: 30px;
+            height: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--chatooly-color-text, #e5e5e5);
+        `;
+
+        // Create font upload UI in modal
+        if (this.fontUploadComponent) {
+            this.fontUploadComponent.createUploadUI(
+                body,
+                () => {
+                    this.refreshFontFamilyDropdown();
+                    // Close modal after successful upload
+                    setTimeout(() => {
+                        if (modal.parentNode) {
+                            modal.parentNode.removeChild(modal);
+                        }
+                    }, 2000);
+                }
+            );
+        }
+
+        // Add event listeners
+        closeBtn.addEventListener('click', () => {
+            document.body.removeChild(modal);
+        });
+
+        overlay.addEventListener('click', (e) => {
+            if (e.target === overlay) {
+                document.body.removeChild(modal);
+            }
+        });
+
+        document.body.appendChild(modal);
     }
 
     /**
@@ -139,6 +316,15 @@ class UIManager {
         // Font family changes
         this.elements.fontFamily.addEventListener('change', () => {
             const fontFamily = this.elements.fontFamily.value;
+            
+            // Handle upload option
+            if (fontFamily === '__upload_font__') {
+                this.showFontUploadModal();
+                // Reset to previous selection
+                this.elements.fontFamily.value = this.app.mainTextComponent.fontFamily || '"Wix Madefor Display", Arial, sans-serif';
+                return;
+            }
+            
             this.app.mainTextComponent.fontFamily = fontFamily;
             this.app.textEngine.updateConfig({ fontFamily: fontFamily });
             this.app.onTextChanged(); // Font family affects text width - trigger auto-detection

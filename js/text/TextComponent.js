@@ -68,11 +68,11 @@ class TextComponent {
     }
     
     /**
-     * Get available font options
+     * Get available font options (includes custom fonts)
      * @returns {Array} Array of font options with name and value
      */
     static getAvailableFonts() {
-        return [
+        const defaultFonts = [
             { name: 'Wix Madefor Display', value: '"Wix Madefor Display", Arial, sans-serif' },
             { name: 'Wix Madefor Text', value: '"Wix Madefor Text", Arial, sans-serif' },
             { name: 'Arial', value: 'Arial, sans-serif' },
@@ -84,6 +84,23 @@ class TextComponent {
             { name: 'Trebuchet MS', value: '"Trebuchet MS", Helvetica, sans-serif' },
             { name: 'Impact', value: 'Impact, Charcoal, sans-serif' }
         ];
+
+        // Add custom fonts if FontManager is available
+        if (typeof FontManager !== 'undefined' && window.fontManager) {
+            const customFonts = window.fontManager.getCustomFonts();
+            const customFontOptions = customFonts.map(font => ({
+                name: font.name,
+                value: font.family,
+                isCustom: true,
+                uploadedAt: font.uploadedAt,
+                size: font.size
+            }));
+            
+            // Add custom fonts at the beginning
+            return [...customFontOptions, ...defaultFonts];
+        }
+
+        return defaultFonts;
     }
 
     /**

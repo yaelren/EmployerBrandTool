@@ -2500,3 +2500,215 @@ select option {
         width: 70px !important;
     }
 }
+
+/* Font Upload Styles */
+
+.font-upload-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+}
+
+.font-upload-header h4 {
+    margin: 0;
+    font-size: 14px;
+    color: var(--chatooly-color-text, #e5e5e5);
+}
+
+.font-upload-btn {
+    background: var(--chatooly-color-primary, #e5e5e5);
+    color: var(--chatooly-color-background, #121212);
+    border: none;
+    border-radius: 4px;
+    padding: 6px 12px;
+    font-size: 12px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    transition: background-color 0.2s;
+}
+
+.font-upload-btn:hover {
+    background: var(--chatooly-color-primary-hover, #fff);
+}
+
+.font-upload-dropzone {
+    border: 2px dashed var(--chatooly-color-border, #3a3a3a);
+    border-radius: 6px;
+    padding: 20px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.2s;
+    background: var(--chatooly-color-background, #121212);
+}
+
+.font-upload-dropzone:hover,
+.font-upload-dropzone.drag-over {
+    border-color: var(--chatooly-color-primary, #e5e5e5);
+    background: var(--chatooly-color-surface, #1a1a1a);
+}
+
+.dropzone-content {
+    pointer-events: none;
+}
+
+.dropzone-icon {
+    font-size: 24px;
+    margin-bottom: 8px;
+}
+
+.dropzone-content p {
+    margin: 4px 0;
+    color: var(--chatooly-color-text, #e5e5e5);
+    font-size: 14px;
+}
+
+.dropzone-hint {
+    font-size: 12px !important;
+    color: var(--chatooly-color-text-secondary, #999) !important;
+}
+
+.font-file-input {
+    display: none;
+}
+
+.font-upload-progress {
+    margin-top: 12px;
+}
+
+.progress-bar {
+    width: 100%;
+    height: 4px;
+    background: var(--chatooly-color-border, #3a3a3a);
+    border-radius: 2px;
+    overflow: hidden;
+}
+
+.progress-fill {
+    height: 100%;
+    background: var(--chatooly-color-primary, #e5e5e5);
+    width: 0%;
+    transition: width 0.3s;
+    animation: progress-pulse 1.5s infinite;
+}
+
+@keyframes progress-pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.7; }
+}
+
+.progress-text {
+    margin-top: 4px;
+    font-size: 12px;
+    color: var(--chatooly-color-text-secondary, #999);
+    text-align: center;
+}
+
+.font-upload-error {
+    margin-top: 12px;
+    padding: 8px 12px;
+    background: rgba(244, 67, 54, 0.1);
+    border: 1px solid rgba(244, 67, 54, 0.3);
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.error-icon {
+    font-size: 16px;
+}
+
+.error-message {
+    color: #f44336;
+    font-size: 12px;
+}
+
+.font-list-section {
+    margin-top: 16px;
+}
+
+.font-list-header h4 {
+    margin: 0 0 8px 0;
+    font-size: 14px;
+    color: var(--chatooly-color-text, #e5e5e5);
+}
+
+.font-list-content {
+    max-height: 200px;
+    overflow-y: auto;
+}
+
+.no-fonts-message {
+    text-align: center;
+    padding: 20px;
+    color: var(--chatooly-color-text-secondary, #999);
+}
+
+.no-fonts-message p {
+    margin: 4px 0;
+    font-size: 12px;
+}
+
+.hint {
+    font-style: italic;
+}
+
+.font-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 12px;
+    background: var(--chatooly-color-background, #121212);
+    border: 1px solid var(--chatooly-color-border, #3a3a3a);
+    border-radius: 4px;
+    margin-bottom: 4px;
+}
+
+.font-info {
+    flex: 1;
+}
+
+.font-name {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--chatooly-color-text, #e5e5e5);
+    margin-bottom: 2px;
+}
+
+.font-details {
+    font-size: 11px;
+    color: var(--chatooly-color-text-secondary, #999);
+    display: flex;
+    gap: 12px;
+}
+
+.font-actions {
+    display: flex;
+    gap: 4px;
+}
+
+.font-preview-btn,
+.font-remove-btn {
+    background: none;
+    border: 1px solid var(--chatooly-color-border, #3a3a3a);
+    border-radius: 3px;
+    padding: 4px 6px;
+    cursor: pointer;
+    font-size: 12px;
+    transition: all 0.2s;
+}
+
+.font-preview-btn:hover {
+    background: var(--chatooly-color-primary, #e5e5e5);
+    color: var(--chatooly-color-background, #121212);
+}
+
+.font-remove-btn:hover {
+    background: #f44336;
+    color: white;
+    border-color: #f44336;
+}
+

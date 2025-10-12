@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Font Upload Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background: #121212;
+            color: #e5e5e5;
+        }
+        .test-section {
+            margin: 20px 0;
+            padding: 20px;
+            border: 1px solid #3a3a3a;
+            border-radius: 8px;
+            background: #1a1a1a;
+        }
+        .test-text {
+            font-size: 24px;
+            margin: 10px 0;
+            padding: 10px;
+            background: #2a2a2a;
+            border-radius: 4px;
+        }
+        .font-info {
+            font-size: 14px;
+            color: #999;
+            margin: 5px 0;
+        }
+    </style>
+</head>
+<body>
+    <h1>Font Upload System Test</h1>
+    
+    <div class="test-section">
+        <h2>Font Manager Test</h2>
+        <div id="fontManagerTest">
+            <p>Testing FontManager initialization...</p>
+        </div>
+    </div>
+
+    <div class="test-section">
+        <h2>Font Upload Component Test</h2>
+        <div id="fontUploadTest">
+            <p>Testing FontUploadComponent initialization...</p>
+        </div>
+    </div>
+
+    <div class="test-section">
+        <h2>TextComponent Integration Test</h2>
+        <div id="textComponentTest">
+            <p>Testing TextComponent.getAvailableFonts()...</p>
+        </div>
+    </div>
+
+    <div class="test-section">
+        <h2>Font Preview Test</h2>
+        <div class="test-text" id="fontPreview" style="font-family: 'Wix Madefor Display', Arial, sans-serif;">
+            The quick brown fox jumps over the lazy dog
+        </div>
+        <div class="font-info" id="currentFont">Current font: Wix Madefor Display</div>
+    </div>
+
+    <!-- Load the font management scripts -->
+    <script src="js/text/FontManager.js"></script>
+    <script src="js/text/FontUploadComponent.js"></script>
+    <script src="js/text/TextComponent.js"></script>
+
+    <script>
+        // Test FontManager
+        function testFontManager() {
+            const testDiv = document.getElementById('fontManagerTest');
+            try {
+                if (typeof FontManager !== 'undefined') {
+                    window.fontManager = new FontManager();
+                    testDiv.innerHTML = `
+                        <p style="color: #4CAF50;">✅ FontManager initialized successfully</p>
+                        <p>Custom fonts loaded: ${window.fontManager.getCustomFonts().length}</p>
+                    `;
+                } else {
+                    testDiv.innerHTML = '<p style="color: #f44336;">❌ FontManager not found</p>';
+                }
+            } catch (error) {
+                testDiv.innerHTML = `<p style="color: #f44336;">❌ FontManager error: ${error.message}</p>`;
+            }
+        }
+
+        // Test FontUploadComponent
+        function testFontUploadComponent() {
+            const testDiv = document.getElementById('fontUploadTest');
+            try {
+                if (typeof FontUploadComponent !== 'undefined' && window.fontManager) {
+                    const uploadComponent = new FontUploadComponent(window.fontManager);
+                    testDiv.innerHTML = `
+                        <p style="color: #4CAF50;">✅ FontUploadComponent initialized successfully</p>
+                        <p>Component created and ready for UI integration</p>
+                    `;
+                } else {
+                    testDiv.innerHTML = '<p style="color: #f44336;">❌ FontUploadComponent not found or FontManager not available</p>';
+                }
+            } catch (error) {
+                testDiv.innerHTML = `<p style="color: #f44336;">❌ FontUploadComponent error: ${error.message}</p>`;
+            }
+        }
+
+        // Test TextComponent integration
+        function testTextComponent() {
+            const testDiv = document.getElementById('textComponentTest');
+            try {
+                if (typeof TextComponent !== 'undefined') {
+                    const fonts = TextComponent.getAvailableFonts();
+                    const customFonts = fonts.filter(font => font.isCustom);
+                    
+                    testDiv.innerHTML = `
+                        <p style="color: #4CAF50;">✅ TextComponent.getAvailableFonts() working</p>
+                        <p>Total fonts: ${fonts.length}</p>
+                        <p>Custom fonts: ${customFonts.length}</p>
+                        <p>Default fonts: ${fonts.length - customFonts.length}</p>
+                        <details>
+                            <summary>Available Fonts</summary>
+                            <ul>
+                                ${fonts.map(font => `<li>${font.name}${font.isCustom ? ' (Custom)' : ''}</li>`).join('')}
+                            </ul>
+                        </details>
+                    `;
+                } else {
+                    testDiv.innerHTML = '<p style="color: #f44336;">❌ TextComponent not found</p>';
+                }
+            } catch (error) {
+                testDiv.innerHTML = `<p style="color: #f44336;">❌ TextComponent error: ${error.message}</p>`;
+            }
+        }
+
+        // Run tests when page loads
+        document.addEventListener('DOMContentLoaded', () => {
+            testFontManager();
+            testFontUploadComponent();
+            testTextComponent();
+        });
+    </script>
+</body>
+</html>
