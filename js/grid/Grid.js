@@ -31,6 +31,9 @@ class Grid {
             // Capture animation state before rebuild
             const animationState = this.captureAnimationState();
 
+            // Capture background state before rebuild
+            const backgroundState = this.captureBackgroundState();
+
             // Capture disappearing content for waiting system
             this.captureDisappearingContent();
 
@@ -72,6 +75,9 @@ class Grid {
 
             // Restore animation state using contentId
             this.restoreAnimationState(animationState);
+
+            // Restore background properties to matching cells
+            this.restoreBackgroundState(backgroundState);
 
             // Save original bounds for all cells
             this._saveOriginalBounds();
@@ -465,6 +471,39 @@ class Grid {
                 if (anim.isPlaying && cell.animation) {
                     cell.animation.play();
                 }
+            }
+        });
+    }
+
+    /**
+     * Capture all background state before rebuild
+     * @returns {Object} Map of contentId → background config
+     */
+    captureBackgroundState() {
+        const state = {};
+
+        this.getAllCells().forEach(cell => {
+            if (cell && cell.type === 'main-text') {
+                state[cell.contentId] = {
+                    fillWithBackgroundColor: cell.fillWithBackgroundColor,
+                    backgroundColor: cell.backgroundColor
+                };
+            }
+        });
+
+        return state;
+    }
+
+    /**
+     * Restore background state after rebuild
+     * @param {Object} state - Background state map
+     */
+    restoreBackgroundState(state) {
+        this.getAllCells().forEach(cell => {
+            if (cell && cell.type === 'main-text' && state[cell.contentId]) {
+                const bg = state[cell.contentId];
+                cell.fillWithBackgroundColor = bg.fillWithBackgroundColor;
+                cell.backgroundColor = bg.backgroundColor;
             }
         });
     }
