@@ -60,83 +60,73 @@ SPOTLIGHT
 2024</textarea>
                     </div>
                     
-                    <!-- Text Color -->
-                    <div class="chatooly-control-group">
-                        <label for="textColor">Text Color</label>
-                        <input type="color" id="textColor" value="#000000">
-                    </div>
+                    <!-- Compact Main Text Controls -->
                     
-                    <!-- Main Text Styling -->
-                    <div class="chatooly-control-group">
-                        <label>Text Styling</label>
-                        <div class="main-text-styling">
-                            <button type="button" class="main-style-btn" id="mainTextBold" title="Bold">B</button>
-                            <button type="button" class="main-style-btn" id="mainTextItalic" title="Italic">I</button>
-                            <button type="button" class="main-style-btn" id="mainTextUnderline" title="Underline">U</button>
-                            <button type="button" class="main-style-btn" id="mainTextHighlight" title="Highlight">H</button>
-                        </div>
-                    </div>
-                    
-                    <!-- Text Highlight Color -->
-                    <div class="chatooly-control-group" id="highlightColorGroup" style="display: none;">
-                        <label for="mainTextHighlightColor">Highlight Color</label>
-                        <input type="color" id="mainTextHighlightColor" value="#ffff00">
-                    </div>
-                    
-                    <!-- Text Mode Selection -->
-                    <div class="chatooly-control-group">
-                        <label>
-                            <input type="radio" name="textMode" id="fillCanvasMode" checked>
-                            Fill Entire Canvas (Auto-sized)
-                        </label>
-                        <label>
-                            <input type="radio" name="textMode" id="manualMode">
-                            Manual Control (Can overflow)
-                        </label>
-                    </div>
-                    
-                    <!-- Font Family Control (always visible) -->
-                    <div class="chatooly-control-group">
-                        <label for="fontFamily">Font Family</label>
+                    <!-- Font Family Row -->
+                    <div class="chatooly-control-group compact-row">
+                        <label for="fontFamily">Font</label>
                         <select id="fontFamily">
                             <!-- Options will be populated by JavaScript -->
                         </select>
                     </div>
                     
-                    <!-- Manual Mode Controls (hidden in Fill Canvas mode) -->
-                    <div id="manualControls" style="display: none;">
-                        <div class="chatooly-control-group">
-                            <label for="fontSize">Font Size</label>
-                            <input type="range" id="fontSize" min="20" max="200" value="48">
-                            <span id="fontSizeValue">48px</span>
+                    <!-- Size and Line Spacing Row -->
+                    <div class="chatooly-control-group compact-row">
+                        <div class="compact-control">
+                            <label for="fontSize">Size</label>
+                            <input type="number" id="fontSize" min="20" max="200" value="48" step="1">
+                            <span class="unit">px</span>
                         </div>
-                        
-                        <div class="chatooly-control-group">
+                        <div class="compact-control">
                             <label for="lineSpacing">Line Spacing</label>
-                            <input type="range" id="lineSpacing" min="0" max="300" step="5" value="10">
-                            <span id="lineSpacingValue">10px</span>
+                            <input type="number" id="lineSpacing" min="0" max="300" value="10" step="1">
+                            <span class="unit">px</span>
                         </div>
-                        
-                        <div class="chatooly-control-group">
-                            <label>
-                                <input type="checkbox" id="enableWrap" checked>
-                                Enable Text Wrapping
-                            </label>
+                    </div>
+                    
+                    <!-- Color and Styling Row -->
+                    <div class="chatooly-control-group compact-row">
+                        <div class="compact-control">
+                            <label for="textColor">Color</label>
+                            <input type="color" id="textColor" value="#000000">
                         </div>
-                        
-                        <!-- Text Positioning Controls -->
-                        <div class="chatooly-control-group">
-                            <div class="positioning-grid">
-                                <button type="button" class="pos-btn" data-vertical="top" data-horizontal="left">↖</button>
-                                <button type="button" class="pos-btn" data-vertical="top" data-horizontal="center">↑</button>
-                                <button type="button" class="pos-btn" data-vertical="top" data-horizontal="right">↗</button>
-                                <button type="button" class="pos-btn" data-vertical="center" data-horizontal="left">←</button>
-                                <button type="button" class="pos-btn active" data-vertical="center" data-horizontal="center">●</button>
-                                <button type="button" class="pos-btn" data-vertical="center" data-horizontal="right">→</button>
-                                <button type="button" class="pos-btn" data-vertical="bottom" data-horizontal="left">↙</button>
-                                <button type="button" class="pos-btn" data-vertical="bottom" data-horizontal="center">↓</button>
-                                <button type="button" class="pos-btn" data-vertical="bottom" data-horizontal="right">↘</button>
+                        <div class="compact-control">
+                            <label>Styling</label>
+                            <div class="main-text-styling">
+                                <button type="button" class="main-style-btn" id="mainTextBold" title="Bold">B</button>
+                                <button type="button" class="main-style-btn" id="mainTextItalic" title="Italic">I</button>
+                                <button type="button" class="main-style-btn" id="mainTextUnderline" title="Underline">U</button>
+                                <button type="button" class="main-style-btn" id="mainTextHighlight" title="Highlight">H</button>
                             </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Text Highlight Color (hidden by default) -->
+                    <div class="chatooly-control-group" id="highlightColorGroup" style="display: none;">
+                        <label for="mainTextHighlightColor">Highlight Color</label>
+                        <input type="color" id="mainTextHighlightColor" value="#ffff00">
+                    </div>
+                    
+                    <!-- Text Wrapping Toggle -->
+                    <div class="chatooly-control-group compact-row">
+                        <label>
+                            <input type="checkbox" id="enableWrap" checked>
+                            Enable Text Wrapping
+                        </label>
+                    </div>
+                    
+                    <!-- Text Positioning Controls -->
+                    <div class="chatooly-control-group">
+                        <div class="positioning-grid">
+                            <button type="button" class="pos-btn" data-vertical="top" data-horizontal="left">↖</button>
+                            <button type="button" class="pos-btn" data-vertical="top" data-horizontal="center">↑</button>
+                            <button type="button" class="pos-btn" data-vertical="top" data-horizontal="right">↗</button>
+                            <button type="button" class="pos-btn" data-vertical="center" data-horizontal="left">←</button>
+                            <button type="button" class="pos-btn active" data-vertical="center" data-horizontal="center">●</button>
+                            <button type="button" class="pos-btn" data-vertical="center" data-horizontal="right">→</button>
+                            <button type="button" class="pos-btn" data-vertical="bottom" data-horizontal="left">↙</button>
+                            <button type="button" class="pos-btn" data-vertical="bottom" data-horizontal="center">↓</button>
+                            <button type="button" class="pos-btn" data-vertical="bottom" data-horizontal="right">↘</button>
                         </div>
                     </div>
                     

@@ -16,6 +16,9 @@ class UIManager {
         this.cacheUIElements();
         this.initializeFontFamilyDropdown();
         this.setupEventListeners();
+        
+        // Set default mode to manual
+        this.setTextMode('manual');
     }
 
     /**
@@ -37,13 +40,8 @@ class UIManager {
             backgroundFitMode: 'backgroundFitMode',
             fontFamily: 'fontFamily',
             fontSize: 'fontSize',
-            fontSizeValue: 'fontSizeValue',
             lineSpacing: 'lineSpacing',
-            lineSpacingValue: 'lineSpacingValue',
             enableWrap: 'enableWrap',
-            fillCanvasMode: 'fillCanvasMode',
-            manualMode: 'manualMode',
-            manualControls: 'manualControls',
             paddingHorizontal: 'paddingHorizontal',
             paddingHorizontalValue: 'paddingHorizontalValue',
             paddingVertical: 'paddingVertical',
@@ -245,45 +243,30 @@ class UIManager {
         // Font size changes
         this.elements.fontSize.addEventListener('input', () => {
             const fontSize = parseInt(this.elements.fontSize.value);
-            this.elements.fontSizeValue.textContent = fontSize + 'px';
             this.app.textEngine.updateConfig({ fontSize });
             this.app.applySavedAlignments(); // Restore alignments after config change
             this.app.render(); // Update display immediately
         });
 
-        // Font size auto-detection on release
+        // Font size auto-detection on change
         this.elements.fontSize.addEventListener('change', () => {
-            this.app.onTextChanged(); // Trigger auto-detection when slider is released
+            this.app.onTextChanged(); // Trigger auto-detection when value changes
         });
 
         // Line spacing changes
         this.elements.lineSpacing.addEventListener('input', () => {
             const lineSpacing = parseInt(this.elements.lineSpacing.value);
-            this.elements.lineSpacingValue.textContent = lineSpacing + 'px';
             this.app.textEngine.updateConfig({ lineSpacing });
             this.app.applySavedAlignments(); // Restore alignments after config change
             this.app.render(); // Update display immediately
         });
 
-        // Line spacing auto-detection on release
+        // Line spacing auto-detection on change
         this.elements.lineSpacing.addEventListener('change', () => {
-            this.app.onTextChanged(); // Trigger auto-detection when slider is released
+            this.app.onTextChanged(); // Trigger auto-detection when value changes
         });
 
-        // Mode selection
-        this.elements.fillCanvasMode.addEventListener('change', () => {
-            if (this.elements.fillCanvasMode.checked) {
-                this.setTextMode('fillCanvas');
-            }
-        });
-
-        this.elements.manualMode.addEventListener('change', () => {
-            if (this.elements.manualMode.checked) {
-                this.setTextMode('manual');
-            }
-        });
-
-        // Text wrapping toggle (only in manual mode)
+        // Text wrapping toggle
         this.elements.enableWrap.addEventListener('change', () => {
             const enableWrap = this.elements.enableWrap.checked;
             this.app.textEngine.updateConfig({ enableWrap });
@@ -1238,35 +1221,18 @@ class UIManager {
     }
 
     /**
-     * Set text mode and update UI accordingly
-     * @param {string} mode - 'fillCanvas' or 'manual'
+     * Set text mode (manual only)
+     * @param {string} mode - 'manual' (only mode supported)
      */
     setTextMode(mode) {
-        // When switching to manual mode, preserve current font size and line height
-        if (mode === 'manual') {
-            const currentConfig = this.app.textEngine.getConfig();
-
-            // Update UI controls to reflect current state
-            this.elements.fontSize.value = currentConfig.fontSize;
-            this.elements.fontSizeValue.textContent = currentConfig.fontSize + 'px';
-            this.elements.lineSpacing.value = currentConfig.lineSpacing;
-            this.elements.lineSpacingValue.textContent = currentConfig.lineSpacing + 'px';
-        }
-
-        this.app.textEngine.updateConfig({ mode });
+        // Always use manual mode
+        this.app.textEngine.updateConfig({ mode: 'manual' });
 
         // Update canvas dimensions in textEngine
         this.app.textEngine.updateConfig({
             canvasWidth: this.app.canvasManager.canvas.width,
             canvasHeight: this.app.canvasManager.canvas.height
         });
-
-        // Show/hide manual controls
-        if (mode === 'manual') {
-            this.elements.manualControls.style.display = 'block';
-        } else {
-            this.elements.manualControls.style.display = 'none';
-        }
 
         this.app.onTextChanged();
     }

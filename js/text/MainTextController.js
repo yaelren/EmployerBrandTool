@@ -22,7 +22,7 @@ class MainTextController {
             paddingRight: 20,
             maxFontSize: 120,
             minFontSize: 12,
-            mode: 'fillCanvas', // 'fillCanvas' or 'manual'
+            mode: 'manual', // 'fillCanvas' or 'manual'
             textPositionVertical: 'center', // 'top', 'center', 'bottom'
             textPositionHorizontal: 'center', // 'left', 'center', 'right'
             textStyles: {
@@ -92,12 +92,8 @@ class MainTextController {
     setText(text) {
         this.rawText = text;
         
-        if (this.config.mode === 'fillCanvas') {
-            // In fill canvas mode, always enable wrapping and minimize spacing
-            this.config.enableWrap = true;
-            this.config.lineSpacing = 0; // No extra space between lines for maximum text size
-            this.optimizeFontSizeForCanvas();
-        } else if (this.config.mode === 'manual' && !this.config.enableWrap) {
+        // Manual mode only - no auto-sizing
+        if (!this.config.enableWrap) {
             this.optimizeFontSizeNoWrap();
         }
         
@@ -433,40 +429,19 @@ class MainTextController {
             }
         });
         
-        // Determine vertical positioning
+        // Determine vertical positioning (manual mode only)
         let startY;
-        if (this.config.mode === 'fillCanvas') {
-            // Fill Canvas mode: distribute lines evenly from top to bottom
-            const availableHeight = canvasHeight - this.config.paddingTop - this.config.paddingBottom;
-            // If we have multiple lines, distribute them evenly across full height
-            if (this.textBounds.length > 1) {
-                // Start from top padding
+        switch (this.config.textPositionVertical) {
+            case 'top':
                 startY = this.config.paddingTop;
-                // Calculate spacing to fill the entire available height
-                const totalTextHeight = this.textBounds.reduce((sum, bounds) => sum + bounds.height, 0);
-                const extraSpace = availableHeight - totalTextHeight;
-                // Distribute extra space between lines (not before first or after last)
-                const spacingBetweenLines = extraSpace / (this.textBounds.length - 1);
-                // Override lineSpacing for even distribution
-                this.config.lineSpacing = spacingBetweenLines;
-            } else {
-                // Single line: center it
-                startY = this.config.paddingTop + (availableHeight - totalHeight) / 2;
-            }
-        } else {
-            // Manual mode: use positioning preference
-            switch (this.config.textPositionVertical) {
-                case 'top':
-                    startY = this.config.paddingTop;
-                    break;
-                case 'bottom':
-                    startY = canvasHeight - this.config.paddingBottom - totalHeight;
-                    break;
-                case 'center':
-                default:
-                    startY = (canvasHeight - totalHeight) / 2;
-                    break;
-            }
+                break;
+            case 'bottom':
+                startY = canvasHeight - this.config.paddingBottom - totalHeight;
+                break;
+            case 'center':
+            default:
+                startY = (canvasHeight - totalHeight) / 2;
+                break;
         }
         
         this.textBounds.forEach((bounds, index) => {

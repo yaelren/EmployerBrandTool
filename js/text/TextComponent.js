@@ -874,7 +874,7 @@ class MainTextComponent extends TextComponent {
         this.alignV = 'middle';
         
         // Canvas filling mode
-        this.fillCanvas = true;
+        this.fillCanvas = false;
         
         // Per-line alignment support
         this.lineAlignments = {}; // { lineIndex: 'left' | 'center' | 'right' }

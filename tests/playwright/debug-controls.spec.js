@@ -202,14 +202,13 @@ test.describe('Debug Controls System', () => {
       await page.locator('#showPadding').click();
       
       // Switch to manual mode
-      await page.locator('#manualMode').click();
+      // Manual mode is now the default - no need to switch
       
       // Debug controls should still be enabled
       await expect(page.locator('#showTextBounds')).toBeChecked();
       await expect(page.locator('#showPadding')).toBeChecked();
       
-      // Switch back to fill canvas mode
-      await page.locator('#fillCanvasMode').click();
+      // Manual mode is now the default - no need to switch modes
       
       // Debug controls should still be enabled
       await expect(page.locator('#showTextBounds')).toBeChecked();
@@ -291,7 +290,7 @@ test.describe('Debug Controls System', () => {
       await page.locator('.tab-btn[data-tab="mainText"]').click();
       
       // Switch to manual mode to access line spacing control
-      await page.locator('#manualMode').click();
+      // Manual mode is now the default - no need to switch
       
       // Change line spacing
       const lineSpacingSlider = page.locator('#lineSpacing');

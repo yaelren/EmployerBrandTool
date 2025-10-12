@@ -251,14 +251,13 @@ test.describe('TextComponent System', () => {
       await page.locator('#mainTextItalic').click();
       
       // Switch to manual mode
-      await page.locator('#manualMode').click();
+      // Manual mode is now the default - no need to switch
       
       // Check styling is maintained
       await expect(page.locator('#mainTextBold')).toHaveClass(/active/);
       await expect(page.locator('#mainTextItalic')).toHaveClass(/active/);
       
-      // Switch back to fill canvas mode
-      await page.locator('#fillCanvasMode').click();
+      // Manual mode is now the default - no need to switch modes
       
       // Check styling is still maintained
       await expect(page.locator('#mainTextBold')).toHaveClass(/active/);

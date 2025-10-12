@@ -80,7 +80,7 @@ class EmployerBrandToolPOC {
             this.textEngine.updateConfig({
                 canvasWidth: this.canvasManager.canvas.width,
                 canvasHeight: this.canvasManager.canvas.height,
-                mode: 'fillCanvas' // Set default mode
+                mode: 'manual' // Set default mode to manual
             });
 
             // Initialize main text component
@@ -179,6 +179,11 @@ class EmployerBrandToolPOC {
      * @private
      */
     onTextChanged() {
+        if (!this.uiManager || !this.uiManager.elements) {
+            console.warn('UIManager not ready, skipping text change');
+            return;
+        }
+        
         const text = this.uiManager.elements.mainText.value;
         this.mainTextComponent.text = text;
 
@@ -232,7 +237,7 @@ class EmployerBrandToolPOC {
         }
 
         // Auto-detect spots after text changes (only if there's text content)
-        if (this.uiManager.elements.mainText.value.trim()) {
+        if (this.uiManager && this.uiManager.elements && this.uiManager.elements.mainText.value.trim()) {
             this.autoDetectSpotsDebounced();
         }
     }
@@ -859,12 +864,8 @@ class EmployerBrandToolPOC {
             bottom: paddingV
         });
         
-        // Update text mode (auto-size vs manual)
-        if (this.uiManager.elements.fillCanvasMode.checked) {
-            this.mainTextComponent.fontSize = 'auto';
-        } else {
-            this.mainTextComponent.fontSize = parseInt(this.uiManager.elements.fontSize.value);
-        }
+        // Update text mode (manual only)
+        this.mainTextComponent.fontSize = parseInt(this.uiManager.elements.fontSize.value);
         
         // Update line spacing
         this.mainTextComponent.lineSpacing = parseInt(this.uiManager.elements.lineSpacing.value);
@@ -872,15 +873,13 @@ class EmployerBrandToolPOC {
         // Update wrapping
         this.mainTextComponent.wrapText = this.uiManager.elements.enableWrap.checked;
         
-        // Update positioning for manual mode
-        if (this.uiManager.elements.manualMode.checked) {
-            const activePos = document.querySelector('.pos-btn.active');
-            if (activePos) {
-                this.mainTextComponent.alignH = activePos.dataset.horizontal;
-                this.mainTextComponent.alignV = activePos.dataset.vertical;
-            }
+        // Update positioning (always manual mode)
+        const activePos = document.querySelector('.pos-btn.active');
+        if (activePos) {
+            this.mainTextComponent.alignH = activePos.dataset.horizontal;
+            this.mainTextComponent.alignV = activePos.dataset.vertical;
         } else {
-            // Fill canvas mode uses center alignment
+            // Default to center alignment if no position button is active
             this.mainTextComponent.alignH = 'center';
             this.mainTextComponent.alignV = 'middle';
         }
@@ -975,7 +974,7 @@ class EmployerBrandToolPOC {
         this.render();
 
         // Trigger spot detection if auto-detect is enabled
-        if (this.autoDetectSpots && this.uiManager.elements.mainText.value.trim()) {
+        if (this.autoDetectSpots && this.uiManager && this.uiManager.elements && this.uiManager.elements.mainText.value.trim()) {
             this.autoDetectSpotsDebounced(300);
         }
     }
