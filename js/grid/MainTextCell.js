@@ -23,6 +23,10 @@ class MainTextCell extends GridCell {
         // Set default layer for main text (should be on top by default)
         this.layerId = 'main-text';
 
+        // Background properties for main text cells
+        this.fillWithBackgroundColor = false;  // Default: show global background
+        this.backgroundColor = null;          // Custom color override
+
         // Text cells support animations (inherited from GridCell)
     }
 
@@ -130,6 +134,44 @@ class MainTextCell extends GridCell {
     }
 
     /**
+     * Render cell background based on settings
+     * @param {CanvasRenderingContext2D} ctx - Canvas context
+     * @param {BackgroundManager} globalBackground - Global background manager
+     */
+    renderBackground(ctx, globalBackground) {
+        if (!this.fillWithBackgroundColor) {
+            // Show global background (already rendered)
+            return;
+        }
+        
+        let backgroundColor;
+        if (this.backgroundColor) {
+            backgroundColor = this.backgroundColor;
+        } else {
+            backgroundColor = globalBackground.backgroundColor;
+        }
+        
+        ctx.fillStyle = backgroundColor;
+        ctx.fillRect(this.bounds.x, this.bounds.y, this.bounds.width, this.bounds.height);
+    }
+
+    /**
+     * Set fill with background color for main text cells
+     * @param {boolean} enabled - Whether to fill with background color
+     */
+    setFillWithBackgroundColor(enabled) {
+        this.fillWithBackgroundColor = enabled;
+    }
+    
+    /**
+     * Set custom background color for main text cells
+     * @param {string} color - Background color (hex string)
+     */
+    setBackgroundColor(color) {
+        this.backgroundColor = color;
+    }
+
+    /**
      * Serialize MainTextCell data to JSON
      * @returns {Object} - Serializable representation
      */
@@ -143,7 +185,9 @@ class MainTextCell extends GridCell {
         return {
             ...baseData,
             ...textData,
-            lineIndex: this.lineIndex
+            lineIndex: this.lineIndex,
+            fillWithBackgroundColor: this.fillWithBackgroundColor,
+            backgroundColor: this.backgroundColor
         };
     }
 
@@ -163,6 +207,10 @@ class MainTextCell extends GridCell {
         
         // Restore TextComponent properties
         cell.textComponent.fromJSON(data);
+        
+        // Restore background properties
+        cell.fillWithBackgroundColor = data.fillWithBackgroundColor || false;
+        cell.backgroundColor = data.backgroundColor || null;
         
         // Restore animation if present
         if (data.animation) {

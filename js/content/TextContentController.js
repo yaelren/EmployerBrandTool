@@ -83,6 +83,11 @@ class TextContentController extends ContentController {
             controls.push(highlightColorGroup);
         }
 
+        // Background controls
+        const backgroundGroup = this.createBackgroundControls(cell, context);
+        container.appendChild(backgroundGroup);
+        controls.push(backgroundGroup);
+
         return controls;
     }
     
@@ -604,5 +609,52 @@ class TextContentController extends ContentController {
         });
 
         return highlightColorGroup;
+    }
+
+    /**
+     * Create background controls for image/text cells
+     * @param {ContentCell} cell - Cell object
+     * @param {string} context - 'sidebar' or 'popup'
+     * @returns {HTMLElement} Created background controls element
+     * @protected
+     */
+    createBackgroundControls(cell, context) {
+        const group = this.createControlGroup(context);
+        group.innerHTML = `
+            <label>Background:</label>
+            <label>
+                <input type="checkbox" id="textFillWithBackgroundColor" ${cell.content.fillWithBackgroundColor ? 'checked' : ''}>
+                Fill with background color
+            </label>
+            <div id="textBackgroundColorContainer" style="display: ${cell.content.fillWithBackgroundColor ? 'block' : 'none'};">
+                <label for="textBackgroundColor">Background Color:</label>
+                <input type="color" id="textBackgroundColor" value="${cell.content.backgroundColor || this.app.canvasManager.backgroundManager.backgroundColor}">
+            </div>
+        `;
+
+        // Add event listeners
+        const checkbox = group.querySelector('#textFillWithBackgroundColor');
+        const colorContainer = group.querySelector('#textBackgroundColorContainer');
+        const colorPicker = group.querySelector('#textBackgroundColor');
+
+        checkbox.addEventListener('change', (e) => {
+            cell.content.fillWithBackgroundColor = e.target.checked;
+            colorContainer.style.display = e.target.checked ? 'block' : 'none';
+            
+            if (e.target.checked && !cell.content.backgroundColor) {
+                // Set to global background color if no custom color is set
+                cell.content.backgroundColor = this.app.canvasManager.backgroundManager.backgroundColor;
+                colorPicker.value = cell.content.backgroundColor;
+            }
+            
+            this.app.render();
+        });
+
+        colorPicker.addEventListener('change', (e) => {
+            cell.content.backgroundColor = e.target.value;
+            this.app.render();
+        });
+
+        return group;
     }
 }

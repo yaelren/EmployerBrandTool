@@ -39,7 +39,7 @@ class EmployerBrandToolPOC {
             'empty': new EmptyContentController(this),
             'text': new TextContentController(this),
             'image': new ImageContentController(this),
-            'mask': new MaskContentController(this)
+            'fill': new FillContentController(this)
         };
 
         // Shuffler System
@@ -725,6 +725,11 @@ class EmployerBrandToolPOC {
         
         // Render based on cell type
         if (cell.type === 'main-text') {
+            // Render cell background first (if needed)
+            if (cell.renderBackground) {
+                cell.renderBackground(ctx, this.canvasManager.backgroundManager);
+            }
+            
             CellRenderer.renderTextCell(ctx, cell, debugOptions);
             
             // Draw debug outline if enabled
@@ -753,6 +758,11 @@ class EmployerBrandToolPOC {
                 ctx.fillText(cell.id.toString(), center.x, center.y);
             }
         } else if (cell instanceof ContentCell) {
+            // Render cell background first (if needed)
+            if (cell.renderBackground) {
+                cell.renderBackground(ctx, this.canvasManager.backgroundManager);
+            }
+            
             const renderOptions = {
                 showOutlines: debugOptions.showSpotOutlines,
                 showNumbers: debugOptions.showSpotNumbers,
@@ -868,6 +878,14 @@ class EmployerBrandToolPOC {
         const paddingH = parseInt(this.uiManager.elements.paddingHorizontal.value);
         const paddingV = parseInt(this.uiManager.elements.paddingVertical.value);
         this.mainTextComponent.setPaddingIndividual({
+            left: paddingH,
+            right: paddingH,
+            top: paddingV,
+            bottom: paddingV
+        });
+        
+        // Update background padding for fit-within-padding mode
+        this.canvasManager.setBackgroundPadding({
             left: paddingH,
             right: paddingH,
             top: paddingV,

@@ -35,15 +35,9 @@ class UIManager {
             mainText: 'mainText',
             textColor: 'textColor',
             backgroundColor: 'backgroundColor',
-            backgroundOpacity: 'backgroundOpacity',
-            backgroundOpacityValue: 'backgroundOpacityValue',
-            transparentBackground: 'transparentBackground',
-            backgroundMedia: 'backgroundMedia',
-            clearBackgroundMedia: 'clearBackgroundMedia',
-            backgroundVideoControls: 'backgroundVideoControls',
-            backgroundVideoAutoplay: 'backgroundVideoAutoplay',
-            backgroundVideoLoop: 'backgroundVideoLoop',
-            backgroundFitMode: 'backgroundFitMode',
+            backgroundImage: 'backgroundImage',
+            clearBackgroundImage: 'clearBackgroundImage',
+            backgroundFillMode: 'backgroundFillMode',
             fontFamily: 'fontFamily',
             fontSize: 'fontSize',
             lineSpacing: 'lineSpacing',
@@ -60,7 +54,9 @@ class UIManager {
             mainTextItalic: 'mainTextItalic',
             mainTextUnderline: 'mainTextUnderline',
             mainTextHighlight: 'mainTextHighlight',
-            mainTextHighlightColor: 'mainTextHighlightColor'
+            mainTextHighlightColor: 'mainTextHighlightColor',
+            mainTextFillWithBackgroundColor: 'mainTextFillWithBackgroundColor',
+            mainTextBackgroundColor: 'mainTextBackgroundColor'
         };
 
         // Cache all elements
@@ -427,66 +423,81 @@ class UIManager {
             }
         });
 
+        // Main text background controls
+        if (this.elements.mainTextFillWithBackgroundColor) {
+            this.elements.mainTextFillWithBackgroundColor.addEventListener('change', (e) => {
+                const enabled = e.target.checked;
+                const colorContainer = document.getElementById('mainTextBackgroundColorContainer');
+                
+                // Show/hide color picker
+                colorContainer.style.display = enabled ? 'block' : 'none';
+                
+                // Update all main text cells
+                this.app.grid?.getAllCells().forEach(cell => {
+                    if (cell.type === 'main-text') {
+                        cell.setFillWithBackgroundColor(enabled);
+                        
+                        // Set to global background color if no custom color is set
+                        if (enabled && !cell.backgroundColor) {
+                            cell.setBackgroundColor(this.app.canvasManager.backgroundManager.backgroundColor);
+                            this.elements.mainTextBackgroundColor.value = cell.backgroundColor;
+                        }
+                    }
+                });
+                
+                this.app.render();
+            });
+        }
+
+        if (this.elements.mainTextBackgroundColor) {
+            this.elements.mainTextBackgroundColor.addEventListener('input', (e) => {
+                const color = e.target.value;
+                
+                // Update all main text cells
+                this.app.grid?.getAllCells().forEach(cell => {
+                    if (cell.type === 'main-text') {
+                        cell.setBackgroundColor(color);
+                    }
+                });
+                
+                this.app.render();
+            });
+        }
+
         // Background color changes
         if (this.elements.backgroundColor) {
-            console.log('Background color element found, adding event listener');
             this.elements.backgroundColor.addEventListener('input', () => {
-                console.log('Background color changed:', this.elements.backgroundColor.value);
-                this.updateBackgroundColor();
-            });
-        } else {
-            console.warn('Background color element not found');
-        }
-
-        // Background opacity changes
-        if (this.elements.backgroundOpacity) {
-            this.elements.backgroundOpacity.addEventListener('input', () => {
-                const opacity = parseInt(this.elements.backgroundOpacity.value);
-                if (this.elements.backgroundOpacityValue) {
-                    this.elements.backgroundOpacityValue.textContent = opacity + '%';
-                }
-                this.updateBackgroundColor();
+                this.app.canvasManager.setBackgroundColor(this.elements.backgroundColor.value);
+                this.app.render();
             });
         }
 
-        // Transparent background toggle
-        if (this.elements.transparentBackground) {
-            this.elements.transparentBackground.addEventListener('change', () => {
-                this.updateBackgroundColor();
+        // Background image upload
+        if (this.elements.backgroundImage) {
+            this.elements.backgroundImage.addEventListener('change', (e) => {
+                this.handleBackgroundImageUpload(e);
             });
         }
 
-        // Background media upload
-        if (this.elements.backgroundMedia) {
-            this.elements.backgroundMedia.addEventListener('change', (e) => {
-                this.handleBackgroundMediaUpload(e);
+        // Clear background image
+        if (this.elements.clearBackgroundImage) {
+            this.elements.clearBackgroundImage.addEventListener('click', () => {
+                this.clearBackgroundImage();
             });
         }
 
-        // Clear background media
-        if (this.elements.clearBackgroundMedia) {
-            this.elements.clearBackgroundMedia.addEventListener('click', () => {
-                this.clearBackgroundMedia();
+        // Background space (canvas vs padding)
+        const spaceRadios = document.querySelectorAll('input[name="backgroundSpace"]');
+        spaceRadios.forEach(radio => {
+            radio.addEventListener('change', () => {
+                this.updateBackgroundMode();
             });
-        }
+        });
 
-        // Background video controls
-        if (this.elements.backgroundVideoAutoplay) {
-            this.elements.backgroundVideoAutoplay.addEventListener('change', (e) => {
-                this.updateBackgroundVideoSettings();
-            });
-        }
-
-        if (this.elements.backgroundVideoLoop) {
-            this.elements.backgroundVideoLoop.addEventListener('change', (e) => {
-                this.updateBackgroundVideoSettings();
-            });
-        }
-
-        // Background fit mode
-        if (this.elements.backgroundFitMode) {
-            this.elements.backgroundFitMode.addEventListener('change', (e) => {
-                this.app.setBackgroundFitMode(e.target.value);
+        // Background fill mode
+        if (this.elements.backgroundFillMode) {
+            this.elements.backgroundFillMode.addEventListener('change', () => {
+                this.updateBackgroundMode();
             });
         }
 
@@ -868,7 +879,7 @@ class UIManager {
                 <option value="empty">Empty</option>
                 <option value="text">Text</option>
                 <option value="image">Image</option>
-                <option value="mask">Mask</option>
+                <option value="fill">Fill</option>
             </select>
         `;
 
@@ -1703,39 +1714,53 @@ class UIManager {
     }
 
     /**
-     * Update background color with opacity
+     * Handle background image upload
+     * @param {Event} e - File input change event
      */
-    updateBackgroundColor() {
-        console.log('updateBackgroundColor called');
-        // Check if elements exist before accessing them
-        if (!this.elements.transparentBackground || !this.elements.backgroundColor || !this.elements.backgroundOpacity) {
-            console.warn('Background control elements not found');
-            return;
+    handleBackgroundImageUpload(e) {
+        const file = e.target.files[0];
+        if (file && file.type.startsWith('image/')) {
+            // Set callback to render when image is loaded
+            this.app.canvasManager.setBackgroundImage(file, () => {
+                this.elements.clearBackgroundImage.style.display = 'block';
+                this.app.render();
+            });
         }
+    }
 
-        const isTransparent = this.elements.transparentBackground.checked;
-        console.log('Transparent:', isTransparent);
-
-        if (isTransparent) {
-            console.log('Setting transparent background');
-            this.app.canvasManager.setBackgroundColor('transparent');
-        } else {
-            const hexColor = this.elements.backgroundColor.value;
-            const opacity = parseInt(this.elements.backgroundOpacity.value);
-            console.log('Setting background color:', hexColor, 'opacity:', opacity);
-
-            if (opacity === 100) {
-                // Fully opaque, use hex color
-                this.app.canvasManager.setBackgroundColor(hexColor);
-            } else {
-                // Convert hex to RGBA with opacity
-                const rgbaColor = this.hexToRgba(hexColor, opacity / 100);
-                this.app.canvasManager.setBackgroundColor(rgbaColor);
+    /**
+     * Update background mode based on space and fill mode selections
+     */
+    updateBackgroundMode() {
+        const spaceRadios = document.querySelectorAll('input[name="backgroundSpace"]');
+        const selectedSpace = Array.from(spaceRadios).find(radio => radio.checked)?.value || 'canvas';
+        const fillMode = this.elements.backgroundFillMode?.value || 'stretch';
+        
+        // Combine space and fill mode into single mode string
+        let combinedMode;
+        if (selectedSpace === 'canvas') {
+            if (fillMode === 'stretch') {
+                combinedMode = 'stretch-canvas';
+            } else if (fillMode === 'fit') {
+                combinedMode = 'fit-canvas';
+            } else if (fillMode === 'fill') {
+                combinedMode = 'fill-canvas';
+            }
+        } else { // padding
+            if (fillMode === 'stretch') {
+                combinedMode = 'stretch-padding';
+            } else if (fillMode === 'fit') {
+                combinedMode = 'fit-padding';
+            } else if (fillMode === 'fill') {
+                combinedMode = 'fill-padding';
             }
         }
-
+        
+        this.app.canvasManager.setBackgroundFitMode(combinedMode);
         this.app.render();
     }
+
+    /**
 
     /**
      * Convert hex color to RGBA
@@ -1950,8 +1975,8 @@ class UIManager {
                 return spot.content.text ? `"${spot.content.text.substring(0, 20)}${spot.content.text.length > 20 ? '...' : ''}"` : '';
             case 'image':
                 return spot.content.imageDataURL ? 'Image' : '';
-            case 'mask':
-                return 'Background reveal';
+            case 'fill':
+                return 'Fill';
             default:
                 return '';
         }
@@ -1998,7 +2023,7 @@ class UIManager {
             { value: 'empty', label: 'Empty' },
             { value: 'image', label: 'Image' },
             { value: 'text', label: 'Text' },
-            { value: 'mask', label: 'Mask' }
+            { value: 'fill', label: 'Fill' }
         ];
 
         types.forEach(type => {
@@ -2271,3 +2296,4 @@ class UIManager {
         return `${status.type} (${status.intensity}px)`;
     }
 }
+

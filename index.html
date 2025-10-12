@@ -146,6 +146,19 @@ SPOTLIGHT
                         </div>
                     </div>
                     
+                    <!-- Main Text Background Controls -->
+                    <div class="chatooly-control-group">
+                        <label>Text Background:</label>
+                        <label>
+                            <input type="checkbox" id="mainTextFillWithBackgroundColor">
+                            Fill with background color
+                        </label>
+                        <div id="mainTextBackgroundColorContainer" style="display: none;">
+                            <label for="mainTextBackgroundColor">Background Color:</label>
+                            <input type="color" id="mainTextBackgroundColor" value="#ffffff">
+                        </div>
+                    </div>
+                    
                     <!-- Per-Line Alignment Controls -->
                     <div class="chatooly-control-group">
                         <div id="lineAlignmentControls">
@@ -169,41 +182,33 @@ SPOTLIGHT
                         <div class="chatooly-control-group">
                             <label for="backgroundColor">Background Color</label>
                             <input type="color" id="backgroundColor" value="#ffffff">
-                            <label for="backgroundOpacity">Opacity: <span id="backgroundOpacityValue">100%</span></label>
-                            <input type="range" id="backgroundOpacity" min="0" max="100" step="5" value="100">
-                            <label>
-                                <input type="checkbox" id="transparentBackground">
-                                Transparent Background
-                            </label>
                         </div>
                         
-                        <!-- Background Media -->
+                        <!-- Background Image -->
                         <div class="chatooly-control-group">
-                            <label for="backgroundMedia">Background Media</label>
-                            <input type="file" id="backgroundMedia" accept="image/*,video/*">
-                            <button type="button" id="clearBackgroundMedia" style="display: none;">Clear Media</button>
+                            <label for="backgroundImage">Background Image</label>
+                            <input type="file" id="backgroundImage" accept="image/*">
+                            <button type="button" id="clearBackgroundImage" style="display: none;">Clear Image</button>
                             
-                            <!-- Video Controls (shown only when video is loaded) -->
-                            <div id="backgroundVideoControls" class="background-video-controls" style="display: none;">
+                            <!-- Background Fit Mode -->
+                            <div class="chatooly-control-group">
+                                <label>Image Space:</label>
                                 <label>
-                                    <input type="checkbox" id="backgroundVideoAutoplay" checked>
-                                    Autoplay
+                                    <input type="radio" name="backgroundSpace" value="canvas" checked>
+                                    Fill entire canvas
                                 </label>
                                 <label>
-                                    <input type="checkbox" id="backgroundVideoLoop" checked>
-                                    Loop
+                                    <input type="radio" name="backgroundSpace" value="padding">
+                                    Fill within padding
                                 </label>
+                                
+                                <label for="backgroundFillMode">Fill Mode:</label>
+                                <select id="backgroundFillMode">
+                                    <option value="stretch">Stretch</option>
+                                    <option value="fit">Fit</option>
+                                    <option value="fill" selected>Fill (Crop)</option>
+                                </select>
                             </div>
-                        </div>
-                        
-                        <!-- Background Fit Mode -->
-                        <div class="chatooly-control-group">
-                            <label for="backgroundFitMode">Background Fit Mode</label>
-                            <select id="backgroundFitMode">
-                                <option value="fit">Fit (Letterbox)</option>
-                                <option value="fill">Fill (Crop)</option>
-                                <option value="stretch">Stretch (Distort)</option>
-                            </select>
                         </div>
                         
                     </div>
@@ -398,6 +403,7 @@ SPOTLIGHT
     <script src="js/text/MainTextController.js"></script>
 
     <!-- Canvas & Rendering -->
+    <script src="js/background/BackgroundManager.js"></script>
     <script src="js/canvas/CanvasManager.js"></script>
     <script src="js/canvas/DebugController.js"></script>
 
@@ -412,7 +418,7 @@ SPOTLIGHT
     <script src="js/content/EmptyContentController.js"></script>
     <script src="js/content/TextContentController.js"></script>
     <script src="js/content/ImageContentController.js"></script>
-    <script src="js/content/MaskContentController.js"></script>
+    <script src="js/content/FillContentController.js"></script>
 
     <!-- Grid System -->
     <script src="js/grid/Layer.js"></script>

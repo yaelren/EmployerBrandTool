@@ -15,11 +15,8 @@ class CanvasManager {
 
         // No need to cache dimensions - use canvas.width and canvas.height directly
 
-        // Background settings
-        this.backgroundColor = '#ffffff';
-        this.backgroundImage = null;
-        this.backgroundVideo = null;
-        this.backgroundFitMode = 'fit'; // 'fit', 'fill', 'stretch'
+        // Initialize BackgroundManager
+        this.backgroundManager = new BackgroundManager();
 
         // Debug options object for TextComponent system
         this.debugOptions = {
@@ -63,16 +60,16 @@ class CanvasManager {
      * @param {string} color - CSS color string
      */
     setBackgroundColor(color) {
-        this.backgroundColor = color;
+        this.backgroundManager.setBackgroundColor(color);
     }
     
     /**
      * Set background image (for future use)
-     * @param {HTMLImageElement} image - Background image
+     * @param {File|HTMLImageElement} image - Background image
+     * @param {Function} onLoadCallback - Callback when image is loaded
      */
-    setBackgroundImage(image) {
-        this.backgroundImage = image;
-        this.backgroundVideo = null; // Clear video when setting image
+    setBackgroundImage(image, onLoadCallback = null) {
+        this.backgroundManager.setBackgroundImage(image, onLoadCallback);
     }
     
     /**
@@ -89,34 +86,29 @@ class CanvasManager {
      * @param {string} mode - 'fit', 'fill', or 'stretch'
      */
     setBackgroundFitMode(mode) {
-        this.backgroundFitMode = mode;
+        this.backgroundManager.setBackgroundFitMode(mode);
     }
     
     /**
-     * Render background (color + optional image/video)
+     * Set padding for background image fit mode
+     * @param {Object} padding - {top, bottom, left, right}
+     */
+    setBackgroundPadding(padding) {
+        this.backgroundManager.setPadding(padding);
+    }
+    
+    /**
+     * Clear background image
+     */
+    clearBackgroundImage() {
+        this.backgroundManager.clearBackgroundImage();
+    }
+    
+    /**
+     * Render background (color + optional image)
      */
     renderBackground() {
-        // Clear the canvas first
-        this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
-
-        // If background video exists, draw it first (behind background color)
-        if (this.backgroundVideo) {
-            this.ctx.save();
-            this.renderBackgroundVideo();
-            this.ctx.restore();
-        }
-        // If background image exists, draw it first (behind background color)
-        else if (this.backgroundImage) {
-            this.ctx.save();
-            this.renderBackgroundImage();
-            this.ctx.restore();
-        }
-
-        // Apply background color on top of image/video (if not transparent)
-        if (this.backgroundColor !== 'transparent') {
-            this.ctx.fillStyle = this.backgroundColor;
-            this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
-        }
+        this.backgroundManager.renderBackground(this.ctx, this.canvas);
     }
     
     /**

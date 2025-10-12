@@ -94,6 +94,9 @@ class CellRenderer {
             case 'text':
                 this.renderSpotText(ctx, cell, options);
                 break;
+            case 'fill':
+                this.renderFill(ctx, cell, options);
+                break;
             case 'mask':
                 this.renderMask(ctx, cell, options);
                 break;
@@ -125,6 +128,16 @@ class CellRenderer {
             ctx.fillStyle = cell.fillColor;
             ctx.fillRect(cell.bounds.x, cell.bounds.y, cell.bounds.width, cell.bounds.height);
         }
+    }
+
+    /**
+     * Render fill content cell (solid color background)
+     * @private
+     */
+    static renderFill(ctx, cell, options) {
+        // Fill cells are rendered by their background method in app.js
+        // This method is here for completeness but doesn't need to do anything
+        // since the background is already rendered by cell.renderBackground()
     }
 
     /**

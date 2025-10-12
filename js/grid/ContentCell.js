@@ -9,7 +9,7 @@ class ContentCell extends GridCell {
     constructor(contentType, row, col) {
         super(row, col);
         this.cellType = 'content';  // Internal cell type identifier
-        this.contentType = contentType || 'empty';  // 'empty' | 'image' | 'text' | 'mask'
+        this.contentType = contentType || 'empty';  // 'empty' | 'image' | 'text' | 'fill'
         this.content = null;  // Content data (varies by type)
 
         // Visual properties (for rendering placeholders and outlines)
@@ -25,7 +25,7 @@ class ContentCell extends GridCell {
 
     /**
      * Set content type and initialize default content
-     * @param {string} type - 'empty' | 'image' | 'text' | 'mask'
+     * @param {string} type - 'empty' | 'image' | 'text' | 'fill'
      */
     setContentType(type) {
         this.contentType = type;
@@ -56,7 +56,9 @@ class ContentCell extends GridCell {
                     rotation: 0,
                     padding: 10,
                     positionH: 'center',
-                    positionV: 'middle'
+                    positionV: 'middle',
+                    fillWithBackgroundColor: false,  // Default: show image
+                    backgroundColor: null            // Custom color override
                 };
 
             case 'text':
@@ -75,13 +77,16 @@ class ContentCell extends GridCell {
                         underline: false,
                         highlight: false
                     },
-                    highlightColor: '#ffff00'
+                    highlightColor: '#ffff00',
+                    fillWithBackgroundColor: false,  // Default: show image
+                    backgroundColor: null            // Custom color override
                 };
 
-            case 'mask':
+            case 'fill':
                 return {
-                    opacity: 0.5,
-                    padding: 0
+                    useGlobalBackground: true,  // Default: use global background color
+                    customColor: null,          // Optional override
+                    padding: 0                  // No padding for solid fills
                 };
 
             default:  // 'empty'
@@ -116,11 +121,11 @@ class ContentCell extends GridCell {
     }
 
     /**
-     * Check if this cell is a mask
+     * Check if this cell is a fill cell
      * @returns {boolean}
      */
-    isMask() {
-        return this.contentType === 'mask';
+    isFill() {
+        return this.contentType === 'fill';
     }
 
     // ===== Spatial Methods (for click detection) =====
@@ -309,13 +314,109 @@ class ContentCell extends GridCell {
     }
 
     /**
-     * Set opacity (Spot compatibility)
-     * @param {number} value - Opacity 0-1
+     * Render cell background based on content type and settings
+     * @param {CanvasRenderingContext2D} ctx - Canvas context
+     * @param {BackgroundManager} globalBackground - Global background manager
      */
-    setOpacity(value) {
-        this.opacity = Math.max(0, Math.min(1, value));
-        if (this.content && this.contentType === 'mask') {
-            this.content.opacity = this.opacity;
+    renderBackground(ctx, globalBackground) {
+        if (this.contentType === 'empty') {
+            // Empty cells show global background automatically
+            return;
+        }
+        
+        if (this.contentType === 'fill') {
+            this.renderFillBackground(ctx, globalBackground);
+        } else if (this.contentType === 'image' || this.contentType === 'text') {
+            this.renderImageTextBackground(ctx, globalBackground);
+        }
+    }
+    
+    /**
+     * Render background for fill cells
+     * @param {CanvasRenderingContext2D} ctx - Canvas context
+     * @param {BackgroundManager} globalBackground - Global background manager
+     * @private
+     */
+    renderFillBackground(ctx, globalBackground) {
+        if (!this.content) return;
+        
+        let fillColor;
+        if (this.content.useGlobalBackground) {
+            fillColor = globalBackground.backgroundColor;
+        } else if (this.content.customColor) {
+            fillColor = this.content.customColor;
+        } else {
+            fillColor = globalBackground.backgroundColor; // Fallback
+        }
+        
+        ctx.fillStyle = fillColor;
+        ctx.fillRect(this.bounds.x, this.bounds.y, this.bounds.width, this.bounds.height);
+    }
+    
+    /**
+     * Render background for image/text cells
+     * @param {CanvasRenderingContext2D} ctx - Canvas context
+     * @param {BackgroundManager} globalBackground - Global background manager
+     * @private
+     */
+    renderImageTextBackground(ctx, globalBackground) {
+        if (!this.content || !this.content.fillWithBackgroundColor) {
+            // Show global background image (already rendered)
+            return;
+        }
+        
+        let backgroundColor;
+        if (this.content.backgroundColor) {
+            backgroundColor = this.content.backgroundColor;
+        } else {
+            backgroundColor = globalBackground.backgroundColor;
+        }
+        
+        ctx.fillStyle = backgroundColor;
+        ctx.fillRect(this.bounds.x, this.bounds.y, this.bounds.width, this.bounds.height);
+    }
+    
+    /**
+     * Set fill with background color for image/text cells
+     * @param {boolean} enabled - Whether to fill with background color
+     */
+    setFillWithBackgroundColor(enabled) {
+        if (this.content && (this.contentType === 'image' || this.contentType === 'text')) {
+            this.content.fillWithBackgroundColor = enabled;
+        }
+    }
+    
+    /**
+     * Set background color for image/text cells
+     * @param {string} color - Background color
+     */
+    setBackgroundColor(color) {
+        if (this.content && (this.contentType === 'image' || this.contentType === 'text')) {
+            this.content.backgroundColor = color;
+        }
+    }
+    
+    /**
+     * Set custom color for fill cells
+     * @param {string} color - Custom color
+     */
+    setCustomColor(color) {
+        if (this.content && this.contentType === 'fill') {
+            this.content.customColor = color;
+            this.content.useGlobalBackground = false;
+        }
+    }
+    
+    /**
+     * Set use global background for fill cells
+     * @param {boolean} useGlobal - Whether to use global background
+     */
+    setUseGlobalBackground(useGlobal) {
+        if (this.content && this.contentType === 'fill') {
+            this.content.useGlobalBackground = useGlobal;
+            if (useGlobal) {
+                this.content.customColor = null;
+            }
         }
     }
 }
