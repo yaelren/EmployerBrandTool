@@ -305,6 +305,60 @@ class UIManager {
             this.app.onTextChanged();
         });
 
+        // Canvas Padding Controls (moved from Grid tab to Main Text tab)
+        const paddingHorizontal = document.getElementById('paddingHorizontal');
+        const paddingVertical = document.getElementById('paddingVertical');
+        const paddingHorizontalValue = document.getElementById('paddingHorizontalValue');
+        const paddingVerticalValue = document.getElementById('paddingVerticalValue');
+
+        if (paddingHorizontal) {
+            console.log('Padding horizontal element found in Main Text tab');
+            paddingHorizontal.removeEventListener('input', this.handlePaddingHorizontalInput);
+            paddingHorizontal.removeEventListener('change', this.handlePaddingHorizontalChange);
+            
+            this.handlePaddingHorizontalInput = () => {
+                const padding = parseInt(paddingHorizontal.value);
+                if (paddingHorizontalValue) {
+                    paddingHorizontalValue.textContent = padding + 'px';
+                }
+                console.log('Padding horizontal input:', padding);
+                this.updateSymmetricalPaddingDisplay('horizontal', padding);
+            };
+            
+            this.handlePaddingHorizontalChange = () => {
+                const padding = parseInt(paddingHorizontal.value);
+                console.log('Padding horizontal change:', padding);
+                this.updateSymmetricalPadding('horizontal', padding);
+            };
+            
+            paddingHorizontal.addEventListener('input', this.handlePaddingHorizontalInput);
+            paddingHorizontal.addEventListener('change', this.handlePaddingHorizontalChange);
+        }
+
+        if (paddingVertical) {
+            console.log('Padding vertical element found in Main Text tab');
+            paddingVertical.removeEventListener('input', this.handlePaddingVerticalInput);
+            paddingVertical.removeEventListener('change', this.handlePaddingVerticalChange);
+            
+            this.handlePaddingVerticalInput = () => {
+                const padding = parseInt(paddingVertical.value);
+                if (paddingVerticalValue) {
+                    paddingVerticalValue.textContent = padding + 'px';
+                }
+                console.log('Padding vertical input:', padding);
+                this.updateSymmetricalPaddingDisplay('vertical', padding);
+            };
+            
+            this.handlePaddingVerticalChange = () => {
+                const padding = parseInt(paddingVertical.value);
+                console.log('Padding vertical change:', padding);
+                this.updateSymmetricalPadding('vertical', padding);
+            };
+            
+            paddingVertical.addEventListener('input', this.handlePaddingVerticalInput);
+            paddingVertical.addEventListener('change', this.handlePaddingVerticalChange);
+        }
+
         // Text color changes
         this.elements.textColor.addEventListener('input', () => {
             const color = this.elements.textColor.value;
@@ -1582,55 +1636,6 @@ class UIManager {
                 this.app.setBackgroundFitMode(e.target.value);
             };
             backgroundFitMode.addEventListener('change', this.handleBackgroundFitModeChange);
-        }
-
-        // Padding controls
-        if (paddingHorizontal) {
-            console.log('Padding horizontal element found in Grid tab');
-            paddingHorizontal.removeEventListener('input', this.handlePaddingHorizontalInput);
-            paddingHorizontal.removeEventListener('change', this.handlePaddingHorizontalChange);
-            
-            this.handlePaddingHorizontalInput = () => {
-                const padding = parseInt(paddingHorizontal.value);
-                if (paddingHorizontalValue) {
-                    paddingHorizontalValue.textContent = padding + 'px';
-                }
-                console.log('Padding horizontal input:', padding);
-                this.updateSymmetricalPaddingDisplay('horizontal', padding);
-            };
-            
-            this.handlePaddingHorizontalChange = () => {
-                const padding = parseInt(paddingHorizontal.value);
-                console.log('Padding horizontal change:', padding);
-                this.updateSymmetricalPadding('horizontal', padding);
-            };
-            
-            paddingHorizontal.addEventListener('input', this.handlePaddingHorizontalInput);
-            paddingHorizontal.addEventListener('change', this.handlePaddingHorizontalChange);
-        }
-
-        if (paddingVertical) {
-            console.log('Padding vertical element found in Grid tab');
-            paddingVertical.removeEventListener('input', this.handlePaddingVerticalInput);
-            paddingVertical.removeEventListener('change', this.handlePaddingVerticalChange);
-            
-            this.handlePaddingVerticalInput = () => {
-                const padding = parseInt(paddingVertical.value);
-                if (paddingVerticalValue) {
-                    paddingVerticalValue.textContent = padding + 'px';
-                }
-                console.log('Padding vertical input:', padding);
-                this.updateSymmetricalPaddingDisplay('vertical', padding);
-            };
-            
-            this.handlePaddingVerticalChange = () => {
-                const padding = parseInt(paddingVertical.value);
-                console.log('Padding vertical change:', padding);
-                this.updateSymmetricalPadding('vertical', padding);
-            };
-            
-            paddingVertical.addEventListener('input', this.handlePaddingVerticalInput);
-            paddingVertical.addEventListener('change', this.handlePaddingVerticalChange);
         }
 
         // Minimum spot size changes

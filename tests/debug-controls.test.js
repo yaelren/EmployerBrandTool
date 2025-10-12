@@ -43,7 +43,6 @@ test.describe('Debug Controls Module', () => {
             // Check all checkboxes exist
             await expect(page.locator('#showSpotOutlines')).toBeVisible();
             await expect(page.locator('#showSpotNumbers')).toBeVisible();
-            await expect(page.locator('#showTextBounds')).toBeVisible();
             await expect(page.locator('#showPadding')).toBeVisible();
         });
         
@@ -69,7 +68,6 @@ test.describe('Debug Controls Module', () => {
             // All checkboxes should be checked
             await expect(page.locator('#showSpotOutlines')).toBeChecked();
             await expect(page.locator('#showSpotNumbers')).toBeChecked();
-            await expect(page.locator('#showTextBounds')).toBeChecked();
             await expect(page.locator('#showPadding')).toBeChecked();
             
             // Verify via JS that debug options are set
@@ -79,7 +77,6 @@ test.describe('Debug Controls Module', () => {
             
             expect(debugState.showSpotOutlines).toBe(true);
             expect(debugState.showSpotNumbers).toBe(true);
-            expect(debugState.showTextBounds).toBe(true);
             expect(debugState.showPadding).toBe(true);
         });
         
@@ -96,7 +93,6 @@ test.describe('Debug Controls Module', () => {
             // All checkboxes should be unchecked
             await expect(page.locator('#showSpotOutlines')).not.toBeChecked();
             await expect(page.locator('#showSpotNumbers')).not.toBeChecked();
-            await expect(page.locator('#showTextBounds')).not.toBeChecked();
             await expect(page.locator('#showPadding')).not.toBeChecked();
             
             // Verify via JS
@@ -106,7 +102,6 @@ test.describe('Debug Controls Module', () => {
             
             expect(debugState.showSpotOutlines).toBe(false);
             expect(debugState.showSpotNumbers).toBe(false);
-            expect(debugState.showTextBounds).toBe(false);
             expect(debugState.showPadding).toBe(false);
         });
     });
@@ -138,7 +133,6 @@ test.describe('Debug Controls Module', () => {
             
             expect(afterToggle.showSpotOutlines).toBe(expectedState);
             expect(afterToggle.showSpotNumbers).toBe(expectedState);
-            expect(afterToggle.showTextBounds).toBe(expectedState);
             expect(afterToggle.showPadding).toBe(expectedState);
             
             // Toggle again to verify it switches back
@@ -151,7 +145,6 @@ test.describe('Debug Controls Module', () => {
             
             expect(afterSecondToggle.showSpotOutlines).toBe(!expectedState);
             expect(afterSecondToggle.showSpotNumbers).toBe(!expectedState);
-            expect(afterSecondToggle.showTextBounds).toBe(!expectedState);
             expect(afterSecondToggle.showPadding).toBe(!expectedState);
         });
         
@@ -211,7 +204,6 @@ test.describe('Debug Controls Module', () => {
             const checkboxes = [
                 'showSpotOutlines',
                 'showSpotNumbers',
-                'showTextBounds',
                 'showPadding'
             ];
             
@@ -275,17 +267,16 @@ test.describe('Debug Controls Module', () => {
             
             // Enable text bounds only
             await page.click('#hideAllDebug'); // Start with all off
-            await page.click('#showTextBounds'); // Enable only text bounds
+            await page.click('#showPadding'); // Enable only padding
             
-            // Verify only text bounds is enabled
+            // Verify only padding is enabled
             const state = await page.evaluate(() => {
                 return window.employerBrandTool.debugController.getDebugOptions();
             });
             
-            expect(state.showTextBounds).toBe(true);
+            expect(state.showPadding).toBe(true);
             expect(state.showSpotOutlines).toBe(false);
             expect(state.showSpotNumbers).toBe(false);
-            expect(state.showPadding).toBe(false);
         });
         
         test('should show padding overlay when enabled', async ({ page }) => {
@@ -302,7 +293,6 @@ test.describe('Debug Controls Module', () => {
             });
             
             expect(state.showPadding).toBe(true);
-            expect(state.showTextBounds).toBe(false);
         });
     });
     
@@ -328,7 +318,6 @@ test.describe('Debug Controls Module', () => {
             
             expect(state.showSpotOutlines).toBe(true);
             expect(state.showSpotNumbers).toBe(true);
-            expect(state.showTextBounds).toBe(true);
             expect(state.showPadding).toBe(true);
         });
     });
@@ -351,7 +340,7 @@ test.describe('Debug Controls Module', () => {
             
             // Toggle debug option
             await page.click('#toggleDebug');
-            await page.click('#showTextBounds');
+            await page.click('#showPadding');
             
             // Wait a bit for render
             await page.waitForTimeout(100);
@@ -395,7 +384,6 @@ test.describe('Debug Controls Module', () => {
                 window.employerBrandTool.debugController.setDebugOptions({
                     showSpotOutlines: false,
                     showSpotNumbers: false,
-                    showTextBounds: true,
                     showPadding: true
                 });
             });
@@ -405,7 +393,6 @@ test.describe('Debug Controls Module', () => {
             
             await expect(page.locator('#showSpotOutlines')).not.toBeChecked();
             await expect(page.locator('#showSpotNumbers')).not.toBeChecked();
-            await expect(page.locator('#showTextBounds')).toBeChecked();
             await expect(page.locator('#showPadding')).toBeChecked();
         });
         
@@ -423,7 +410,6 @@ test.describe('Debug Controls Module', () => {
             expect(exportedState).toHaveProperty('panelVisible');
             expect(exportedState.options.showSpotOutlines).toBe(true);
             expect(exportedState.options.showSpotNumbers).toBe(true);
-            expect(exportedState.options.showTextBounds).toBe(true);
             expect(exportedState.options.showPadding).toBe(true);
             expect(exportedState.panelVisible).toBe(true);
         });

@@ -2484,6 +2484,98 @@ select option {
 
 
 
+/* Compact Canvas Padding Controls */
+.compact-padding-section {
+    margin-bottom: 8px !important;
+    padding: 4px 0 !important;
+}
+
+.padding-header {
+    display: flex !important;
+    justify-content: space-between !important;
+    align-items: center !important;
+    cursor: pointer !important;
+    padding: 4px 0 !important;
+    border-bottom: 1px solid #333 !important;
+    margin-bottom: 4px !important;
+}
+
+.padding-header label {
+    font-size: 11px !important;
+    font-weight: 600 !important;
+    color: #e5e5e5 !important;
+    margin: 0 !important;
+}
+
+.padding-toggle-icon {
+    font-size: 10px !important;
+    color: #999 !important;
+    transition: transform 0.2s ease !important;
+}
+
+.padding-toggle-icon.expanded {
+    transform: rotate(180deg) !important;
+}
+
+.padding-controls-collapsed {
+    max-height: 0 !important;
+    overflow: hidden !important;
+    transition: max-height 0.3s ease !important;
+}
+
+.padding-controls-collapsed.expanded {
+    max-height: 80px !important;
+}
+
+.compact-padding-row {
+    display: flex !important;
+    align-items: center !important;
+    gap: 6px !important;
+    margin-bottom: 4px !important;
+    padding: 2px 0 !important;
+}
+
+.compact-padding-row label {
+    font-size: 10px !important;
+    color: #999 !important;
+    min-width: 12px !important;
+    margin: 0 !important;
+}
+
+.compact-padding-row input[type="range"] {
+    flex: 1 !important;
+    height: 16px !important;
+    margin: 0 !important;
+    background: #333 !important;
+    border-radius: 8px !important;
+    outline: none !important;
+}
+
+.compact-padding-row input[type="range"]::-webkit-slider-thumb {
+    width: 12px !important;
+    height: 12px !important;
+    background: #3b82f6 !important;
+    border-radius: 50% !important;
+    cursor: pointer !important;
+    border: none !important;
+}
+
+.compact-padding-row input[type="range"]::-moz-range-thumb {
+    width: 12px !important;
+    height: 12px !important;
+    background: #3b82f6 !important;
+    border-radius: 50% !important;
+    cursor: pointer !important;
+    border: none !important;
+}
+
+.compact-padding-row span {
+    font-size: 9px !important;
+    color: #999 !important;
+    min-width: 30px !important;
+    text-align: right !important;
+}
+
 /* Responsive adjustments for compact layout */
 @media (max-width: 600px) {
     .compact-row {

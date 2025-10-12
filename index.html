@@ -52,6 +52,26 @@
                 
                 <!-- Main Text Tab -->
                 <div id="mainTextTab" class="tab-content active">
+                    <!-- Canvas Padding Controls (Collapsible) -->
+                    <div class="chatooly-control-group compact-padding-section">
+                        <div class="padding-header" onclick="togglePaddingControls()">
+                            <label>Canvas Padding</label>
+                            <span class="padding-toggle-icon">▼</span>
+                        </div>
+                        <div id="paddingControls" class="padding-controls-collapsed">
+                            <div class="compact-padding-row">
+                                <label for="paddingHorizontal">H:</label>
+                                <input type="range" id="paddingHorizontal" min="0" max="100" value="20">
+                                <span id="paddingHorizontalValue">20px</span>
+                            </div>
+                            <div class="compact-padding-row">
+                                <label for="paddingVertical">V:</label>
+                                <input type="range" id="paddingVertical" min="0" max="100" value="20">
+                                <span id="paddingVerticalValue">20px</span>
+                            </div>
+                        </div>
+                    </div>
+                    
                     <!-- Main Text Input -->
                     <div class="chatooly-control-group">
                         <label for="mainText">Main Text</label>
@@ -186,23 +206,6 @@ SPOTLIGHT
                             </select>
                         </div>
                         
-                        <!-- Canvas Padding Controls -->
-                        <div class="chatooly-control-group">
-                            <label>Canvas Padding</label>
-                            <div class="padding-controls">
-                                <!-- Symmetrical padding controls -->
-                                <div class="padding-row">
-                                    <label for="paddingHorizontal">Horizontal (L+R)</label>
-                                    <input type="range" id="paddingHorizontal" min="0" max="100" value="20">
-                                    <span id="paddingHorizontalValue">20px</span>
-                                </div>
-                                <div class="padding-row">
-                                    <label for="paddingVertical">Vertical (T+B)</label>
-                                    <input type="range" id="paddingVertical" min="0" max="100" value="20">
-                                    <span id="paddingVerticalValue">20px</span>
-                                </div>
-                            </div>
-                        </div>
                     </div>
                     
                     <!-- Spot Detection Controls -->
@@ -310,10 +313,6 @@ SPOTLIGHT
                         <label>
                             <input type="checkbox" id="showSpotNumbers" checked>
                             Show Spot Numbers
-                        </label>
-                        <label>
-                            <input type="checkbox" id="showTextBounds">
-                            Show Text Bounds
                         </label>
                         <label>
                             <input type="checkbox" id="showPadding">
@@ -438,5 +437,21 @@ SPOTLIGHT
 
     <!-- Main Application -->
     <script src="js/app.js"></script>
+    
+    <!-- Padding Controls Toggle Function -->
+    <script>
+        function togglePaddingControls() {
+            const controls = document.getElementById('paddingControls');
+            const icon = document.querySelector('.padding-toggle-icon');
+            
+            if (controls.classList.contains('expanded')) {
+                controls.classList.remove('expanded');
+                icon.classList.remove('expanded');
+            } else {
+                controls.classList.add('expanded');
+                icon.classList.add('expanded');
+            }
+        }
+    </script>
 </body>
 </html>

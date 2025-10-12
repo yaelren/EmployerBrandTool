@@ -11,7 +11,6 @@ class DebugController {
         this.debugOptions = {
             showSpotOutlines: true,
             showSpotNumbers: true,
-            showTextBounds: false,
             showPadding: false
         };
         
@@ -39,7 +38,6 @@ class DebugController {
             hideAllDebug: 'hideAllDebug',
             showSpotOutlines: 'showSpotOutlines',
             showSpotNumbers: 'showSpotNumbers',
-            showTextBounds: 'showTextBounds',
             showPadding: 'showPadding'
         };
         
@@ -80,8 +78,7 @@ class DebugController {
         // Individual debug option checkboxes
         const debugCheckboxes = [
             'showSpotOutlines',
-            'showSpotNumbers', 
-            'showTextBounds',
+            'showSpotNumbers',
             'showPadding'
         ];
         
@@ -108,9 +105,6 @@ class DebugController {
         }
         if (this.elements.showSpotNumbers) {
             this.debugOptions.showSpotNumbers = this.elements.showSpotNumbers.checked;
-        }
-        if (this.elements.showTextBounds) {
-            this.debugOptions.showTextBounds = this.elements.showTextBounds.checked;
         }
         if (this.elements.showPadding) {
             this.debugOptions.showPadding = this.elements.showPadding.checked;
@@ -163,7 +157,6 @@ class DebugController {
         // Check if any control is currently enabled
         const anyEnabled = this.debugOptions.showSpotOutlines ||
                           this.debugOptions.showSpotNumbers ||
-                          this.debugOptions.showTextBounds ||
                           this.debugOptions.showPadding;
         
         if (anyEnabled) {
@@ -193,7 +186,7 @@ class DebugController {
      * @private
      */
     setAllCheckboxes(checked) {
-        const checkboxIds = ['showSpotOutlines', 'showSpotNumbers', 'showTextBounds', 'showPadding'];
+        const checkboxIds = ['showSpotOutlines', 'showSpotNumbers', 'showPadding'];
         
         checkboxIds.forEach(id => {
             if (this.elements[id]) {
@@ -275,11 +268,6 @@ class DebugController {
         
         const { mainTextComponent, spots } = components;
         
-        // Show text bounds
-        if (this.debugOptions.showTextBounds && mainTextComponent) {
-            this.renderTextBounds(ctx, mainTextComponent);
-        }
-        
         // Show padding areas
         if (this.debugOptions.showPadding && mainTextComponent) {
             this.renderPaddingAreas(ctx, mainTextComponent);
@@ -287,39 +275,6 @@ class DebugController {
         
         // Note: Spot outlines and numbers are handled by the Spot class itself
         // based on the debug options passed during their render() calls
-    }
-    
-    /**
-     * Render text bounds debug overlay
-     * @param {CanvasRenderingContext2D} ctx - Canvas context
-     * @param {TextComponent} textComponent - Text component to debug
-     * @private
-     */
-    renderTextBounds(ctx, textComponent) {
-        ctx.save();
-        ctx.strokeStyle = '#00ff00';
-        ctx.lineWidth = 1;
-        ctx.setLineDash([2, 2]);
-        
-        // Get text bounds from the component
-        const textBounds = this.getTextBoundsFromComponent(ctx, textComponent);
-        
-        // Draw bounds for each line
-        textBounds.forEach(bounds => {
-            ctx.strokeRect(bounds.x, bounds.y, bounds.width, bounds.height);
-        });
-        
-        // Also draw container bounds in different color
-        ctx.strokeStyle = '#0099ff';
-        ctx.setLineDash([4, 4]);
-        ctx.strokeRect(
-            textComponent.containerX + textComponent.paddingLeft,
-            textComponent.containerY + textComponent.paddingTop,
-            textComponent.getAvailableWidth(),
-            textComponent.getAvailableHeight()
-        );
-        
-        ctx.restore();
     }
     
     /**
@@ -351,23 +306,6 @@ class DebugController {
         ctx.restore();
     }
     
-    /**
-     * Get text bounds from the text engine (MainTextController)
-     * @param {CanvasRenderingContext2D} ctx - Canvas context (unused, kept for compatibility)
-     * @param {TextComponent} textComponent - Text component (unused, kept for compatibility)
-     * @returns {Array} Array of text bounds
-     * @private
-     */
-    getTextBoundsFromComponent(ctx, textComponent) {
-        // Use MainTextController (textEngine) instead of MainTextComponent
-        // because the grid system and actual rendering use MainTextController
-        if (this.app.textEngine) {
-            return this.app.textEngine.getTextBounds();
-        }
-        // Fallback to old component if textEngine not available
-        return textComponent.getTextBounds(ctx);
-    }
-
     /**
      * Export debug state for testing
      * @returns {Object} Debug state
