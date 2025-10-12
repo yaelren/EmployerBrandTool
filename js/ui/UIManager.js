@@ -355,6 +355,17 @@ class UIManager {
             paddingVertical.addEventListener('change', this.handlePaddingVerticalChange);
         }
 
+        // Minimum spot size changes (moved to Main Text tab)
+        if (this.elements.minSpotSize) {
+            this.elements.minSpotSize.addEventListener('input', () => {
+                const minSize = parseInt(this.elements.minSpotSize.value);
+                console.log('Minimum spot size changed to:', minSize);
+                this.app.gridDetector.setMinCellSize(minSize);
+                this.app.minSpotSize = minSize; // Store for Grid.buildFromExisting()
+                this.app.onTextChanged(); // Trigger spot detection with new size
+            });
+        }
+
         // Text color changes
         this.elements.textColor.addEventListener('input', () => {
             const color = this.elements.textColor.value;
