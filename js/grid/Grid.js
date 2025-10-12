@@ -78,6 +78,10 @@ class Grid {
 
             // Restore background properties to matching cells
             this.restoreBackgroundState(backgroundState);
+            
+            // Apply app's main text background preference to all main text cells
+            // This ensures new cells (from text changes) get the current preference
+            this.applyMainTextBackgroundPreference();
 
             // Save original bounds for all cells
             this._saveOriginalBounds();
@@ -485,8 +489,7 @@ class Grid {
         this.getAllCells().forEach(cell => {
             if (cell && cell.type === 'main-text') {
                 state[cell.contentId] = {
-                    fillWithBackgroundColor: cell.fillWithBackgroundColor,
-                    backgroundColor: cell.backgroundColor
+                    fillWithBackgroundColor: cell.fillWithBackgroundColor
                 };
             }
         });
@@ -503,7 +506,25 @@ class Grid {
             if (cell && cell.type === 'main-text' && state[cell.contentId]) {
                 const bg = state[cell.contentId];
                 cell.fillWithBackgroundColor = bg.fillWithBackgroundColor;
-                cell.backgroundColor = bg.backgroundColor;
+            }
+        });
+    }
+    
+    /**
+     * Apply app's main text background preference to all main text cells
+     * This is called after restoreBackgroundState to ensure new cells get the preference
+     */
+    applyMainTextBackgroundPreference() {
+        if (typeof this.app.mainTextFillWithBackgroundColor === 'undefined') {
+            return; // No preference set
+        }
+        
+        const preference = this.app.mainTextFillWithBackgroundColor;
+        
+        this.getAllCells().forEach(cell => {
+            if (cell && cell.type === 'main-text') {
+                // Apply the app's preference
+                cell.fillWithBackgroundColor = preference;
             }
         });
     }

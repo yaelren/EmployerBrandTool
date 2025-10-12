@@ -435,7 +435,10 @@ class UIManager {
             this.elements.mainTextFillWithBackgroundColor.addEventListener('change', (e) => {
                 const enabled = e.target.checked;
                 
-                // Update all main text cells - always use global background color
+                // Save preference at app level
+                this.app.mainTextFillWithBackgroundColor = enabled;
+                
+                // Update all existing main text cells
                 this.app.grid?.getAllCells().forEach(cell => {
                     if (cell.type === 'main-text') {
                         cell.setFillWithBackgroundColor(enabled);

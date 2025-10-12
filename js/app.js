@@ -19,6 +19,7 @@ class EmployerBrandToolPOC {
         this.isInitialized = false;
         this.savedLineAlignments = {}; // Store user's line alignment preferences
         this.savedSpotData = []; // Store spot content data for persistence
+        this.mainTextFillWithBackgroundColor = false; // Store main text background fill preference
 
         // Auto-detection settings
         this.autoDetectSpots = true; // Enable automatic spot detection
