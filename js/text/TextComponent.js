@@ -147,7 +147,11 @@ class TextComponent {
                 return null;
             }
         } catch (error) {
-            console.error('FontMetrics measurement failed:', error);
+            // Suppress repetitive IndexSizeError from FontMetrics canvas width issues
+            // Only log if it's a different error type
+            if (!error.message || !error.message.includes('source width is 0')) {
+                console.error('FontMetrics measurement failed:', error);
+            }
             return null;
         }
     }

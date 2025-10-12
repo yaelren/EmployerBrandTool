@@ -1638,7 +1638,8 @@ class UIManager {
             backgroundColor.removeEventListener('input', this.handleBackgroundColorChange);
             this.handleBackgroundColorChange = () => {
                 console.log('Background color changed:', backgroundColor.value);
-                this.updateBackgroundColor();
+                this.app.canvasManager.setBackgroundColor(backgroundColor.value);
+                this.app.render();
             };
             backgroundColor.addEventListener('input', this.handleBackgroundColorChange);
         }
