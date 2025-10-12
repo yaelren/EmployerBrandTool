@@ -808,6 +808,14 @@ class UIManager {
                 gridCellDiv.dataset.row = row;
                 gridCellDiv.dataset.col = col;
 
+                // Check if this is the selected cell
+                const isSelected = this.app.selectedCell && 
+                                   this.app.selectedCell.row === row && 
+                                   this.app.selectedCell.col === col;
+                if (isSelected) {
+                    gridCellDiv.classList.add('selected');
+                }
+
                 // Style main text cells differently
                 const isMainText = cell.type === 'main-text';
                 if (isMainText) {
@@ -861,7 +869,7 @@ class UIManager {
     }
 
     /**
-     * Select a grid cell for animation editing
+     * Select a grid cell for editing
      * @param {number} row - Row index
      * @param {number} col - Column index
      */
@@ -872,14 +880,8 @@ class UIManager {
         // Update selected cell
         this.app.selectedCell = { row, col, cell };
 
-        // Highlight selected cell in visual grid
-        document.querySelectorAll('.grid-cell').forEach(el => {
-            el.classList.remove('selected');
-        });
-        const selectedDiv = document.querySelector(`.grid-cell[data-row="${row}"][data-col="${col}"]`);
-        if (selectedDiv) {
-            selectedDiv.classList.add('selected');
-        }
+        // Update visual grid to show selection
+        this.updateVisualGrid();
 
         // Show selected cell controls
         this.showSelectedCellControls(cell, row, col);
@@ -902,29 +904,22 @@ class UIManager {
         controlsContainer.style.display = 'block';
 
         // Calculate spot number (same logic as updateVisualGrid)
-        let spotNumber = 1;
-        for (let r = 0; r < this.app.grid.rows; r++) {
-            for (let c = 0; c < this.app.grid.cols; c++) {
+        let spotNumber = 0;
+        let found = false;
+        for (let r = 0; r < this.app.grid.rows && !found; r++) {
+            for (let c = 0; c < this.app.grid.cols && !found; c++) {
                 const gridCell = this.app.grid.getCell(r, c);
                 if (gridCell) {
-                    if (r === row && c === col) {
-                        break;
-                    }
                     spotNumber++;
+                    if (r === row && c === col) {
+                        found = true;
+                    }
                 }
-            }
-            if (spotNumber > 1) {
-                const checkCell = this.app.grid.getCell(row, col);
-                if (checkCell === cell) break;
             }
         }
 
-        // Update cell info - just show cell number
-        infoContainer.innerHTML = `
-            <div class="selected-cell-header">
-                <h4>Cell ${spotNumber}</h4>
-            </div>
-        `;
+        // Update cell info - just show cell number (minimal)
+        infoContainer.textContent = `Cell ${spotNumber}`;
 
         // Clear existing control sections
         sectionsContainer.innerHTML = '';
@@ -970,6 +965,8 @@ class UIManager {
             cell.setContentType(newType);
             this.updateContentSpecificControls(cell, contentControls, newType);
             this.app.render();
+            // Update grid display
+            this.updateVisualGrid();
         });
 
         // Add content-specific controls
@@ -980,6 +977,7 @@ class UIManager {
         typeGroup.addEventListener('click', (e) => {
             if (e.target !== typeSelect && !e.target.closest('select')) {
                 contentControls.classList.toggle('expanded');
+                typeGroup.classList.toggle('collapsed');
             }
         });
 
@@ -1037,6 +1035,8 @@ class UIManager {
             }
             this.updateAnimationSpecificControls(cell, animControls, animType);
             this.app.render();
+            // Update grid display to show animation indicator
+            this.updateVisualGrid();
         });
 
         // Add animation-specific controls
@@ -1047,6 +1047,7 @@ class UIManager {
         animGroup.addEventListener('click', (e) => {
             if (e.target !== animSelect && !e.target.closest('select')) {
                 animControls.classList.toggle('expanded');
+                animGroup.classList.toggle('collapsed');
             }
         });
 
@@ -1066,7 +1067,7 @@ class UIManager {
         
         // Layer controls - non-collapsible
         const layerGroup = document.createElement('div');
-        layerGroup.className = 'content-type-header';
+        layerGroup.className = 'content-type-header layer-header';
         layerGroup.innerHTML = `
             <label>Layer:</label>
             <select class="cell-layer-position">
@@ -1085,6 +1086,8 @@ class UIManager {
             const newLayerId = e.target.value;
             cell.setLayer(newLayerId);
             this.app.render();
+            // Update grid display
+            this.updateVisualGrid();
         });
 
         section.appendChild(layerGroup);
