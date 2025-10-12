@@ -20,6 +20,9 @@ class MainTextCell extends GridCell {
         this.textComponent = new TextComponent();
         this.textComponent.text = text;
 
+        // Set default layer for main text (should be on top by default)
+        this.layerId = 'main-text';
+
         // Text cells support animations (inherited from GridCell)
     }
 

@@ -10,6 +10,9 @@ class EmployerBrandToolPOC {
         this.textEngine = new MainTextController();
         this.gridDetector = new GridDetector(); // Phase 2: Unified grid detection
         this.debugController = null; // Will be initialized after DOM is ready
+        
+        // Layer Management System (NEW)
+        this.layerManager = new LayerManager();
 
         // State
         this.spots = [];
@@ -659,114 +662,91 @@ class EmployerBrandToolPOC {
         const debugOptions = this.debugController ? this.debugController.getDebugOptions() : {};
 
         
-        if (this.grid && this.grid.isReady) {
-            const allCells = this.grid.getAllCells();
-            const animatedCells = allCells.filter(cell => cell && cell.animation);
+        // Always use layer-based rendering
+        this.renderByLayers(ctx, debugOptions);
+    }
 
-
-            // Always render all grid cells (with or without animations)
-            if (allCells.length > 0) {
-                // Render all grid cells
-                allCells.forEach(cell => {
-                    if (!cell) return;
-
-                    if (cell.type === 'main-text') {
-                        ctx.save();
-
-                        // Apply animation transforms if cell has animation
-                        const offset = cell.currentOffset || { x: 0, y: 0 };
-
-                        // Calculate transform origin (center of text bounds)
-                        const centerX = cell.bounds.x + cell.bounds.width / 2;
-                        const centerY = cell.bounds.y + cell.bounds.height / 2;
-
-                        // Move to center, apply transforms, move back
-                        ctx.translate(centerX, centerY);
-                        ctx.translate(offset.x || 0, offset.y || 0);
-                        if (offset.rotation) ctx.rotate(offset.rotation);
-                        if (offset.scale) ctx.scale(offset.scale, offset.scale);
-                        ctx.translate(-centerX, -centerY);
-
-                        // Use CellRenderer for consistent rendering
-                        CellRenderer.renderTextCell(ctx, cell, debugOptions);
-
-                        // Draw debug outline if enabled
-                        if (debugOptions.showSpotOutlines) {
-                            ctx.strokeStyle = '#00ff00';
-                            ctx.lineWidth = 2;
-                            ctx.strokeRect(cell.bounds.x, cell.bounds.y, cell.bounds.width, cell.bounds.height);
-                        }
-
-                        // Draw debug number if enabled
-                        if (debugOptions.showSpotNumbers && cell.id) {
-                            const center = cell.getCenter();
-                            const radius = 15;
-
-                            // Circle background
-                            ctx.fillStyle = '#e5e5e5';
-                            ctx.beginPath();
-                            ctx.arc(center.x, center.y, radius, 0, Math.PI * 2);
-                            ctx.fill();
-
-                            // Number text
-                            ctx.fillStyle = '#121212';
-                            ctx.font = 'bold 14px Arial';
-                            ctx.textAlign = 'center';
-                            ctx.textBaseline = 'middle';
-                            ctx.fillText(cell.id.toString(), center.x, center.y);
-                        }
-
-                        ctx.restore();
-                    } else if (cell.type === 'content' || cell instanceof ContentCell) {
-                        // Render ContentCell with CellRenderer
-                        ctx.save();
-
-                        // Apply animation transforms if cell has animation
-                        const offset = cell.currentOffset || { x: 0, y: 0 };
-
-                        // Calculate transform origin (center of cell bounds)
-                        const centerX = cell.bounds.x + cell.bounds.width / 2;
-                        const centerY = cell.bounds.y + cell.bounds.height / 2;
-
-                        // Move to center, apply transforms, move back
-                        ctx.translate(centerX, centerY);
-                        ctx.translate(offset.x || 0, offset.y || 0);
-                        if (offset.rotation) ctx.rotate(offset.rotation);
-                        if (offset.scale) ctx.scale(offset.scale, offset.scale);
-                        ctx.translate(-centerX, -centerY);
-
-                        // Render ContentCell using CellRenderer
-                        const renderOptions = {
-                            showOutlines: debugOptions.showSpotOutlines,
-                            showNumbers: debugOptions.showSpotNumbers,
-                            backgroundImage: this.canvasManager.backgroundImage
-                        };
-                        CellRenderer.render(ctx, cell, renderOptions);
-
-                        ctx.restore();
-                    }
-                    // Note: GridDetector only creates MainTextCell and ContentCell
-                });
-
-                return; // Grid rendering complete
-            }
-        }
-
-        // Fallback: If grid not ready, use MainTextComponent
-        // This should rarely execute as grid is built on initialization
-        this.mainTextComponent.render(ctx);
-
-        // Render ContentCells if they exist outside grid
-        this.spots.forEach(spot => {
-            if (spot instanceof ContentCell) {
-                const renderOptions = {
-                    showOutlines: debugOptions.showSpotOutlines,
-                    showNumbers: debugOptions.showSpotNumbers,
-                    backgroundImage: this.canvasManager.backgroundImage
-                };
-                CellRenderer.render(ctx, spot, renderOptions);
-            }
+    /**
+     * Render cells by layers (NEW layer-based rendering)
+     * @param {CanvasRenderingContext2D} ctx - Canvas context
+     * @param {Object} debugOptions - Debug options
+     * @private
+     */
+    renderByLayers(ctx, debugOptions) {
+        const sortedLayers = this.layerManager.getSortedLayers();
+        
+        sortedLayers.forEach(layer => {
+            if (!layer.visible) return;
+            
+            const layerCells = layer.getCells();
+            layerCells.forEach(cell => {
+                this.renderCellWithAnimations(ctx, cell, debugOptions);
+            });
         });
+    }
+
+    /**
+     * Render a single cell with animation transforms
+     * @param {CanvasRenderingContext2D} ctx - Canvas context
+     * @param {GridCell} cell - Cell to render
+     * @param {Object} debugOptions - Debug options
+     * @private
+     */
+    renderCellWithAnimations(ctx, cell, debugOptions) {
+        if (!cell) return;
+        
+        ctx.save();
+        
+        // Apply animation transforms
+        const offset = cell.currentOffset || { x: 0, y: 0 };
+        const centerX = cell.bounds.x + cell.bounds.width / 2;
+        const centerY = cell.bounds.y + cell.bounds.height / 2;
+        
+        ctx.translate(centerX, centerY);
+        ctx.translate(offset.x || 0, offset.y || 0);
+        if (offset.rotation) ctx.rotate(offset.rotation);
+        if (offset.scale) ctx.scale(offset.scale, offset.scale);
+        ctx.translate(-centerX, -centerY);
+        
+        // Render based on cell type
+        if (cell.type === 'main-text') {
+            CellRenderer.renderTextCell(ctx, cell, debugOptions);
+            
+            // Draw debug outline if enabled
+            if (debugOptions.showSpotOutlines) {
+                ctx.strokeStyle = '#00ff00';
+                ctx.lineWidth = 2;
+                ctx.strokeRect(cell.bounds.x, cell.bounds.y, cell.bounds.width, cell.bounds.height);
+            }
+            
+            // Draw debug number if enabled
+            if (debugOptions.showSpotNumbers && cell.id) {
+                const center = cell.getCenter();
+                const radius = 15;
+                
+                // Circle background
+                ctx.fillStyle = '#e5e5e5';
+                ctx.beginPath();
+                ctx.arc(center.x, center.y, radius, 0, Math.PI * 2);
+                ctx.fill();
+                
+                // Number text
+                ctx.fillStyle = '#121212';
+                ctx.font = 'bold 14px Arial';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText(cell.id.toString(), center.x, center.y);
+            }
+        } else if (cell instanceof ContentCell) {
+            const renderOptions = {
+                showOutlines: debugOptions.showSpotOutlines,
+                showNumbers: debugOptions.showSpotNumbers,
+                backgroundImage: this.canvasManager.backgroundImage
+            };
+            CellRenderer.render(ctx, cell, renderOptions);
+        }
+        
+        ctx.restore();
     }
 
     /**

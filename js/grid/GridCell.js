@@ -18,6 +18,11 @@ class GridCell {
         // cell.bounds remains unchanged - only currentOffset affects rendering
         this.animation = null;          // CellAnimation instance or null
         this.currentOffset = { x: 0, y: 0 }; // Visual rendering offset (non-destructive)
+
+        // Layer system (NEW)
+        this.layerId = 'behind-main-text'; // Default layer assignment
+        this.layerOrder = 0; // Order within layer (for future use)
+        this.layerManager = null; // Reference to LayerManager (injected later)
     }
 
     /**
@@ -93,6 +98,54 @@ class GridCell {
     }
 
     /**
+     * Set the layer manager reference for this cell
+     * @param {LayerManager} layerManager - LayerManager instance
+     */
+    setLayerManager(layerManager) {
+        this.layerManager = layerManager;
+    }
+
+    /**
+     * Set the layer for this cell
+     * @param {string} layerId - Layer ID to assign this cell to
+     * @returns {boolean} True if assignment was successful
+     */
+    setLayer(layerId) {
+        if (!this.layerManager) {
+            console.warn('LayerManager not set for cell, cannot assign layer');
+            return false;
+        }
+        
+        return this.layerManager.assignCellToLayer(this, layerId);
+    }
+
+    /**
+     * Get the current layer ID
+     * @returns {string} Current layer ID
+     */
+    getLayerId() {
+        return this.layerId;
+    }
+
+    /**
+     * Get the current layer instance
+     * @returns {Layer|null} Current layer instance or null
+     */
+    getLayer() {
+        if (!this.layerManager) return null;
+        return this.layerManager.getLayer(this.layerId);
+    }
+
+    /**
+     * Check if this cell is in a specific layer
+     * @param {string} layerId - Layer ID to check
+     * @returns {boolean} True if cell is in the specified layer
+     */
+    isInLayer(layerId) {
+        return this.layerId === layerId;
+    }
+
+    /**
      * Serialize cell data to JSON
      * @returns {Object} - Serializable representation
      */
@@ -105,6 +158,8 @@ class GridCell {
             type: this.type,
             bounds: this.bounds,
             originalBounds: this.originalBounds,
+            layerId: this.layerId,
+            layerOrder: this.layerOrder,
             animation: this.animation ? {
                 type: this.animation.type,
                 intensity: this.animation.intensity,
@@ -125,6 +180,10 @@ class GridCell {
         cell.type = data.type;
         cell.bounds = data.bounds;
         cell.originalBounds = data.originalBounds;
+        
+        // Restore layer information
+        cell.layerId = data.layerId || 'behind-main-text';
+        cell.layerOrder = data.layerOrder || 0;
 
         // Restore animation if present
         if (data.animation) {

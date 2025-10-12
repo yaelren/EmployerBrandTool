@@ -18,10 +18,14 @@ class DebugController {
         // UI element references
         this.elements = {};
         
+        // Layer panel
+        this.layerPanel = null;
+        
         // Initialize
         this.cacheElements();
         this.setupEventListeners();
         this.initializeState();
+        this.initializeLayerPanel();
     }
     
     /**
@@ -115,6 +119,27 @@ class DebugController {
         
         // Apply initial state
         this.applyDebugOptions();
+    }
+    
+    /**
+     * Initialize the layer panel
+     * @private
+     */
+    initializeLayerPanel() {
+        try {
+            this.layerPanel = new LayerPanel(this.app);
+        } catch (error) {
+            console.error('Failed to initialize layer panel:', error);
+        }
+    }
+    
+    /**
+     * Refresh the layer panel (call when grid changes)
+     */
+    refreshLayerPanel() {
+        if (this.layerPanel) {
+            this.layerPanel.refresh();
+        }
     }
     
     /**

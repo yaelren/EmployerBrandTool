@@ -13,6 +13,7 @@ class Grid {
         this.isLocked = false; // Layout lock status
         this.isReady = false; // Grid initialization status
         this.waitingContent = []; // Content waiting to be restored (NEW)
+        this.layerManager = app.layerManager; // Reference to layer manager
     }
 
     /**
@@ -63,6 +64,9 @@ class Grid {
             // Assign sequential IDs (1, 2, 3... left-to-right, top-to-bottom)
             this.assignSequentialIds();
 
+            // Assign layer managers to all cells and assign them to appropriate layers
+            this.assignLayerManagersToCells();
+
             // Restore waiting content to nearest available cells
             this.restoreWaitingContent();
 
@@ -73,6 +77,11 @@ class Grid {
             this._saveOriginalBounds();
 
             this.isReady = true;
+            
+            // Refresh layer panel if debug controller exists
+            if (this.app.debugController && this.app.debugController.refreshLayerPanel) {
+                this.app.debugController.refreshLayerPanel();
+            }
 
         } catch (error) {
             console.error('❌ Error building grid:', error);
@@ -329,6 +338,31 @@ class Grid {
                 const cell = this.matrix[row][col];
                 if (cell) {
                     cell.id = cellId++;
+                }
+            }
+        }
+    }
+
+    /**
+     * Assign layer managers to all cells and assign them to appropriate layers
+     * Called after grid building to set up layer system
+     */
+    assignLayerManagersToCells() {
+        // CRITICAL: Clear all layers first to prevent accumulation
+        this.layerManager.clearAllLayers();
+        
+        for (let row = 0; row < this.rows; row++) {
+            if (!this.matrix[row]) continue;
+
+            for (let col = 0; col < this.matrix[row].length; col++) {
+                const cell = this.matrix[row][col];
+                if (cell) {
+                    // Set layer manager reference
+                    cell.setLayerManager(this.layerManager);
+                    
+                    // Assign cell to appropriate layer based on its type
+                    const defaultLayer = this.layerManager.getDefaultLayerForCellType(cell.type);
+                    this.layerManager.assignCellToLayer(cell, defaultLayer);
                 }
             }
         }

@@ -16,6 +16,9 @@ class ContentCell extends GridCell {
         this.outlineColor = '#e5e5e5';
         this.fillColor = 'transparent';
 
+        // Set default layer for content cells (behind main text by default)
+        this.layerId = 'behind-main-text';
+
         // Content cells support animations (inherited from GridCell)
         // Animation is applied during rendering via currentOffset transforms
     }
