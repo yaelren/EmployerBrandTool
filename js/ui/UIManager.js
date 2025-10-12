@@ -276,9 +276,6 @@ class UIManager {
         // Canvas resize event from Chatooly CDN
         document.addEventListener('chatooly:canvas-resized', (e) => this.app.onCanvasResized(e));
 
-        // Initialize shuffler UI
-        this.initShufflerUI();
-
         // Tab switching
         document.querySelectorAll('.tab-btn').forEach(btn => {
             btn.addEventListener('click', (e) => {
@@ -1619,9 +1616,6 @@ class UIManager {
             case 'grid':
                 contentId = 'gridTab';
                 break;
-            case 'parameters':
-                contentId = 'parametersTab';
-                break;
         }
 
         const activeContent = document.getElementById(contentId);
@@ -2334,42 +2328,6 @@ class UIManager {
      * Spot popup methods removed - functionality moved to unified sidebar
      */
 
-    /**
-     * Initialize shuffler UI event listeners
-     */
-    initShufflerUI() {
-        const shuffleAll = document.getElementById('shuffleAll');
-        const shuffleLayout = document.getElementById('shuffleLayout');
-        const shuffleColors = document.getElementById('shuffleColors');
-        const shuffleSpots = document.getElementById('shuffleSpots');
-        const useDefaultContent = document.getElementById('useDefaultContent');
-
-        if (shuffleAll) {
-            shuffleAll.addEventListener('click', async () => {
-                const useDefaults = useDefaultContent ? useDefaultContent.checked : false;
-                await this.app.shuffler.shuffleAll(useDefaults);
-            });
-        }
-
-        if (shuffleLayout) {
-            shuffleLayout.addEventListener('click', async () => {
-                await this.app.shuffler.shuffleLayout();
-            });
-        }
-
-        if (shuffleColors) {
-            shuffleColors.addEventListener('click', async () => {
-                await this.app.shuffler.shuffleColors();
-            });
-        }
-
-        if (shuffleSpots) {
-            shuffleSpots.addEventListener('click', async () => {
-                const useDefaults = useDefaultContent ? useDefaultContent.checked : false;
-                await this.app.shuffler.shuffleSpots(useDefaults);
-            });
-        }
-    }
 
     /**
      * Show error message to user

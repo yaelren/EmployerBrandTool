@@ -42,9 +42,6 @@ class EmployerBrandToolPOC {
             'fill': new FillContentController(this)
         };
 
-        // Shuffler System
-        this.shuffler = null; // Will be initialized after DOM is ready
-
         // Asset Management System
         this.backgroundImage = null; // Currently loaded background image
         this.backgroundVideo = null; // Currently loaded background video
@@ -69,9 +66,6 @@ class EmployerBrandToolPOC {
 
             // Initialize debug controller
             this.debugController = new DebugController(this);
-
-            // Initialize shuffler system
-            this.shuffler = new Shuffler(this);
 
             // Initialize Grid system (NEW - simple per-cell animations)
             this.grid = new Grid(this);
