@@ -1110,16 +1110,21 @@ class SpotTextComponent extends TextComponent {
     }
     
     /**
-     * Override getLineHeight for grid/spot text to use standard line spacing
+     * Override getLineHeight for grid/spot text to use proper font metrics
      * This prevents overlapping in multi-line spot text
      * @param {string} line - Text line to measure
      * @param {number} fontSize - Font size in pixels
      * @returns {number} Line height to use for positioning
      */
     getLineHeight(line, fontSize) {
-        // Use standard line height (1.2x fontSize) for proper line spacing in spots
-        // This ensures lines don't overlap in grid cells
-        return fontSize * 1.2;
+        const metrics = this.getFontMetrics(fontSize);
+        if (!metrics) {
+            return fontSize; // Fallback to font size
+        }
+        
+        // Use actual font ascent + descent for proper line box height
+        // This is the real vertical space each line needs
+        return metrics.ascent + metrics.descent;
     }
     
     /**
