@@ -1053,6 +1053,35 @@ select option {
     margin: 8px 0;
 }
 
+/* Compact inline color and style control */
+.text-color-style-container {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-top: 8px;
+}
+
+.text-color-style-container label {
+    font-size: 12px;
+    color: var(--chatooly-color-text, #e5e5e5);
+    white-space: nowrap;
+}
+
+.text-color-style-container .spot-text-color {
+    width: 40px;
+    height: 24px;
+    border: 1px solid var(--chatooly-color-border, #3a3a3a);
+    border-radius: 4px;
+    cursor: pointer;
+    background: var(--chatooly-color-surface, #1a1a1a);
+}
+
+.style-buttons-inline {
+    display: flex;
+    gap: 4px;
+    margin-left: auto;
+}
+
 .style-btn {
     width: 32px;
     height: 24px;

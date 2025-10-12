@@ -66,15 +66,10 @@ class TextContentController extends ContentController {
         container.appendChild(positionGroup);
         controls.push(positionGroup);
 
-        // Text styling
-        const stylingGroup = this.createStylingControl(cell, context);
-        container.appendChild(stylingGroup);
-        controls.push(stylingGroup);
-
-        // Text color
-        const colorGroup = this.createColorControl(cell, context);
-        container.appendChild(colorGroup);
-        controls.push(colorGroup);
+        // Text color and styling (combined inline)
+        const colorStyleGroup = this.createColorAndStyleControl(cell, context);
+        container.appendChild(colorStyleGroup);
+        controls.push(colorStyleGroup);
 
         // Highlight color (only show if highlight is enabled)
         if (cell.content.styles?.highlight) {
@@ -517,7 +512,60 @@ class TextContentController extends ContentController {
     }
     
     /**
-     * Create text styling control
+     * Create combined color and styling control (compact inline layout)
+     * @param {ContentCell} cell - Cell object
+     * @param {string} context - 'sidebar' or 'popup'
+     * @returns {HTMLElement} Combined control element
+     * @private
+     */
+    createColorAndStyleControl(cell, context) {
+        const group = this.createControlGroup(context);
+        group.className = (context === 'popup' ? 'chatooly-control-group' : 'spot-control-section') + ' color-style-row';
+        
+        // Create container for inline layout
+        const container = document.createElement('div');
+        container.className = 'text-color-style-container';
+        
+        container.innerHTML = `
+            <label>Text Color:</label>
+            <input type="color" class="spot-text-color" value="${cell.content.color || '#000000'}">
+            <div class="style-buttons-inline">
+                <button type="button" class="style-btn ${cell.content.styles?.bold ? 'active' : ''}" data-style="bold" title="Bold">B</button>
+                <button type="button" class="style-btn ${cell.content.styles?.italic ? 'active' : ''}" data-style="italic" title="Italic">I</button>
+                <button type="button" class="style-btn ${cell.content.styles?.underline ? 'active' : ''}" data-style="underline" title="Underline">U</button>
+                <button type="button" class="style-btn ${cell.content.styles?.highlight ? 'active' : ''}" data-style="highlight" title="Highlight">H</button>
+            </div>
+        `;
+        
+        // Color input listener
+        const colorInput = container.querySelector('.spot-text-color');
+        this.addControlListener(colorInput, 'input', () => {
+            this.updateContent(cell, { color: colorInput.value }, true);
+        });
+        
+        // Style button listeners
+        const styleButtons = container.querySelectorAll('.style-btn');
+        styleButtons.forEach(btn => {
+            this.addControlListener(btn, 'click', () => {
+                const styleKey = btn.dataset.style;
+                btn.classList.toggle('active');
+                const currentStyles = { ...cell.content.styles };
+                currentStyles[styleKey] = !currentStyles[styleKey];
+                this.updateContent(cell, { styles: currentStyles }, true);
+
+                // If highlight was toggled, recreate controls to show/hide highlight color
+                if (styleKey === 'highlight') {
+                    this.app.uiManager?.updateSpotsUI();
+                }
+            });
+        });
+        
+        group.appendChild(container);
+        return group;
+    }
+    
+    /**
+     * Create text styling control (legacy - kept for compatibility)
      * @param {ContentCell} cell - Cell object
      * @param {string} context - 'sidebar' or 'popup'
      * @returns {HTMLElement} Styling control element
@@ -568,7 +616,7 @@ class TextContentController extends ContentController {
     }
     
     /**
-     * Create text color control
+     * Create text color control (legacy - kept for compatibility)
      * @param {ContentCell} cell - Cell object
      * @param {string} context - 'sidebar' or 'popup'
      * @returns {HTMLElement} Color control element
