@@ -52,6 +52,9 @@ class EmployerBrandToolPOC {
         // Grid Animation System (NEW - simple per-cell animations)
         this.grid = null; // Will be initialized after DOM is ready
 
+        // Minimum spot size - will be calculated as min(50, fontSize)
+        this.minSpotSize = null; // Will be set dynamically based on font size
+
         // Initialize the application
         this.initialize();
     }
@@ -101,10 +104,14 @@ class EmployerBrandToolPOC {
             // Auto-detection is now permanently enabled
             this.autoDetectSpots = true;
 
-            // Initial render
-            this.render();
+            // Initialize minimum spot size from UI
+            if (this.uiManager.elements.minSpotSize) {
+                const minSize = parseInt(this.uiManager.elements.minSpotSize.value);
+                this.gridDetector.setMinCellSize(minSize);
+                this.minSpotSize = minSize;
+            }
 
-            // Test Grid system (NEW - build from existing data)
+            // Build grid first, then render
             if (this.grid) {
                 this.grid.buildFromExisting();
 
@@ -115,6 +122,9 @@ class EmployerBrandToolPOC {
                 // Update visual grid display
                 this.uiManager.updateVisualGrid();
             }
+
+            // Initial render (after grid is built)
+            this.render();
 
             this.isInitialized = true;
 

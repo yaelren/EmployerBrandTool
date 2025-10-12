@@ -7,9 +7,9 @@ class MainTextController {
     constructor() {
         // Text configuration
         this.config = {
-            fontSize: 48,
+            fontSize: 100,
             fontFamily: '"Wix Madefor Display", Arial, sans-serif',
-            lineSpacing: 10, // Space between lines in pixels
+            lineSpacing: 0, // Space between lines in pixels
             color: '#000000',
             defaultAlignment: 'center',
             enableWrap: true,

@@ -53,7 +53,8 @@ class UIManager {
             paddingVertical: 'paddingVertical',
             paddingVerticalValue: 'paddingVerticalValue',
             lineAlignmentControls: 'lineAlignmentControls',
-            // Removed: minSpotSize, findSpots, autoDetectSpots, spotCount, spotsList
+            minSpotSize: 'minSpotSize',
+            // Removed: findSpots, autoDetectSpots, spotCount, spotsList
             // Main text styling buttons
             mainTextBold: 'mainTextBold',
             mainTextItalic: 'mainTextItalic',
@@ -1630,6 +1631,18 @@ class UIManager {
             
             paddingVertical.addEventListener('input', this.handlePaddingVerticalInput);
             paddingVertical.addEventListener('change', this.handlePaddingVerticalChange);
+        }
+
+        // Minimum spot size changes
+        if (this.elements.minSpotSize) {
+            console.log('Minimum spot size element found in Grid tab');
+            this.elements.minSpotSize.addEventListener('input', () => {
+                const minSize = parseInt(this.elements.minSpotSize.value);
+                console.log('Minimum spot size changed to:', minSize);
+                this.app.gridDetector.setMinCellSize(minSize);
+                this.app.minSpotSize = minSize; // Store for Grid.buildFromExisting()
+                this.app.onTextChanged(); // Trigger spot detection with new size
+            });
         }
     }
 

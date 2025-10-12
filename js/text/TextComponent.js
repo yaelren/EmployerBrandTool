@@ -10,7 +10,7 @@ class TextComponent {
         
         // Font properties
         this.fontFamily = '"Wix Madefor Display", Arial, sans-serif';
-        this.fontSize = 48; // Can be a number or 'auto' for auto-sizing
+        this.fontSize = 100; // Can be a number or 'auto' for auto-sizing
         this.fontWeight = 'normal'; // 'normal' or 'bold'
         this.fontStyle = 'normal'; // 'normal' or 'italic'
         
@@ -41,7 +41,7 @@ class TextComponent {
         this.paddingLeft = 20;
         
         // Line spacing for multi-line text
-        this.lineSpacing = 10;
+        this.lineSpacing = 0;
         
         // Container bounds (will be set by subclasses)
         this.containerX = 0;
