@@ -1548,7 +1548,7 @@ class UIManager {
     setupGridTabEventListeners() {
         console.log('Setting up Grid tab event listeners');
         
-        // Re-cache background elements from the Grid tab
+        // Re-cache background elements (now in Main Text tab)
         const backgroundColor = document.getElementById('backgroundColor');
         const backgroundOpacity = document.getElementById('backgroundOpacity');
         const backgroundOpacityValue = document.getElementById('backgroundOpacityValue');
@@ -1565,7 +1565,7 @@ class UIManager {
 
         // Background color changes
         if (backgroundColor) {
-            console.log('Background color element found in Grid tab');
+            console.log('Background color element found (moved to Main Text tab)');
             // Remove existing listeners to avoid duplicates
             backgroundColor.removeEventListener('input', this.handleBackgroundColorChange);
             this.handleBackgroundColorChange = () => {

@@ -2501,15 +2501,15 @@ select option {
 }
 
 .padding-header label {
-    font-size: 11px !important;
+    font-size: 12px !important;
     font-weight: 600 !important;
-    color: #e5e5e5 !important;
+    color: #000000 !important;
     margin: 0 !important;
 }
 
 .padding-toggle-icon {
     font-size: 10px !important;
-    color: #999 !important;
+    color: #000000 !important;
     transition: transform 0.2s ease !important;
 }
 
@@ -2524,7 +2524,7 @@ select option {
 }
 
 .padding-controls-collapsed.expanded {
-    max-height: 80px !important;
+    max-height: 2000px !important;
 }
 
 .compact-padding-row {
@@ -2802,5 +2802,234 @@ select option {
     background: #f44336;
     color: white;
     border-color: #f44336;
+}
+
+/* ========== NEW UI LAYOUT STYLES ========== */
+
+/* Collapsible Section Styles */
+.collapsible-section {
+    margin-bottom: 8px;
+}
+
+/* Background Image Controls */
+.background-image-controls {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.delicate-x {
+    background: none;
+    border: none;
+    color: var(--chatooly-color-text-secondary, #999);
+    font-size: 16px;
+    cursor: pointer;
+    padding: 4px 8px;
+    border-radius: 4px;
+    transition: all 0.2s ease;
+}
+
+.delicate-x:hover {
+    background: var(--chatooly-color-surface-hover, #222);
+    color: var(--chatooly-color-text, #e5e5e5);
+}
+
+/* Compact Image Space Controls */
+.compact-image-space {
+    margin-top: 10px;
+}
+
+.space-toggles {
+    display: flex;
+    gap: 15px;
+    margin-bottom: 10px;
+}
+
+.space-toggles label {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 12px;
+    cursor: pointer;
+    color: var(--chatooly-color-text, #e5e5e5);
+}
+
+.fill-mode-control {
+    margin-top: 8px;
+}
+
+.fill-mode-control label {
+    font-size: 12px;
+    margin-bottom: 5px;
+    display: block;
+    color: var(--chatooly-color-text, #e5e5e5);
+}
+
+.fill-mode-control select {
+    width: 100%;
+    padding: 6px 8px;
+    background: var(--chatooly-color-surface, #1a1a1a);
+    border: 1px solid var(--chatooly-color-border, #3a3a3a);
+    border-radius: 4px;
+    color: var(--chatooly-color-text, #e5e5e5);
+    font-size: 12px;
+}
+
+/* Compact Row Styles */
+.compact-row {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    margin-bottom: 10px;
+}
+
+.compact-control {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.compact-control label {
+    min-width: 60px;
+    font-size: 12px;
+    margin: 0;
+    color: var(--chatooly-color-text, #e5e5e5);
+}
+
+.compact-control input[type="number"] {
+    flex: 1;
+    padding: 6px 8px;
+    background: var(--chatooly-color-surface, #1a1a1a);
+    border: 1px solid var(--chatooly-color-border, #3a3a3a);
+    border-radius: 4px;
+    color: var(--chatooly-color-text, #e5e5e5);
+    font-size: 12px;
+}
+
+.compact-control input[type="color"] {
+    width: 40px;
+    height: 32px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+.compact-control select {
+    flex: 1;
+    padding: 6px 8px;
+    background: var(--chatooly-color-surface, #1a1a1a);
+    border: 1px solid var(--chatooly-color-border, #3a3a3a);
+    border-radius: 4px;
+    color: var(--chatooly-color-text, #e5e5e5);
+    font-size: 12px;
+}
+
+.compact-control .unit {
+    font-size: 12px;
+    color: var(--chatooly-color-text-secondary, #999);
+    min-width: 20px;
+}
+
+/* Main Text Styling Buttons */
+.main-text-styling {
+    display: flex;
+    gap: 5px;
+    align-items: center;
+}
+
+.main-style-btn {
+    padding: 6px 10px;
+    background: var(--chatooly-color-surface, #1a1a1a);
+    border: 1px solid var(--chatooly-color-border, #3a3a3a);
+    border-radius: 4px;
+    color: var(--chatooly-color-text, #e5e5e5);
+    font-size: 12px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.main-style-btn:hover {
+    background: var(--chatooly-color-surface-hover, #222);
+}
+
+.main-style-btn.active {
+    background: var(--chatooly-color-primary, #007acc);
+    border-color: var(--chatooly-color-primary, #007acc);
+    color: white;
+}
+
+/* Padding Controls Styles */
+.compact-padding-section {
+    margin-bottom: 8px;
+}
+
+.padding-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 0;
+    cursor: pointer;
+    border-bottom: 1px solid var(--chatooly-color-border, #3a3a3a);
+    margin-bottom: 10px;
+    background: #666666;
+    border-radius: 4px;
+    padding: 10px 8px;
+    margin: 0 -8px 10px -8px;
+}
+
+.padding-header label {
+    font-weight: 600;
+    color: #000000;
+    margin: 0;
+    cursor: pointer;
+    font-size: 12px;
+}
+
+.padding-toggle-icon {
+    font-size: 12px;
+    color: #000000;
+    transition: transform 0.2s ease;
+    cursor: pointer;
+}
+
+.padding-toggle-icon.expanded {
+    transform: rotate(180deg);
+}
+
+.padding-controls-collapsed {
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.3s ease-out;
+}
+
+.padding-controls-collapsed.expanded {
+    max-height: 200px;
+    transition: max-height 0.3s ease-in;
+}
+
+.compact-padding-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 8px;
+}
+
+.compact-padding-row label {
+    min-width: 20px;
+    font-size: 14px;
+    margin: 0;
+}
+
+.compact-padding-row input[type="range"] {
+    flex: 1;
+}
+
+.compact-padding-row span {
+    min-width: 50px;
+    font-size: 12px;
+    color: var(--chatooly-color-text-secondary, #999);
+    text-align: right;
 }
 
