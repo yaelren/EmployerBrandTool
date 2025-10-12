@@ -2,7 +2,7 @@
  * ContentCell.js - Grid cell for content areas (replaces Spot + SpotCell)
  * Part of the Unified Grid System
  *
- * Handles all content types: empty, image, text, mask
+ * Handles all content types: empty, media, text, fill
  */
 
 class ContentCell extends GridCell {
@@ -25,7 +25,7 @@ class ContentCell extends GridCell {
 
     /**
      * Set content type and initialize default content
-     * @param {string} type - 'empty' | 'image' | 'text' | 'fill'
+     * @param {string} type - 'empty' | 'media' | 'text' | 'fill'
      */
     setContentType(type) {
         this.contentType = type;
@@ -48,16 +48,17 @@ class ContentCell extends GridCell {
      */
     _getDefaultContent(type) {
         switch (type) {
-            case 'image':
+            case 'media':
                 return {
-                    image: null,
-                    imageDataURL: null,
+                    media: null,
+                    mediaType: null,
+                    mediaUrl: null,
                     scale: 1.0,
                     rotation: 0,
                     padding: 10,
                     positionH: 'center',
                     positionV: 'middle',
-                    fillWithBackgroundColor: false  // Default: show image
+                    fillWithBackgroundColor: false  // Default: show media
                 };
 
             case 'text':
@@ -105,7 +106,7 @@ class ContentCell extends GridCell {
      * @returns {boolean}
      */
     hasImage() {
-        return this.contentType === 'media' && this.content && this.content.image;
+        return this.contentType === 'media' && this.content && this.content.media;
     }
 
     /**

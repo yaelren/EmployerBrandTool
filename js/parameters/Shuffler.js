@@ -307,7 +307,7 @@ class Shuffler {
      */
     async shuffleIndividualSpot(spot, useDefaults = false) {
         // Randomly choose spot type with equal probability
-        const types = ['text', 'image', 'mask', 'empty'];
+        const types = ['text', 'media', 'fill', 'empty'];
         const newType = this.randomFromArray(types);
         spot.setContentType(newType);
 
@@ -315,7 +315,7 @@ class Shuffler {
             case 'text':
                 await this.shuffleTextSpot(spot, useDefaults);
                 break;
-            case 'image':
+            case 'media':
                 await this.shuffleImageSpot(spot);
                 break;
             case 'mask':
@@ -370,10 +370,10 @@ class Shuffler {
         // Use preloaded spot images
         if (this.spotImages.length > 0) {
             const randomImage = this.randomFromArray(this.spotImages);
-            spot.content.image = randomImage;
+            spot.content.media = randomImage;
         } else {
             console.warn('No spot images loaded yet');
-            spot.content.image = null;
+            spot.content.media = null;
         }
 
         // Random scale for variety (0.5x to 2x size)
@@ -683,7 +683,7 @@ class Shuffler {
      */
     async shuffleIndividualSpotRandomly(spot) {
         // Randomly choose spot type with equal probability
-        const types = ['text', 'image', 'mask', 'empty'];
+        const types = ['text', 'media', 'fill', 'empty'];
         const newType = this.randomFromArray(types);
         spot.setContentType(newType);
 
@@ -691,7 +691,7 @@ class Shuffler {
             case 'text':
                 await this.shuffleTextSpotRandomly(spot);
                 break;
-            case 'image':
+            case 'media':
                 await this.shuffleImageSpot(spot);
                 break;
             case 'mask':

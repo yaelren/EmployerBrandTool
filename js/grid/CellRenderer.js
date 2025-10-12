@@ -88,7 +88,7 @@ class CellRenderer {
     static renderContentCell(ctx, cell, options) {
         // Render content based on type
         switch (cell.contentType) {
-            case 'image':
+            case 'media':
                 this.renderImage(ctx, cell, options);
                 break;
             case 'text':

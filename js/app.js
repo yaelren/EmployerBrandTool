@@ -331,12 +331,12 @@ class EmployerBrandToolPOC {
 
             // Handle content based on type
             if (spot.content) {
-                if (spot.contentType === 'media' && spot.content.image) {
+                if (spot.contentType === 'media' && spot.content.media) {
                     // Convert image to data URL for serialization
                     savedSpot.content = {
                         ...spot.content,
-                        imageDataURL: this.imageToDataURL(spot.content.image),
-                        image: null // Remove the actual image object
+                        imageDataURL: this.imageToDataURL(spot.content.media),
+                        media: null // Remove the actual media object
                     };
                 } else {
                     // Create a clean copy of content, excluding non-serializable properties
@@ -390,12 +390,12 @@ class EmployerBrandToolPOC {
 
         // Handle content based on type
         if (spot.content) {
-            if (spot.contentType === 'media' && spot.content.image) {
-                // Convert image to data URL for serialization
+            if (spot.contentType === 'media' && spot.content.media) {
+                // Convert media to data URL for serialization
                 savedSpot.content = {
                     ...spot.content,
-                    imageDataURL: this.imageToDataURL(spot.content.image),
-                    image: null // Remove the actual image object
+                    imageDataURL: this.imageToDataURL(spot.content.media),
+                    media: null // Remove the actual media object
                 };
             } else {
                 // Create a clean copy of content, excluding non-serializable properties
@@ -516,7 +516,7 @@ class EmployerBrandToolPOC {
         
         // Handle content restoration based on type
         if (savedSpot.content) {
-            if (savedSpot.type === 'image' && savedSpot.content.imageDataURL) {
+            if (savedSpot.type === 'media' && savedSpot.content.imageDataURL) {
                 // Restore image from data URL
                 this.restoreImageContent(newSpot, savedSpot.content);
             } else {

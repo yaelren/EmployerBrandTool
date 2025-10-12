@@ -2168,8 +2168,8 @@ class UIManager {
         switch (spot.contentType) {
             case 'text':
                 return spot.content.text ? `"${spot.content.text.substring(0, 20)}${spot.content.text.length > 20 ? '...' : ''}"` : '';
-            case 'image':
-                return spot.content.imageDataURL ? 'Image' : '';
+            case 'media':
+                return spot.content.imageDataURL ? 'Media' : '';
             case 'fill':
                 return 'Fill';
             default:
@@ -2398,7 +2398,7 @@ class UIManager {
             const img = new Image();
             img.onload = () => {
                 if (!spot.content) spot.content = {};
-                spot.content.image = img;
+                spot.content.media = img;
                 this.app.render();
             };
             img.src = e.target.result;
