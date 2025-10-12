@@ -330,8 +330,16 @@ class EmployerBrandToolPOC {
                         image: null // Remove the actual image object
                     };
                 } else {
-                    // For non-image content, use regular deep copy
-                    savedSpot.content = JSON.parse(JSON.stringify(spot.content));
+                    // Create a clean copy of content, excluding non-serializable properties
+                    const cleanContent = {};
+                    for (const key in spot.content) {
+                        // Skip non-serializable properties (Lottie animation objects, canvas elements, etc.)
+                        if (key === 'lottieAnimation' || key === 'lottieContainer' || key === 'media') {
+                            continue;
+                        }
+                        cleanContent[key] = spot.content[key];
+                    }
+                    savedSpot.content = cleanContent;
                 }
             } else {
                 savedSpot.content = null;
@@ -381,8 +389,16 @@ class EmployerBrandToolPOC {
                     image: null // Remove the actual image object
                 };
             } else {
-                // For non-image content, use regular deep copy
-                savedSpot.content = JSON.parse(JSON.stringify(spot.content));
+                // Create a clean copy of content, excluding non-serializable properties
+                const cleanContent = {};
+                for (const key in spot.content) {
+                    // Skip non-serializable properties (Lottie animation objects, canvas elements, etc.)
+                    if (key === 'lottieAnimation' || key === 'lottieContainer' || key === 'media') {
+                        continue;
+                    }
+                    cleanContent[key] = spot.content[key];
+                }
+                savedSpot.content = cleanContent;
             }
         } else {
             savedSpot.content = null;
