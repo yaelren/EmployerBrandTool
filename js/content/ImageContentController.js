@@ -54,24 +54,21 @@ class ImageContentController extends ContentController {
         container.appendChild(positionGroup);
         controls.push(positionGroup);
 
-        // If media is loaded, show transform controls
-        if (cell.content?.media) {
-            // Scale control
-            const scaleGroup = this.createScaleControl(cell, context);
-            container.appendChild(scaleGroup);
-            controls.push(scaleGroup);
+        // Scale control (always show for image content type)
+        const scaleGroup = this.createScaleControl(cell, context);
+        container.appendChild(scaleGroup);
+        controls.push(scaleGroup);
 
-            // Rotation control
-            const rotationGroup = this.createRotationControl(cell, context);
-            container.appendChild(rotationGroup);
-            controls.push(rotationGroup);
+        // Rotation control (always show for image content type)
+        const rotationGroup = this.createRotationControl(cell, context);
+        container.appendChild(rotationGroup);
+        controls.push(rotationGroup);
 
-            // Video-specific controls
-            if (cell.content.mediaType === 'video') {
-                const videoGroup = this.createVideoControls(cell, context);
-                container.appendChild(videoGroup);
-                controls.push(videoGroup);
-            }
+        // Video-specific controls (only show if media is loaded and is video)
+        if (cell.content?.media && cell.content.mediaType === 'video') {
+            const videoGroup = this.createVideoControls(cell, context);
+            container.appendChild(videoGroup);
+            controls.push(videoGroup);
         }
 
         return controls;
@@ -112,19 +109,36 @@ class ImageContentController extends ContentController {
         const hasFile = cell.content?.media && cell.content?.mediaUrl;
         const fileName = hasFile ? (cell.content.fileName || this.getFileNameFromUrl(cell.content.mediaUrl)) : '';
         
+        console.log('Creating media upload control:', {
+            hasFile,
+            fileName,
+            media: cell.content?.media,
+            mediaUrl: cell.content?.mediaUrl,
+            mediaType: cell.content?.mediaType
+        });
+        
         mediaGroup.innerHTML = `
-            <label>Media (Image, Video, GIF)</label>
-            <input type="file" class="spot-media-input" accept="image/*,video/*,.gif">
+            <label>Media (Image, Video, GIF, MP4)</label>
+            <input type="file" class="spot-media-input" accept="image/*,video/*,.gif,.mp4,.webm,.mov">
             ${hasFile ? `
                 <div class="uploaded-file-display">
                     <span class="file-name">${fileName}</span>
-                    <button type="button" class="remove-file-btn" title="Remove file">×</button>
+                    <div class="file-controls">
+                        ${cell.content.mediaType === 'video' ? `
+                            <label class="loop-toggle">
+                                <input type="checkbox" class="media-loop" ${cell.content.loop !== false ? 'checked' : ''}>
+                                Loop
+                            </label>
+                        ` : ''}
+                        <button type="button" class="remove-file-btn" title="Remove file">×</button>
+                    </div>
                 </div>
             ` : ''}
         `;
 
         const mediaInput = mediaGroup.querySelector('.spot-media-input');
         const removeBtn = mediaGroup.querySelector('.remove-file-btn');
+        const loopToggle = mediaGroup.querySelector('.media-loop');
         
         this.addControlListener(mediaInput, 'change', (e) => {
             this.handleMediaUpload(cell, e);
@@ -133,6 +147,15 @@ class ImageContentController extends ContentController {
         if (removeBtn) {
             this.addControlListener(removeBtn, 'click', () => {
                 this.removeMedia(cell, mediaGroup);
+            });
+        }
+
+        if (loopToggle) {
+            this.addControlListener(loopToggle, 'change', () => {
+                this.updateContent(cell, { loop: loopToggle.checked }, true);
+                if (cell.content.media) {
+                    cell.content.media.loop = loopToggle.checked;
+                }
             });
         }
 
@@ -260,28 +283,17 @@ class ImageContentController extends ContentController {
             <label>Video Settings</label>
             <div class="video-controls">
                 <label>
-                    <input type="checkbox" class="video-autoplay" ${cell.content.autoplay ? 'checked' : ''}>
-                    Autoplay
-                </label>
-                <label>
                     <input type="checkbox" class="video-loop" ${cell.content.loop ? 'checked' : ''}>
                     Loop
                 </label>
+                <p style="font-size: 11px; color: var(--chatooly-color-text-secondary, #999); margin-top: 8px;">
+                    Videos autoplay by default (muted for browser compatibility)
+                </p>
             </div>
         `;
 
-        // Add event listeners for video controls
-        const autoplayCheckbox = videoGroup.querySelector('.video-autoplay');
+        // Add event listener for loop control only
         const loopCheckbox = videoGroup.querySelector('.video-loop');
-
-        this.addControlListener(autoplayCheckbox, 'change', () => {
-            this.updateContent(cell, { autoplay: autoplayCheckbox.checked }, true);
-            if (cell.content.media) {
-                cell.content.media.autoplay = autoplayCheckbox.checked;
-            }
-            // Ensure video playback is updated
-            this.ensureVideoPlayback(cell);
-        });
 
         this.addControlListener(loopCheckbox, 'change', () => {
             this.updateContent(cell, { loop: loopCheckbox.checked }, true);
@@ -334,9 +346,21 @@ class ImageContentController extends ContentController {
                         scale: 1,
                         rotation: 0
                     });
+                    
+                    console.log('Image uploaded, updating content:', {
+                        media: img,
+                        mediaType: mediaType,
+                        mediaUrl: e.target.result,
+                        fileName: file.name
+                    });
 
                     // Recreate controls to show scale/rotation and file display
-                    this.app.uiManager?.updateSpotsUI();
+                    if (this.app.uiManager && this.app.uiManager.showSelectedCellControls) {
+                        const selectedCell = this.app.selectedCell;
+                        if (selectedCell) {
+                            this.app.uiManager.showSelectedCellControls(selectedCell.cell, selectedCell.row, selectedCell.col);
+                        }
+                    }
                 };
                 img.src = e.target.result;
             } else if (mediaType === 'video') {
@@ -347,7 +371,7 @@ class ImageContentController extends ContentController {
                 video.crossOrigin = 'anonymous'; // Allow canvas drawing
                 
                 // Set video properties immediately
-                video.autoplay = cell.content.autoplay !== false; // Default to true
+                video.autoplay = true; // Always autoplay
                 video.loop = cell.content.loop !== false; // Default to true
                 video.muted = true; // Always muted for autoplay compatibility
                 video.controls = false; // Never show controls
@@ -361,11 +385,18 @@ class ImageContentController extends ContentController {
                         mediaUrl: e.target.result,
                         fileName: file.name, // Store original file name
                         scale: 1,
-                        rotation: 0
+                        rotation: 0,
+                        autoplay: true, // Always autoplay
+                        loop: cell.content.loop !== false // Default to true
                     });
 
                     // Recreate controls to show video controls and file display
-                    this.app.uiManager?.updateSpotsUI();
+                    if (this.app.uiManager && this.app.uiManager.showSelectedCellControls) {
+                        const selectedCell = this.app.selectedCell;
+                        if (selectedCell) {
+                            this.app.uiManager.showSelectedCellControls(selectedCell.cell, selectedCell.row, selectedCell.col);
+                        }
+                    }
                     
                     // Force a render to show the video
                     this.app.render();
@@ -427,13 +458,16 @@ class ImageContentController extends ContentController {
      * @private
      */
     removeMedia(cell, mediaGroup) {
-        // Clear the media content
+        // Actually remove the file completely
         this.updateContent(cell, {
             media: null,
             mediaType: null,
             mediaUrl: null,
+            fileName: null,
             scale: 1,
-            rotation: 0
+            rotation: 0,
+            autoplay: true,
+            loop: true
         });
         
         // Clear the file input
@@ -442,8 +476,13 @@ class ImageContentController extends ContentController {
             fileInput.value = '';
         }
         
-        // Recreate controls to hide file display and video controls
-        this.app.uiManager?.updateSpotsUI();
+        // Refresh the content controls to hide file display
+        if (this.app.uiManager && this.app.uiManager.showSelectedCellControls) {
+            const selectedCell = this.app.selectedCell;
+            if (selectedCell) {
+                this.app.uiManager.showSelectedCellControls(selectedCell.cell, selectedCell.row, selectedCell.col);
+            }
+        }
     }
     
     /**
@@ -455,8 +494,8 @@ class ImageContentController extends ContentController {
         if (cell.content?.media instanceof HTMLVideoElement) {
             const video = cell.content.media;
             
-            // If autoplay is enabled and video is paused, play it
-            if (cell.content.autoplay && video.paused) {
+            // Always try to play videos (autoplay is always enabled)
+            if (video.paused) {
                 video.play().catch(error => {
                     console.warn('Video autoplay failed:', error);
                     // Autoplay might fail due to browser policies, that's okay
@@ -464,7 +503,7 @@ class ImageContentController extends ContentController {
             }
             
             // If loop is enabled, ensure it's set
-            if (cell.content.loop) {
+            if (cell.content.loop !== false) { // Default to true
                 video.loop = true;
             }
         }

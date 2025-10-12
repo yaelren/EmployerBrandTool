@@ -67,10 +67,7 @@ class ContentController {
      * @protected
      */
     addControlListener(element, event, handler) {
-        element.addEventListener(event, (e) => {
-            e.stopPropagation(); // Prevent closing sidebar controls
-            handler(e);
-        });
+        element.addEventListener(event, handler);
     }
     
     /**

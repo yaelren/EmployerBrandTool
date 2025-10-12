@@ -235,6 +235,26 @@
     border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
+.file-controls {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.loop-toggle {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 11px;
+    color: var(--chatooly-color-text-secondary, #999);
+    cursor: pointer;
+}
+
+.loop-toggle input[type="checkbox"] {
+    margin: 0;
+    transform: scale(0.8);
+}
+
 .file-name {
     font-size: 12px;
     color: var(--chatooly-color-text, #e5e5e5);

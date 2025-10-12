@@ -15,7 +15,6 @@ class MaskContentController extends ContentController {
      */
     getDefaultContent() {
         return {
-            opacity: 0.5,
             padding: 0
         };
     }
@@ -33,51 +32,39 @@ class MaskContentController extends ContentController {
         
         const controls = [];
         
-        // Mask opacity control
-        const opacityGroup = this.createOpacityControl(cell, context);
-        container.appendChild(opacityGroup);
-        controls.push(opacityGroup);
+        // Mask padding control (only control for masks)
+        const paddingGroup = this.createPaddingControl(cell, context);
+        container.appendChild(paddingGroup);
+        controls.push(paddingGroup);
 
         return controls;
     }
     
     /**
-     * Create opacity control
+     * Create padding control for masks (overrides base class to default to 0)
      * @param {ContentCell} cell - Cell object
      * @param {string} context - 'sidebar' or 'popup'
-     * @returns {HTMLElement} Opacity control element
+     * @returns {HTMLElement} Padding control element
      * @private
      */
-    createOpacityControl(cell, context) {
-        const opacityGroup = this.createControlGroup(context);
-        
-        // Ensure cell has opacity property
-        if (typeof cell.opacity === 'undefined') {
-            cell.setOpacity(cell.content.opacity || 0.5);
-        }
-        
-        opacityGroup.innerHTML = `
-            <label>Mask Opacity: <span class="opacity-value">${Math.round((cell.opacity || 0.5) * 100)}%</span></label>
-            <input type="range" class="spot-opacity" min="0" max="100" step="5" value="${Math.round((cell.opacity || 0.5) * 100)}">
+    createPaddingControl(cell, context) {
+        const paddingGroup = document.createElement('div');
+        paddingGroup.className = context === 'popup' ? 'chatooly-control-group' : 'spot-control-section';
+        paddingGroup.innerHTML = `
+            <label>Padding: <span class="padding-value">${cell.content?.padding || 0}px</span></label>
+            <input type="range" class="spot-padding" min="0" max="50" step="1" value="${cell.content?.padding || 0}">
             <p style="font-size: 11px; color: var(--chatooly-color-text-secondary, #999); margin-top: 8px;">
                 This cell will reveal the background image through a transparent window.
             </p>
         `;
-        
-        const opacitySlider = opacityGroup.querySelector('.spot-opacity');
-        const opacityValue = opacityGroup.querySelector('.opacity-value');
-        
-        this.addControlListener(opacitySlider, 'input', () => {
-            const value = parseInt(opacitySlider.value);
-            const normalizedOpacity = value / 100;
 
-            opacityValue.textContent = value + '%';
-            cell.setOpacity(normalizedOpacity);
-
-            // Update content for consistency
-            this.updateContent(cell, { opacity: normalizedOpacity }, true);
+        const paddingSlider = paddingGroup.querySelector('.spot-padding');
+        this.addControlListener(paddingSlider, 'input', () => {
+            const value = parseInt(paddingSlider.value);
+            paddingGroup.querySelector('.padding-value').textContent = value + 'px';
+            this.updateContent(cell, { padding: value }, true);
         });
-        
-        return opacityGroup;
+
+        return paddingGroup;
     }
 }
