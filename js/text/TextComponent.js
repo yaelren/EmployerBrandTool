@@ -529,7 +529,7 @@ class TextComponent {
      * @returns {number} Available height in pixels
      */
     getAvailableHeight() {
-        return this.getTypographyAwareAvailableHeight();
+        return this.containerHeight - this.paddingTop - this.paddingBottom;
     }
     
     /**
@@ -730,11 +730,8 @@ class TextComponent {
             }
         });
         
-        // Calculate starting position
+        // Calculate starting position for the entire text block
         const position = this.calculateTextPosition(totalHeight);
-        
-        // Set text alignment for canvas
-        ctx.textAlign = this.alignH;
         
         // Render each line
         let currentY = position.y;
@@ -743,7 +740,26 @@ class TextComponent {
 
             const lineHeight = this.getLineHeight(line, fontSize);
             const lineY = currentY;
-            let lineX = position.x;
+            
+            // Calculate line X position based on line alignment within the text block
+            // Use the calculated position.x as the anchor point for the text block
+            let lineX;
+            
+            switch (this.alignH) {
+                case 'left':
+                    lineX = position.x;
+                    ctx.textAlign = 'left';
+                    break;
+                case 'right':
+                    lineX = position.x;
+                    ctx.textAlign = 'right';
+                    break;
+                case 'center':
+                default:
+                    lineX = position.x;
+                    ctx.textAlign = 'center';
+                    break;
+            }
             
             // Measure line for decorations
             const metrics = ctx.measureText(line);
@@ -1082,8 +1098,10 @@ class SpotTextComponent extends TextComponent {
         
         // Spot text specific defaults
         this.fontSize = 'auto'; // Auto-size by default
-        this.alignH = 'center';
-        this.alignV = 'middle';
+        this.alignH = 'center';  // Line alignment (left/center/right)
+        this.alignV = 'middle';  // Vertical alignment within text block
+        this.positionH = 'center'; // Where entire text block sits horizontally
+        this.positionV = 'middle'; // Where entire text block sits vertically
         this.setPadding(1); // Default 1px padding for spots
         
         // Spot-specific properties
