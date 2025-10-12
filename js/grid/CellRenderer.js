@@ -167,6 +167,7 @@ class CellRenderer {
         const media = cell.content.media;
         const scale = cell.content.scale || 1;
         const rotation = (cell.content.rotation || 0) * Math.PI / 180; // Convert to radians
+        const fillMode = cell.content.fillMode || 'fit';
 
         // Get media dimensions
         let mediaWidth, mediaHeight;
@@ -182,19 +183,46 @@ class CellRenderer {
             mediaHeight = contentHeight;
         }
 
-        // Calculate media dimensions maintaining aspect ratio
+        // Calculate media dimensions based on fill mode
         const mediaAspect = mediaWidth / mediaHeight;
         const contentAspect = contentWidth / contentHeight;
 
         let drawWidth, drawHeight;
-        if (mediaAspect > contentAspect) {
-            // Media is wider than content area
-            drawWidth = contentWidth * scale;
-            drawHeight = (contentWidth / mediaAspect) * scale;
-        } else {
-            // Media is taller than content area
-            drawWidth = (contentHeight * mediaAspect) * scale;
-            drawHeight = contentHeight * scale;
+        
+        switch (fillMode) {
+            case 'fill':
+                // Fill: Cover entire spot (crop if needed, respect padding)
+                // Always fill the content area, cropping if necessary
+                if (mediaAspect > contentAspect) {
+                    // Media is wider - fit to height, crop width
+                    drawWidth = contentHeight * mediaAspect;
+                    drawHeight = contentHeight;
+                } else {
+                    // Media is taller - fit to width, crop height
+                    drawWidth = contentWidth;
+                    drawHeight = contentWidth / mediaAspect;
+                }
+                break;
+                
+            case 'stretch':
+                // Stretch: Fill spot ignoring aspect ratio (respect padding)
+                drawWidth = contentWidth;
+                drawHeight = contentHeight;
+                break;
+                
+            case 'fit':
+            default:
+                // Free: Maintain aspect ratio, fit within spot (scale can exceed boundaries)
+                if (mediaAspect > contentAspect) {
+                    // Media is wider than content area
+                    drawWidth = contentWidth * scale;
+                    drawHeight = (contentWidth / mediaAspect) * scale;
+                } else {
+                    // Media is taller than content area
+                    drawWidth = (contentHeight * mediaAspect) * scale;
+                    drawHeight = contentHeight * scale;
+                }
+                break;
         }
 
         // Position the media in content area based on positionH and positionV
@@ -232,6 +260,13 @@ class CellRenderer {
         }
 
         ctx.save();
+
+        // For fill and stretch modes, clip to content area (respects padding)
+        if (fillMode === 'fill' || fillMode === 'stretch') {
+            ctx.beginPath();
+            ctx.rect(contentX, contentY, contentWidth, contentHeight);
+            ctx.clip();
+        }
 
         // Move to anchor, rotate, then move back
         ctx.translate(anchorX, anchorY);

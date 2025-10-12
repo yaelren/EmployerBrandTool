@@ -18,6 +18,7 @@ class ImageContentController extends ContentController {
             media: null,        // HTMLImageElement, HTMLVideoElement, or HTMLCanvasElement
             mediaType: null,    // 'image', 'video', 'gif', 'other'
             mediaUrl: null,     // Original file URL/data URL
+            fillMode: 'fit',    // 'fill', 'fit', or 'stretch'
             scale: 1,
             rotation: 0,
             padding: 1,
@@ -44,37 +45,39 @@ class ImageContentController extends ContentController {
 
         const controls = [];
 
-        // Media upload
+        // 1. Media upload
         const mediaGroup = this.createMediaUploadControl(cell, context);
         container.appendChild(mediaGroup);
         controls.push(mediaGroup);
 
-        // Position control (always show)
-        const positionGroup = this.createPositionControl(cell, context);
-        container.appendChild(positionGroup);
-        controls.push(positionGroup);
+        // 2. Fill mode control (inline)
+        const fillModeGroup = this.createFillModeControl(cell, context);
+        container.appendChild(fillModeGroup);
+        controls.push(fillModeGroup);
 
-        // Scale control (always show for image content type)
-        const scaleGroup = this.createScaleControl(cell, context);
-        container.appendChild(scaleGroup);
-        controls.push(scaleGroup);
+        // 3. Scale control (only show in free mode)
+        if (cell.content.fillMode === 'fit') {
+            const scaleGroup = this.createScaleControl(cell, context);
+            container.appendChild(scaleGroup);
+            controls.push(scaleGroup);
+        }
 
-        // Rotation control (always show for image content type)
+        // 4. Rotation control
         const rotationGroup = this.createRotationControl(cell, context);
         container.appendChild(rotationGroup);
         controls.push(rotationGroup);
 
-        // Video-specific controls (only show if media is loaded and is video)
-        if (cell.content?.media && cell.content.mediaType === 'video') {
-            const videoGroup = this.createVideoControls(cell, context);
-            container.appendChild(videoGroup);
-            controls.push(videoGroup);
-        }
-
-        // Background controls
+        // 5. Background controls (fill with global background color)
         const backgroundGroup = this.createBackgroundControls(cell, context);
         container.appendChild(backgroundGroup);
         controls.push(backgroundGroup);
+
+        // 6. Position control
+        const positionGroup = this.createPositionControl(cell, context);
+        container.appendChild(positionGroup);
+        controls.push(positionGroup);
+
+        // Note: Padding control is automatically added by UIManager after createControls()
 
         return controls;
     }
@@ -95,6 +98,11 @@ class ImageContentController extends ContentController {
                 cell.content.mediaType = 'image';
                 cell.content.mediaUrl = cell.content.image.src || null;
                 delete cell.content.image;
+            }
+            
+            // Ensure fillMode exists (for backward compatibility)
+            if (!cell.content.fillMode) {
+                cell.content.fillMode = 'fit';
             }
         }
         return cell.content;
@@ -124,25 +132,31 @@ class ImageContentController extends ContentController {
         
         mediaGroup.innerHTML = `
             <label>Media (Image, Video, GIF, MP4)</label>
-            <input type="file" class="spot-media-input" accept="image/*,video/*,.gif,.mp4,.webm,.mov">
-            ${hasFile ? `
-                <div class="uploaded-file-display">
-                    <span class="file-name">${fileName}</span>
-                    <div class="file-controls">
-                        ${cell.content.mediaType === 'video' ? `
-                            <label class="loop-toggle">
-                                <input type="checkbox" class="media-loop" ${cell.content.loop !== false ? 'checked' : ''}>
-                                Loop
-                            </label>
-                        ` : ''}
+            <div class="media-upload-row">
+                ${!hasFile ? `
+                    <input type="file" class="spot-media-input" accept="image/*,video/*,.gif,.mp4,.webm,.mov">
+                ` : `
+                    <div class="uploaded-file-inline">
+                        <span class="file-name">${fileName}</span>
                         <button type="button" class="remove-file-btn" title="Remove file">×</button>
+                        <button type="button" class="change-file-btn" title="Change file">Change</button>
                     </div>
+                    <input type="file" class="spot-media-input" accept="image/*,video/*,.gif,.mp4,.webm,.mov" style="display: none;">
+                `}
+            </div>
+            ${hasFile && cell.content.mediaType === 'video' ? `
+                <div class="video-loop-control">
+                    <label class="loop-toggle">
+                        <input type="checkbox" class="media-loop" ${cell.content.loop !== false ? 'checked' : ''}>
+                        Loop
+                    </label>
                 </div>
             ` : ''}
         `;
 
         const mediaInput = mediaGroup.querySelector('.spot-media-input');
         const removeBtn = mediaGroup.querySelector('.remove-file-btn');
+        const changeBtn = mediaGroup.querySelector('.change-file-btn');
         const loopToggle = mediaGroup.querySelector('.media-loop');
         
         this.addControlListener(mediaInput, 'change', (e) => {
@@ -152,6 +166,12 @@ class ImageContentController extends ContentController {
         if (removeBtn) {
             this.addControlListener(removeBtn, 'click', () => {
                 this.removeMedia(cell, mediaGroup);
+            });
+        }
+
+        if (changeBtn) {
+            this.addControlListener(changeBtn, 'click', () => {
+                mediaInput.click();
             });
         }
 
@@ -165,6 +185,43 @@ class ImageContentController extends ContentController {
         }
 
         return mediaGroup;
+    }
+    
+    /**
+     * Create fill mode control
+     * @param {ContentCell} cell - Cell object
+     * @param {string} context - 'sidebar' or 'popup'
+     * @returns {HTMLElement} Fill mode control element
+     * @private
+     */
+    createFillModeControl(cell, context) {
+        const fillModeGroup = this.createControlGroup(context);
+        fillModeGroup.innerHTML = `
+            <div class="fill-mode-control">
+                <label for="imageFillMode">Fill Mode:</label>
+                <select id="imageFillMode" class="image-fill-mode">
+                    <option value="stretch" ${cell.content.fillMode === 'stretch' ? 'selected' : ''}>Stretch</option>
+                    <option value="fit" ${cell.content.fillMode === 'fit' ? 'selected' : ''}>Free</option>
+                    <option value="fill" ${cell.content.fillMode === 'fill' ? 'selected' : ''}>Fill (Crop)</option>
+                </select>
+            </div>
+        `;
+
+        const select = fillModeGroup.querySelector('#imageFillMode');
+        this.addControlListener(select, 'change', () => {
+            const mode = select.value;
+            this.updateContent(cell, { fillMode: mode }, false);
+            
+            // Refresh controls to show/hide scale control
+            if (this.app.uiManager && this.app.uiManager.showSelectedCellControls) {
+                const selectedCell = this.app.selectedCell;
+                if (selectedCell) {
+                    this.app.uiManager.showSelectedCellControls(selectedCell.cell, selectedCell.row, selectedCell.col);
+                }
+            }
+        });
+
+        return fillModeGroup;
     }
     
     /**
