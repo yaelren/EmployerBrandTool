@@ -98,6 +98,19 @@ class GridCell {
     }
 
     /**
+     * Check if a point is inside this cell
+     * @param {number} x - X coordinate
+     * @param {number} y - Y coordinate
+     * @returns {boolean} True if point is inside cell bounds
+     */
+    contains(x, y) {
+        return x >= this.bounds.x && 
+               x <= this.bounds.x + this.bounds.width &&
+               y >= this.bounds.y && 
+               y <= this.bounds.y + this.bounds.height;
+    }
+
+    /**
      * Set the layer manager reference for this cell
      * @param {LayerManager} layerManager - LayerManager instance
      */

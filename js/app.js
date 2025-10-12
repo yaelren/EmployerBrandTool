@@ -39,7 +39,7 @@ class EmployerBrandToolPOC {
         this.contentControllers = {
             'empty': new EmptyContentController(this),
             'text': new TextContentController(this),
-            'image': new ImageContentController(this),
+            'media': new ImageContentController(this),
             'fill': new FillContentController(this)
         };
 
@@ -114,12 +114,22 @@ class EmployerBrandToolPOC {
                 this.spots = this.grid.getContentCells();
                 this.uiManager.updateSpotsUI();
 
-                // Update visual grid display
-                this.uiManager.updateVisualGrid();
+                // Visual grid display removed - canvas is now clickable
             }
 
             // Initial render (after grid is built)
             this.render();
+
+            // Add canvas click event listener
+            this.canvasManager.canvas.addEventListener('click', (event) => {
+                this.onCanvasClick(event);
+            });
+
+            // Debug: Log grid status
+            if (this.grid) {
+                console.log('Grid status:', this.grid.getStatus());
+                console.log('All cells:', this.grid.getAllCells());
+            }
 
             this.isInitialized = true;
 
@@ -233,10 +243,9 @@ class EmployerBrandToolPOC {
         // Render with updated grid
         this.render();
 
-        // Update visual grid and animation controls after grid rebuild
+        // Animation controls updated after grid rebuild
         if (this.grid) {
             setTimeout(() => {
-                this.uiManager.updateVisualGrid();
                 this.uiManager.updateTextLineAnimations();
             }, 100); // Small delay to ensure grid is fully rebuilt
         }
@@ -322,7 +331,7 @@ class EmployerBrandToolPOC {
 
             // Handle content based on type
             if (spot.content) {
-                if (spot.contentType === 'image' && spot.content.image) {
+                if (spot.contentType === 'media' && spot.content.image) {
                     // Convert image to data URL for serialization
                     savedSpot.content = {
                         ...spot.content,
@@ -381,7 +390,7 @@ class EmployerBrandToolPOC {
 
         // Handle content based on type
         if (spot.content) {
-            if (spot.contentType === 'image' && spot.content.image) {
+            if (spot.contentType === 'media' && spot.content.image) {
                 // Convert image to data URL for serialization
                 savedSpot.content = {
                     ...spot.content,
@@ -595,7 +604,6 @@ class EmployerBrandToolPOC {
 
             // Update UI
             this.uiManager.updateSpotsUI();
-            this.uiManager.updateVisualGrid();
             this.render();
 
             // Call the callback if provided
@@ -645,9 +653,63 @@ class EmployerBrandToolPOC {
      */
     onCanvasClick(event) {
         const canvasCoords = this.canvasManager.screenToCanvas(event.clientX, event.clientY);
-        const clickedSpot = this.canvasManager.findSpotAt(canvasCoords.x, canvasCoords.y, this.spots);
-
-        // Future: Could highlight spot or show properties
+        console.log('Canvas clicked at:', canvasCoords);
+        
+        // Find clicked cell using grid system
+        const clickedCell = this.grid ? this.grid.getCellAt(canvasCoords.x, canvasCoords.y) : null;
+        console.log('Clicked cell:', clickedCell);
+        
+        if (clickedCell) {
+            console.log('Cell type:', clickedCell.type);
+            
+            // Automatically switch to Grid Editor tab when clicking on a cell
+            this.uiManager.switchTab('grid');
+            
+            // Handle different cell types
+            if (clickedCell.type === 'main-text') {
+                console.log('Handling main text cell click');
+                // For main text cells, show cell 8 main text cell with animations
+                this.handleMainTextCellClick(clickedCell);
+            } else if (clickedCell.type === 'content') {
+                console.log('Handling content cell click');
+                // For content cells, show content controls
+                this.handleContentCellClick(clickedCell);
+            }
+        } else {
+            console.log('No cell clicked, hiding controls');
+            // No cell clicked, hide controls
+            this.hideCellControls();
+        }
+    }
+    
+    /**
+     * Handle main text cell clicks
+     * @param {MainTextCell} cell - Clicked main text cell
+     * @private
+     */
+    handleMainTextCellClick(cell) {
+        // Show cell 8 main text cell with animations
+        this.uiManager.showMainTextCellControls(cell);
+    }
+    
+    /**
+     * Handle content cell clicks
+     * @param {ContentCell} cell - Clicked content cell
+     * @private
+     */
+    handleContentCellClick(cell) {
+        // Show content controls
+        this.uiManager.showContentCellControls(cell);
+    }
+    
+    /**
+     * Hide cell controls
+     * @private
+     */
+    hideCellControls() {
+        if (this.uiManager) {
+            this.uiManager.hideCellControls();
+        }
     }
     
     /**

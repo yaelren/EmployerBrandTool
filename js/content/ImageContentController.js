@@ -6,7 +6,7 @@
 class ImageContentController extends ContentController {
     constructor(app) {
         super(app);
-        this.contentType = 'image';
+        this.contentType = 'media';
     }
     
     /**

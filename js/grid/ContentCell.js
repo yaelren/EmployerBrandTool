@@ -9,7 +9,7 @@ class ContentCell extends GridCell {
     constructor(contentType, row, col) {
         super(row, col);
         this.cellType = 'content';  // Internal cell type identifier
-        this.contentType = contentType || 'empty';  // 'empty' | 'image' | 'text' | 'fill'
+        this.contentType = contentType || 'empty';  // 'empty' | 'media' | 'text' | 'fill'
         this.content = null;  // Content data (varies by type)
 
         // Visual properties (for rendering placeholders and outlines)
@@ -105,7 +105,7 @@ class ContentCell extends GridCell {
      * @returns {boolean}
      */
     hasImage() {
-        return this.contentType === 'image' && this.content && this.content.image;
+        return this.contentType === 'media' && this.content && this.content.image;
     }
 
     /**
@@ -294,7 +294,7 @@ class ContentCell extends GridCell {
 
     /**
      * Get type - returns 'content' for grid type checking
-     * Use contentType property to get the actual content type ('empty', 'image', etc.)
+     * Use contentType property to get the actual content type ('empty', 'media', etc.)
      * @returns {string}
      */
     get type() {
@@ -322,7 +322,7 @@ class ContentCell extends GridCell {
         
         if (this.contentType === 'fill') {
             this.renderFillBackground(ctx, globalBackground);
-        } else if (this.contentType === 'image' || this.contentType === 'text') {
+        } else if (this.contentType === 'media' || this.contentType === 'text') {
             this.renderImageTextBackground(ctx, globalBackground);
         }
     }
@@ -363,7 +363,7 @@ class ContentCell extends GridCell {
      * @param {boolean} enabled - Whether to fill with background color
      */
     setFillWithBackgroundColor(enabled) {
-        if (this.content && (this.contentType === 'image' || this.contentType === 'text')) {
+        if (this.content && (this.contentType === 'media' || this.contentType === 'text')) {
             this.content.fillWithBackgroundColor = enabled;
         }
     }

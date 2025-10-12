@@ -1332,17 +1332,21 @@ select option {
     display: flex;
     align-items: center;
     gap: 8px;
-    padding: 4px 0;
-    padding-right: 15px;
+    padding: 10px 8px;
+    background: #666666;
+    border-radius: 4px;
+    border: none;
+    margin: 0 -8px 10px -8px;
     position: relative;
+    cursor: pointer;
 }
 
 .content-type-header::after {
     content: '▼';
     position: absolute;
-    right: 0;
+    right: 8px;
     font-size: 8px;
-    color: var(--chatooly-color-text-secondary, #999);
+    color: #000000;
     transition: transform 0.2s ease;
     pointer-events: none;
 }
@@ -1355,36 +1359,47 @@ select option {
     display: none;
 }
 
+.content-type-header:hover {
+    background: #555555;
+}
+
 .content-type-header.layer-header {
     cursor: default;
+}
+
+.content-type-header.layer-header:hover {
+    background: #555555;
 }
 
 .content-type-header label {
     font-size: 12px;
     font-weight: 600;
-    color: var(--chatooly-color-text, #e5e5e5);
+    color: #000000;
     min-width: 60px;
     margin: 0;
+    cursor: pointer;
 }
 
 .content-type-header select {
     flex: 1;
-    padding: 4px 8px;
-    background: var(--chatooly-color-surface, #1a1a1a);
-    border: 1px solid var(--chatooly-color-border, #3a3a3a);
+    padding: 2px 6px;
+    background: #000000;
+    border: 1px solid #333333;
     border-radius: 3px;
-    color: var(--chatooly-color-text, #e5e5e5);
-    font-size: 11px;
+    color: #ffffff;
+    font-size: 10px;
     cursor: pointer;
+    height: 24px;
 }
 
 .content-type-header select:hover {
-    border-color: var(--chatooly-color-primary, #646cff);
+    border-color: #555555;
 }
 
 .content-type-header select:focus {
     outline: none;
-    border-color: var(--chatooly-color-primary, #646cff);
+    border-color: #666666;
+    box-shadow: none;
 }
 
 /* Collapsible content areas */

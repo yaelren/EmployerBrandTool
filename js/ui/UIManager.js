@@ -281,10 +281,9 @@ class UIManager {
                 const targetTab = e.target.dataset.tab;
                 this.switchTab(targetTab);
 
-                // Update animation controls when switching to animation tab
-                if (targetTab === 'animation') {
+                // Update animation controls when switching to grid tab
+                if (targetTab === 'grid') {
                     setTimeout(() => {
-                        this.updateVisualGrid();
                         this.updateTextLineAnimations();
                     }, 50);
                 }
@@ -854,8 +853,7 @@ class UIManager {
         // Update selected cell
         this.app.selectedCell = { row, col, cell };
 
-        // Update visual grid to show selection
-        this.updateVisualGrid();
+        // Visual grid removed - canvas is now clickable
 
         // Show selected cell controls
         this.showSelectedCellControls(cell, row, col);
@@ -905,6 +903,73 @@ class UIManager {
     }
 
     /**
+     * Show main text cell controls (cell 8 main text cell with animations)
+     * @param {MainTextCell} cell - Clicked main text cell
+     */
+    showMainTextCellControls(cell) {
+        console.log('showMainTextCellControls called with cell:', cell);
+        const controlsContainer = document.getElementById('selectedCellControls');
+        const infoContainer = document.getElementById('selectedCellInfo');
+        const sectionsContainer = document.querySelector('.cell-control-sections');
+
+        if (!controlsContainer || !infoContainer || !sectionsContainer) {
+            console.error('Required UI elements not found');
+            return;
+        }
+
+        // Show controls container
+        controlsContainer.style.display = 'block';
+        console.log('Controls container shown');
+
+        // Update cell info - show it's a main text cell
+        infoContainer.textContent = `Main Text Cell ${cell.id}`;
+
+        // Clear existing control sections
+        sectionsContainer.innerHTML = '';
+
+        // Create animation controls for main text cell
+        this.createMainTextAnimationControls(cell, sectionsContainer);
+        this.createLayerControls(cell, sectionsContainer);
+        console.log('Main text cell controls created');
+    }
+
+    /**
+     * Show content cell controls
+     * @param {ContentCell} cell - Clicked content cell
+     */
+    showContentCellControls(cell) {
+        const controlsContainer = document.getElementById('selectedCellControls');
+        const infoContainer = document.getElementById('selectedCellInfo');
+        const sectionsContainer = document.querySelector('.cell-control-sections');
+
+        if (!controlsContainer || !infoContainer || !sectionsContainer) return;
+
+        // Show controls container
+        controlsContainer.style.display = 'block';
+
+        // Update cell info - show cell number
+        infoContainer.textContent = `Content Cell ${cell.id}`;
+
+        // Clear existing control sections
+        sectionsContainer.innerHTML = '';
+
+        // Create control sections
+        this.createContentControls(cell, sectionsContainer);
+        this.createAnimationControls(cell, sectionsContainer);
+        this.createLayerControls(cell, sectionsContainer);
+    }
+
+    /**
+     * Hide cell controls
+     */
+    hideCellControls() {
+        const controlsContainer = document.getElementById('selectedCellControls');
+        if (controlsContainer) {
+            controlsContainer.style.display = 'none';
+        }
+    }
+
+    /**
      * Create content controls section
      * @param {Object} cell - Selected cell
      * @param {HTMLElement} container - Container for controls
@@ -921,8 +986,8 @@ class UIManager {
             <select class="cell-content-type">
                 <option value="empty">Empty</option>
                 <option value="text">Text</option>
-                <option value="image">Image</option>
-                <option value="fill">Fill</option>
+                <option value="media">Media</option>
+                <option value="fill">Color Fill</option>
             </select>
         `;
 
@@ -939,8 +1004,6 @@ class UIManager {
             cell.setContentType(newType);
             this.updateContentSpecificControls(cell, contentControls, newType);
             this.app.render();
-            // Update grid display
-            this.updateVisualGrid();
         });
 
         // Add content-specific controls
@@ -957,6 +1020,74 @@ class UIManager {
 
         section.appendChild(typeGroup);
         section.appendChild(contentControls);
+        container.appendChild(section);
+    }
+
+    /**
+     * Create main text animation controls section
+     * @param {MainTextCell} cell - Selected main text cell
+     * @param {HTMLElement} container - Container for controls
+     */
+    createMainTextAnimationControls(cell, container) {
+        const section = document.createElement('div');
+        section.className = 'control-section-simple';
+        
+        // Animation type selector as main header
+        const animGroup = document.createElement('div');
+        animGroup.className = 'content-type-header';
+        animGroup.innerHTML = `
+            <label>Animation:</label>
+            <select class="cell-animation-type">
+                <option value="none">None</option>
+                <option value="sway">Sway</option>
+                <option value="bounce">Bounce</option>
+                <option value="rotate">Rotate</option>
+                <option value="pulse">Pulse</option>
+            </select>
+        `;
+
+        const animSelect = animGroup.querySelector('.cell-animation-type');
+        if (cell.animation) {
+            const status = cell.animation.getStatus();
+            animSelect.value = status.type;
+        } else {
+            animSelect.value = 'none';
+        }
+
+        // Animation-specific controls container (collapsible)
+        const animControls = document.createElement('div');
+        animControls.className = 'animation-specific-controls collapsible-content expanded';
+
+        // Add event listener for animation changes
+        animSelect.addEventListener('change', (e) => {
+            const animType = e.target.value;
+            if (animType === 'none') {
+                cell.removeAnimation();
+            } else {
+                const intensity = 20;
+                const speed = 1.0;
+                cell.setAnimation(animType, intensity, speed);
+                // Auto-preview animation
+                this.previewAnimation(cell, animType);
+            }
+            this.updateAnimationSpecificControls(cell, animControls, animType);
+            this.app.render();
+        });
+
+        // Add animation-specific controls
+        this.updateAnimationSpecificControls(cell, animControls, animSelect.value);
+
+        // Make controls collapsible (click anywhere to toggle)
+        animGroup.style.cursor = 'pointer';
+        animGroup.addEventListener('click', (e) => {
+            if (e.target !== animSelect && !e.target.closest('select')) {
+                animControls.classList.toggle('expanded');
+                animGroup.classList.toggle('collapsed');
+            }
+        });
+
+        section.appendChild(animGroup);
+        section.appendChild(animControls);
         container.appendChild(section);
     }
 
@@ -1009,8 +1140,6 @@ class UIManager {
             }
             this.updateAnimationSpecificControls(cell, animControls, animType);
             this.app.render();
-            // Update grid display to show animation indicator
-            this.updateVisualGrid();
         });
 
         // Add animation-specific controls
@@ -1258,8 +1387,7 @@ class UIManager {
             cell.setAnimation(type, intensity, speed);
         }
 
-        // Update visual grid
-        this.updateVisualGrid();
+        // Update animation status
         this.updateAnimationStatus();
     }
 
@@ -1274,7 +1402,6 @@ class UIManager {
 
         // Update UI
         document.getElementById('cellAnimationType').value = 'none';
-        this.updateVisualGrid();
         this.updateAnimationStatus();
     }
 
@@ -1600,10 +1727,9 @@ class UIManager {
             activeContent.classList.add('active');
         }
 
-        // Update visual grid when switching to grid tab
+        // Setup grid tab event listeners when switching to grid tab
         if (tabName === 'grid') {
             setTimeout(() => {
-                this.updateVisualGrid();
                 this.setupGridTabEventListeners();
             }, 50);
         }
@@ -2090,9 +2216,9 @@ class UIManager {
 
         const types = [
             { value: 'empty', label: 'Empty' },
-            { value: 'image', label: 'Image' },
+            { value: 'media', label: 'Media' },
             { value: 'text', label: 'Text' },
-            { value: 'fill', label: 'Fill' }
+            { value: 'fill', label: 'Color Fill' }
         ];
 
         types.forEach(type => {

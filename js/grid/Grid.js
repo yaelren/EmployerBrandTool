@@ -285,7 +285,7 @@ class Grid {
 
     /**
      * Get content cells by type
-     * @param {string} contentType - 'empty' | 'image' | 'text' | 'mask'
+     * @param {string} contentType - 'empty' | 'media' | 'text' | 'mask'
      * @returns {Array} - Array of ContentCell instances with matching type
      */
     getContentCellsByType(contentType) {
