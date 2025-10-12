@@ -45,9 +45,8 @@
                 
                 <!-- Tab Navigation -->
                 <div class="tab-navigation">
-                    <button class="tab-btn active" data-tab="mainText">Main Text</button>
-                    <button class="tab-btn" data-tab="grid">Grid</button>
-                    <button class="tab-btn" data-tab="parameters">🎲 Parameters</button>
+                    <button class="tab-btn active" data-tab="mainText">Grid Builder</button>
+                    <button class="tab-btn" data-tab="grid">Grid Editor</button>
                 </div>
                 
                 <!-- Main Text Tab -->
@@ -264,55 +263,7 @@ SPOTLIGHT
                 </div>
 
                 <!-- Spots and Animation tabs removed - functionality moved to Grid tab -->
-
-                <!-- Parameters Tab -->
-                <div id="parametersTab" class="tab-content">
-                    <div class="parameter-management">
-                        <div class="chatooly-control-group">
-                            <h3>🎲 Shuffle Parameters</h3>
-                            <p class="control-description">Quickly generate new variations of your design with smart shuffling.</p>
-                        </div>
-
-                        <!-- Shuffle Options -->
-                        <div class="chatooly-control-group">
-                            <label>Content Options</label>
-                            <div class="shuffle-options">
-                                <label class="checkbox-label">
-                                    <input type="checkbox" id="useDefaultContent" checked>
-                                    <span>Use default content when shuffling</span>
-                                </label>
-                            </div>
-                        </div>
-
-                        <!-- Quick Shuffle Actions -->
-                        <div class="chatooly-control-group">
-                            <label>Quick Shuffle</label>
-                            <div class="shuffle-controls">
-                                <button class="chatooly-btn shuffle-all-btn" id="shuffleAll">
-                                    🎲 Shuffle All
-                                </button>
-                                <button class="chatooly-btn shuffle-layout-btn" id="shuffleLayout">
-                                    📐 Shuffle Layout
-                                </button>
-                                <button class="chatooly-btn shuffle-colors-btn" id="shuffleColors">
-                                    🎨 Shuffle Colors
-                                </button>
-                                <button class="chatooly-btn shuffle-spots-btn" id="shuffleSpots">
-                                    📍 Shuffle Spots
-                                </button>
-                            </div>
-                        </div>
-
-                        <!-- Tips -->
-                        <div class="chatooly-control-group">
-                            <div class="tips-section">
-                                <p class="tip">💡 <strong>Tip:</strong> Shuffling automatically switches to manual text mode for better control</p>
-                                <p class="tip">💡 <strong>Tip:</strong> Text and background colors are automatically contrasted for readability</p>
-                                <p class="tip">💡 <strong>Tip:</strong> Images are randomly selected from your uploaded assets</p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
+                <!-- Parameters tab removed -->
                 
                 <!-- ========== END EDIT SECTION ========== -->
             </div>
@@ -322,30 +273,10 @@ SPOTLIGHT
         <div class="chatooly-preview-panel">
             <!-- Debug Panel -->
             <div id="debugPanel" class="debug-panel">
-                <div class="debug-header">
-                    <h4>Debug Controls</h4>
-                    <button id="toggleDebug" class="debug-toggle">🐛</button>
-                </div>
-                <div id="debugContent" class="debug-content">
-                    <div class="debug-quick-actions">
-                        <button type="button" id="showAllDebug">Show All</button>
-                        <button type="button" id="hideAllDebug">Hide All</button>
-                    </div>
-                    <div class="debug-checkboxes">
-                        <label>
-                            <input type="checkbox" id="showSpotOutlines" checked>
-                            Show Spot Outlines
-                        </label>
-                        <label>
-                            <input type="checkbox" id="showSpotNumbers" checked>
-                            Show Spot Numbers
-                        </label>
-                        <label>
-                            <input type="checkbox" id="showPadding">
-                            Show Padding Areas
-                        </label>
-                    </div>
-                </div>
+                <button id="toggleGuides" class="guides-toggle-btn">
+                    <span class="guides-icon">📐</span>
+                    <span id="guidesLabel">Show Guides</span>
+                </button>
             </div>
             
             <!-- Spot Edit Popup removed - functionality moved to unified sidebar -->

@@ -31,22 +31,11 @@ class DebugController {
      * @private
      */
     cacheElements() {
-        const elementIds = {
-            toggleDebug: 'toggleDebug',
-            debugContent: 'debugContent',
-            showAllDebug: 'showAllDebug',
-            hideAllDebug: 'hideAllDebug',
-            showSpotOutlines: 'showSpotOutlines',
-            showSpotNumbers: 'showSpotNumbers',
-            showPadding: 'showPadding'
-        };
+        this.elements.toggleGuides = document.getElementById('toggleGuides');
+        this.elements.guidesLabel = document.getElementById('guidesLabel');
         
-        for (const [key, id] of Object.entries(elementIds)) {
-            const element = document.getElementById(id);
-            if (!element) {
-                console.warn(`Debug element not found: ${id}`);
-            }
-            this.elements[key] = element;
+        if (!this.elements.toggleGuides) {
+            console.warn('Debug element not found: toggleGuides');
         }
     }
     
@@ -55,40 +44,12 @@ class DebugController {
      * @private
      */
     setupEventListeners() {
-        // Debug panel toggle button
-        if (this.elements.toggleDebug) {
-            this.elements.toggleDebug.addEventListener('click', () => {
-                this.toggleDebugPanel();
+        // Guides toggle button
+        if (this.elements.toggleGuides) {
+            this.elements.toggleGuides.addEventListener('click', () => {
+                this.toggleAllControls();
             });
         }
-        
-        // Quick action buttons
-        if (this.elements.showAllDebug) {
-            this.elements.showAllDebug.addEventListener('click', () => {
-                this.showAllControls();
-            });
-        }
-        
-        if (this.elements.hideAllDebug) {
-            this.elements.hideAllDebug.addEventListener('click', () => {
-                this.hideAllControls();
-            });
-        }
-        
-        // Individual debug option checkboxes
-        const debugCheckboxes = [
-            'showSpotOutlines',
-            'showSpotNumbers',
-            'showPadding'
-        ];
-        
-        debugCheckboxes.forEach(id => {
-            if (this.elements[id]) {
-                this.elements[id].addEventListener('change', () => {
-                    this.updateDebugOption(id, this.elements[id].checked);
-                });
-            }
-        });
         
         // Global keyboard shortcuts
         document.addEventListener('keydown', (e) => this.handleKeyboardShortcut(e));
@@ -99,16 +60,13 @@ class DebugController {
      * @private
      */
     initializeState() {
-        // Sync initial checkbox states
-        if (this.elements.showSpotOutlines) {
-            this.debugOptions.showSpotOutlines = this.elements.showSpotOutlines.checked;
-        }
-        if (this.elements.showSpotNumbers) {
-            this.debugOptions.showSpotNumbers = this.elements.showSpotNumbers.checked;
-        }
-        if (this.elements.showPadding) {
-            this.debugOptions.showPadding = this.elements.showPadding.checked;
-        }
+        // Start with guides hidden
+        this.debugOptions.showSpotOutlines = false;
+        this.debugOptions.showSpotNumbers = false;
+        this.debugOptions.showPadding = false;
+        
+        // Update button label
+        this.updateButtonLabel();
         
         // Apply initial state
         this.applyDebugOptions();
@@ -142,15 +100,6 @@ class DebugController {
     }
     
     /**
-     * Toggle debug panel visibility
-     */
-    toggleDebugPanel() {
-        if (this.elements.debugContent) {
-            this.elements.debugContent.classList.toggle('show');
-        }
-    }
-    
-    /**
      * Toggle all debug controls on/off
      */
     toggleAllControls() {
@@ -164,38 +113,51 @@ class DebugController {
         } else {
             this.showAllControls();
         }
+        
+        this.updateButtonLabel();
     }
     
     /**
      * Show all debug controls
      */
     showAllControls() {
-        this.setAllCheckboxes(true);
+        this.debugOptions.showSpotOutlines = true;
+        this.debugOptions.showSpotNumbers = true;
+        this.debugOptions.showPadding = true;
+        this.applyDebugOptions();
     }
     
     /**
      * Hide all debug controls
      */
     hideAllControls() {
-        this.setAllCheckboxes(false);
+        this.debugOptions.showSpotOutlines = false;
+        this.debugOptions.showSpotNumbers = false;
+        this.debugOptions.showPadding = false;
+        this.applyDebugOptions();
     }
     
     /**
-     * Set all debug checkboxes to a specific state
-     * @param {boolean} checked - State to set
+     * Update button label based on current state
      * @private
      */
-    setAllCheckboxes(checked) {
-        const checkboxIds = ['showSpotOutlines', 'showSpotNumbers', 'showPadding'];
+    updateButtonLabel() {
+        if (!this.elements.guidesLabel) return;
         
-        checkboxIds.forEach(id => {
-            if (this.elements[id]) {
-                this.elements[id].checked = checked;
-                this.debugOptions[id] = checked;
+        const anyEnabled = this.debugOptions.showSpotOutlines ||
+                          this.debugOptions.showSpotNumbers ||
+                          this.debugOptions.showPadding;
+        
+        this.elements.guidesLabel.textContent = anyEnabled ? 'Hide Guides' : 'Show Guides';
+        
+        // Update button visual state
+        if (this.elements.toggleGuides) {
+            if (anyEnabled) {
+                this.elements.toggleGuides.classList.add('active');
+            } else {
+                this.elements.toggleGuides.classList.remove('active');
             }
-        });
-        
-        this.applyDebugOptions();
+        }
     }
     
     /**
@@ -219,6 +181,9 @@ class DebugController {
             this.app.canvasManager.setDebugOptions(this.debugOptions);
         }
         
+        // Update button label
+        this.updateButtonLabel();
+        
         // Trigger re-render
         if (this.app.render) {
             this.app.render();
@@ -239,14 +204,7 @@ class DebugController {
      */
     setDebugOptions(options) {
         Object.assign(this.debugOptions, options);
-        
-        // Update UI checkboxes to match
-        Object.keys(options).forEach(key => {
-            if (this.elements[key]) {
-                this.elements[key].checked = options[key];
-            }
-        });
-        
+        this.updateButtonLabel();
         this.applyDebugOptions();
     }
     
@@ -311,10 +269,13 @@ class DebugController {
      * @returns {Object} Debug state
      */
     exportState() {
+        const anyEnabled = this.debugOptions.showSpotOutlines ||
+                          this.debugOptions.showSpotNumbers ||
+                          this.debugOptions.showPadding;
+        
         return {
             options: { ...this.debugOptions },
-            panelVisible: this.elements.debugContent ? 
-                          this.elements.debugContent.classList.contains('show') : false
+            guidesVisible: anyEnabled
         };
     }
 }
