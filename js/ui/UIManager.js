@@ -315,6 +315,11 @@ class UIManager {
                     paddingHorizontalValue.textContent = padding + 'px';
                 }
                 this.updateSymmetricalPaddingDisplay('horizontal', padding);
+                
+                // Show temporary padding debug
+                if (this.app && this.app.showTemporaryPaddingDebug) {
+                    this.app.showTemporaryPaddingDebug(1500);
+                }
             };
             
             this.handlePaddingHorizontalChange = () => {
@@ -338,6 +343,11 @@ class UIManager {
                 }
                 console.log('Padding vertical input:', padding);
                 this.updateSymmetricalPaddingDisplay('vertical', padding);
+                
+                // Show temporary padding debug
+                if (this.app && this.app.showTemporaryPaddingDebug) {
+                    this.app.showTemporaryPaddingDebug(1500);
+                }
             };
             
             this.handlePaddingVerticalChange = () => {
@@ -2383,6 +2393,11 @@ class UIManager {
         if (!spot.content) spot.content = {};
         spot.content.padding = padding;
         this.app.render();
+        
+        // Show temporary padding debug
+        if (this.app && this.app.showTemporaryPaddingDebug) {
+            this.app.showTemporaryPaddingDebug(1500);
+        }
     }
 
     /**

@@ -29,6 +29,14 @@ class EmployerBrandToolPOC {
         // Canvas resize tracking
         this.previousCanvasSize = { width: 0, height: 0 };
 
+        // Canvas hover state
+        this.hoveredCell = null;
+        this.showHoverOutline = false;
+
+        // Temporary debug display state
+        this.showTemporaryPaddingDebug = false;
+        this.paddingDebugTimeout = null;
+
         // Main text component
         this.mainTextComponent = new MainTextComponent();
 
@@ -123,6 +131,15 @@ class EmployerBrandToolPOC {
             // Add canvas click event listener
             this.canvasManager.canvas.addEventListener('click', (event) => {
                 this.onCanvasClick(event);
+            });
+
+            // Add canvas hover event listeners
+            this.canvasManager.canvas.addEventListener('mousemove', (event) => {
+                this.onCanvasHover(event);
+            });
+
+            this.canvasManager.canvas.addEventListener('mouseleave', (event) => {
+                this.onCanvasLeave(event);
             });
 
             // Debug: Log grid status
@@ -708,6 +725,121 @@ class EmployerBrandToolPOC {
             this.uiManager.hideCellControls();
         }
     }
+
+    /**
+     * Handle canvas hover events
+     * @param {MouseEvent} event - Mouse move event
+     */
+    onCanvasHover(event) {
+        const canvasCoords = this.canvasManager.screenToCanvas(event.clientX, event.clientY);
+        
+        // Find hovered cell using grid system
+        const hoveredCell = this.grid ? this.grid.getCellAt(canvasCoords.x, canvasCoords.y) : null;
+        
+        // Check if we're hovering over a different cell
+        if (hoveredCell !== this.hoveredCell) {
+            this.hoveredCell = hoveredCell;
+            
+            if (hoveredCell) {
+                // Show hover effects
+                this.showHoverOutline = true;
+                this.canvasManager.canvas.style.cursor = 'pointer';
+                console.log('Hovering over cell:', hoveredCell.id, hoveredCell.type);
+                
+                // Trigger a render to show hover outline
+                this.render();
+            } else {
+                // Hide hover effects
+                this.showHoverOutline = false;
+                this.canvasManager.canvas.style.cursor = 'default';
+                
+                // Trigger a render to hide hover outline
+                this.render();
+            }
+        }
+    }
+
+    /**
+     * Handle canvas mouse leave events
+     * @param {MouseEvent} event - Mouse leave event
+     */
+    onCanvasLeave(event) {
+        // Clear hover state
+        this.hoveredCell = null;
+        this.showHoverOutline = false;
+        this.canvasManager.canvas.style.cursor = 'default';
+        
+        // Trigger a render to hide hover outline
+        this.render();
+    }
+    /**
+     * Show temporary padding debug display
+     * @param {number} duration - Duration in milliseconds (default: 2000)
+     */
+    showTemporaryPaddingDebug(duration = 2000) {
+        console.log('showTemporaryPaddingDebug called with duration:', duration);
+        
+        // Clear any existing timeout
+        if (this.paddingDebugTimeout) {
+            clearTimeout(this.paddingDebugTimeout);
+        }
+        
+        // Show padding debug
+        this.showTemporaryPaddingDebug = true;
+        console.log('showTemporaryPaddingDebug set to true');
+        this.render();
+        
+        // Hide after duration
+        this.paddingDebugTimeout = setTimeout(() => {
+            this.showTemporaryPaddingDebug = false;
+            console.log('showTemporaryPaddingDebug set to false');
+            this.render();
+        }, duration);
+    }
+    
+    /**
+     * Render hover outline for a cell
+     * @param {CanvasRenderingContext2D} ctx - Canvas context
+     * @param {GridCell} cell - Cell to highlight
+     * @private
+     */
+    renderHoverOutline(ctx, cell) {
+        if (!cell || !cell.bounds) return;
+
+        ctx.save();
+        
+        // Set hover outline style
+        ctx.strokeStyle = '#007bff';
+        ctx.lineWidth = 2;
+        ctx.setLineDash([]);
+        
+        // Draw cell outline
+        ctx.strokeRect(
+            cell.bounds.x,
+            cell.bounds.y,
+            cell.bounds.width,
+            cell.bounds.height
+        );
+        
+        // Draw cell number in the center
+        ctx.fillStyle = '#007bff';
+        ctx.font = 'bold 18px Arial';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        
+        const centerX = cell.bounds.x + cell.bounds.width / 2;
+        const centerY = cell.bounds.y + cell.bounds.height / 2;
+        
+        // Add white background for better visibility
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
+        ctx.fillRect(centerX - 20, centerY - 12, 40, 24);
+        
+        // Draw cell number
+        ctx.fillStyle = '#007bff';
+        ctx.fillText(cell.id, centerX, centerY);
+        
+        ctx.restore();
+    }
     
     /**
      * Main render method
@@ -730,6 +862,24 @@ class EmployerBrandToolPOC {
                     mainTextComponent: this.mainTextComponent,
                     spots: this.spots
                 });
+            }
+
+            // Render temporary padding debug if enabled
+            if (this.showTemporaryPaddingDebug) {
+                console.log('Rendering temporary padding debug, showTemporaryPaddingDebug:', this.showTemporaryPaddingDebug);
+                // Ensure debug controller exists for temporary padding debug
+                if (!this.debugController) {
+                    console.log('Creating debug controller for temporary padding debug');
+                    this.debugController = new DebugController(this);
+                }
+                this.debugController.renderPaddingDebug(this.canvasManager.ctx, {
+                    mainTextComponent: this.mainTextComponent
+                });
+            }
+
+            // Render hover outline if hovering over a cell
+            if (this.showHoverOutline && this.hoveredCell) {
+                this.renderHoverOutline(this.canvasManager.ctx, this.hoveredCell);
             }
 
         } catch (error) {

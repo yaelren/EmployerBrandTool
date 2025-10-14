@@ -236,6 +236,29 @@ class DebugController {
     }
     
     /**
+     * Render padding debug overlay (for temporary display)
+     * @param {CanvasRenderingContext2D} ctx - Canvas context
+     * @param {Object} options - Options object containing mainTextComponent
+     */
+    renderPaddingDebug(ctx, options) {
+        if (options.mainTextComponent) {
+            console.log('Rendering padding debug for mainTextComponent:', {
+                containerX: options.mainTextComponent.containerX,
+                containerY: options.mainTextComponent.containerY,
+                containerWidth: options.mainTextComponent.containerWidth,
+                containerHeight: options.mainTextComponent.containerHeight,
+                paddingTop: options.mainTextComponent.paddingTop,
+                paddingRight: options.mainTextComponent.paddingRight,
+                paddingBottom: options.mainTextComponent.paddingBottom,
+                paddingLeft: options.mainTextComponent.paddingLeft
+            });
+            this.renderPaddingAreas(ctx, options.mainTextComponent);
+        } else {
+            console.log('No mainTextComponent provided for padding debug');
+        }
+    }
+    
+    /**
      * Render padding areas debug overlay
      * @param {CanvasRenderingContext2D} ctx - Canvas context
      * @param {TextComponent} textComponent - Text component to debug
