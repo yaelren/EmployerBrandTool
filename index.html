@@ -148,11 +148,16 @@ SPOTLIGHT
                                 </div>
                             </div>
                             
-                            <!-- Size Row -->
+                            <!-- Size and Line Spacing Row -->
                             <div class="chatooly-control-group compact-row">
                                 <div class="compact-control">
                                     <label for="fontSize">Size</label>
                                     <input type="number" id="fontSize" min="20" max="200" value="100" step="1">
+                                    <span class="unit">px</span>
+                                </div>
+                                <div class="compact-control">
+                                    <label for="lineSpacing">Space Between Lines</label>
+                                    <input type="number" id="lineSpacing" min="0" max="50" value="0" step="1">
                                     <span class="unit">px</span>
                                 </div>
                             </div>
@@ -175,27 +180,21 @@ SPOTLIGHT
                                 </div>
                             </div>
                             
-                            <!-- Line Spacing Controls -->
+                            <!-- Main Text Cell Padding -->
                             <div class="chatooly-control-group">
-                                <div class="compact-control">
-                                    <label for="lineSpacingBetween">Space Between Lines</label>
-                                    <div class="slider-container">
-                                        <input type="range" id="lineSpacingBetween" min="0" max="50" value="0">
-                                        <span id="lineSpacingBetweenValue">0px</span>
-                                    </div>
-                                </div>
-                                <div class="compact-control">
-                                    <label for="lineSpacingVertical">Main Text Cell Padding (Top/Bottom)</label>
-                                    <div class="slider-container">
-                                        <input type="range" id="lineSpacingVertical" min="0" max="50" value="0">
-                                        <span id="lineSpacingVerticalValue">0px</span>
-                                    </div>
-                                </div>
-                                <div class="compact-control">
-                                    <label for="lineSpacingHorizontal">Main Text Cell Padding (Left/Right)</label>
-                                    <div class="slider-container">
-                                        <input type="range" id="lineSpacingHorizontal" min="0" max="50" value="0">
-                                        <span id="lineSpacingHorizontalValue">0px</span>
+                                <label class="section-header">Main Text Cell Padding</label>
+                                <div class="padding-controls">
+                                    <div class="padding-row">
+                                        <div class="padding-control">
+                                            <label for="lineSpacingVertical">Top/Bottom</label>
+                                            <input type="number" id="lineSpacingVertical" min="0" max="50" value="0" step="1">
+                                            <span class="unit">px</span>
+                                        </div>
+                                        <div class="padding-control">
+                                            <label for="lineSpacingHorizontal">Left/Right</label>
+                                            <input type="number" id="lineSpacingHorizontal" min="0" max="50" value="0" step="1">
+                                            <span class="unit">px</span>
+                                        </div>
                                     </div>
                                 </div>
                             </div>

@@ -2369,36 +2369,85 @@ select option {
     line-height: 1.3 !important;
 }
 
-/* Line spacing controls */
-.compact-row .slider-container {
+/* Section header styling */
+.section-header {
+    font-size: 12px !important;
+    font-weight: 600 !important;
+    color: #e5e5e5 !important;
+    margin-bottom: 8px !important;
+    text-align: left !important;
+    display: block !important;
+}
+
+/* Padding controls layout */
+.padding-controls {
     display: flex !important;
-    align-items: center !important;
+    flex-direction: column !important;
     gap: 8px !important;
 }
 
-.compact-row .slider-container input[type="range"] {
+.padding-row {
+    display: flex !important;
+    gap: 12px !important;
+}
+
+.padding-control {
     flex: 1 !important;
-    height: 4px !important;
-    background: #444 !important;
-    border-radius: 2px !important;
-    outline: none !important;
-    -webkit-appearance: none !important;
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 4px !important;
 }
 
-.compact-row .slider-container input[type="range"]::-webkit-slider-thumb {
-    -webkit-appearance: none !important;
-    width: 12px !important;
-    height: 12px !important;
-    background: #3b82f6 !important;
-    border-radius: 50% !important;
-    cursor: pointer !important;
-}
-
-.compact-row .slider-container span {
+.padding-control label {
     font-size: 10px !important;
     color: #999 !important;
-    min-width: 30px !important;
-    text-align: right !important;
+    margin: 0 !important;
+}
+
+.padding-control input[type="number"] {
+    width: 100% !important;
+    height: 24px !important;
+    background: #333 !important;
+    border: 1px solid #555 !important;
+    border-radius: 3px !important;
+    color: white !important;
+    font-size: 11px !important;
+    padding: 0 6px !important;
+    text-align: center !important;
+}
+
+.padding-control input[type="number"]:focus {
+    border-color: #3b82f6 !important;
+    outline: none !important;
+}
+
+.padding-control .unit {
+    font-size: 9px !important;
+    color: #666 !important;
+    text-align: center !important;
+    margin-top: 2px !important;
+}
+
+/* Make font size and line spacing inputs the same size */
+.compact-row .compact-control {
+    flex: 1 !important;
+}
+
+.compact-row .compact-control input[type="number"] {
+    width: 100% !important;
+    height: 24px !important;
+    background: #333 !important;
+    border: 1px solid #555 !important;
+    border-radius: 3px !important;
+    color: white !important;
+    font-size: 11px !important;
+    padding: 0 6px !important;
+    text-align: center !important;
+}
+
+.compact-row .compact-control input[type="number"]:focus {
+    border-color: #3b82f6 !important;
+    outline: none !important;
 }
 
 /* Text positioning section styling */

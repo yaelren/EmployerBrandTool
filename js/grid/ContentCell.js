@@ -66,7 +66,7 @@ class ContentCell extends GridCell {
                     text: '',
                     fontSize: 'auto',
                     fontFamily: '"Wix Madefor Display", Arial, sans-serif',
-                    color: '#000000',
+                    color: '#808080',
                     textAlign: 'center',  // Line alignment (left/center/right)
                     padding: 1,
                     positionH: 'center',  // Where entire text block sits horizontally

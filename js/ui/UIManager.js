@@ -40,8 +40,7 @@ class UIManager {
             backgroundFillMode: 'backgroundFillMode',
             fontFamily: 'fontFamily',
             fontSize: 'fontSize',
-            lineSpacingBetween: 'lineSpacingBetween',
-            lineSpacingBetweenValue: 'lineSpacingBetweenValue',
+            lineSpacing: 'lineSpacing',
             lineSpacingVertical: 'lineSpacingVertical',
             lineSpacingVerticalValue: 'lineSpacingVerticalValue',
             lineSpacingHorizontal: 'lineSpacingHorizontal',
@@ -307,7 +306,6 @@ class UIManager {
         const paddingVerticalValue = document.getElementById('paddingVerticalValue');
 
         if (paddingHorizontal) {
-            console.log('Padding horizontal element found in Main Text tab');
             paddingHorizontal.removeEventListener('input', this.handlePaddingHorizontalInput);
             paddingHorizontal.removeEventListener('change', this.handlePaddingHorizontalChange);
             
@@ -316,13 +314,11 @@ class UIManager {
                 if (paddingHorizontalValue) {
                     paddingHorizontalValue.textContent = padding + 'px';
                 }
-                console.log('Padding horizontal input:', padding);
                 this.updateSymmetricalPaddingDisplay('horizontal', padding);
             };
             
             this.handlePaddingHorizontalChange = () => {
                 const padding = parseInt(paddingHorizontal.value);
-                console.log('Padding horizontal change:', padding);
                 this.updateSymmetricalPadding('horizontal', padding);
             };
             
@@ -502,29 +498,23 @@ class UIManager {
             this.app.onTextChanged(); // Trigger auto-detection when value changes
         });
 
-        // Space between lines control
-        if (this.elements.lineSpacingBetween) {
-            this.elements.lineSpacingBetween.addEventListener('input', () => {
-                const spacing = parseInt(this.elements.lineSpacingBetween.value);
-                if (this.elements.lineSpacingBetweenValue) {
-                    this.elements.lineSpacingBetweenValue.textContent = spacing + 'px';
-                }
-                this.updateLineSpacingBetween(spacing);
-            });
+        // Line spacing changes
+        this.elements.lineSpacing.addEventListener('input', () => {
+            const lineSpacing = parseInt(this.elements.lineSpacing.value);
+            this.app.textEngine.updateConfig({ lineSpacing });
+            this.app.applySavedAlignments(); // Restore alignments after config change
+            this.app.render(); // Update display immediately
+        });
 
-            this.elements.lineSpacingBetween.addEventListener('change', () => {
-                const spacing = parseInt(this.elements.lineSpacingBetween.value);
-                this.app.onTextChanged(); // Trigger auto-detection when value changes
-            });
-        }
+        // Line spacing auto-detection on change
+        this.elements.lineSpacing.addEventListener('change', () => {
+            this.app.onTextChanged(); // Trigger auto-detection when value changes
+        });
 
         // Line spacing controls
         if (this.elements.lineSpacingVertical) {
             this.elements.lineSpacingVertical.addEventListener('input', () => {
                 const spacing = parseInt(this.elements.lineSpacingVertical.value);
-                if (this.elements.lineSpacingVerticalValue) {
-                    this.elements.lineSpacingVerticalValue.textContent = spacing + 'px';
-                }
                 this.updateLineSpacing('vertical', spacing);
             });
 
@@ -537,9 +527,6 @@ class UIManager {
         if (this.elements.lineSpacingHorizontal) {
             this.elements.lineSpacingHorizontal.addEventListener('input', () => {
                 const spacing = parseInt(this.elements.lineSpacingHorizontal.value);
-                if (this.elements.lineSpacingHorizontalValue) {
-                    this.elements.lineSpacingHorizontalValue.textContent = spacing + 'px';
-                }
                 this.updateLineSpacing('horizontal', spacing);
             });
 
@@ -1915,21 +1902,6 @@ class UIManager {
             top: paddingV,
             bottom: paddingV
         });
-
-        this.app.render(); // Update display immediately
-    }
-
-    /**
-     * Update space between lines (line-height spacing)
-     * @param {number} value - Spacing value in pixels
-     */
-    updateLineSpacingBetween(value) {
-        this.app.textEngine.updateConfig({
-            lineSpacingBetween: value
-        });
-
-        // Update main text component line spacing
-        this.app.mainTextComponent.lineSpacing = value;
 
         this.app.render(); // Update display immediately
     }

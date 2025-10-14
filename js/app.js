@@ -127,8 +127,6 @@ class EmployerBrandToolPOC {
 
             // Debug: Log grid status
             if (this.grid) {
-                console.log('Grid status:', this.grid.getStatus());
-                console.log('All cells:', this.grid.getAllCells());
             }
 
             this.isInitialized = true;
@@ -676,7 +674,6 @@ class EmployerBrandToolPOC {
                 this.handleContentCellClick(clickedCell);
             }
         } else {
-            console.log('No cell clicked, hiding controls');
             // No cell clicked, hide controls
             this.hideCellControls();
         }
@@ -974,9 +971,8 @@ class EmployerBrandToolPOC {
         // Update text mode (manual only)
         this.mainTextComponent.fontSize = parseInt(this.uiManager.elements.fontSize.value);
         
-        // Update space between lines
-        const spacingBetween = this.uiManager.elements.lineSpacingBetween ? parseInt(this.uiManager.elements.lineSpacingBetween.value) : 0;
-        this.mainTextComponent.lineSpacing = spacingBetween;
+        // Update line spacing
+        this.mainTextComponent.lineSpacing = parseInt(this.uiManager.elements.lineSpacing.value);
         
         // Update main text cell padding (vertical and horizontal)
         const spacingV = this.uiManager.elements.lineSpacingVertical ? parseInt(this.uiManager.elements.lineSpacingVertical.value) : 0;

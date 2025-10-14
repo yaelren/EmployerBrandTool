@@ -489,14 +489,11 @@ class Shuffler {
                     this.app.uiManager?.updateSymmetricalPadding('vertical', value);
                     break;
 
-                case 'lineSpacingBetween':
-                    if (elements.lineSpacingBetween) {
-                        elements.lineSpacingBetween.value = value;
-                        if (elements.lineSpacingBetweenValue) {
-                            elements.lineSpacingBetweenValue.textContent = value + 'px';
-                        }
+                case 'lineSpacing':
+                    if (elements.lineSpacing) {
+                        elements.lineSpacing.value = value;
                     }
-                    this.app.textEngine.updateConfig({ lineSpacingBetween: value });
+                    this.app.textEngine.updateConfig({ lineSpacing: value });
                     break;
 
                 case 'lineSpacingVertical':

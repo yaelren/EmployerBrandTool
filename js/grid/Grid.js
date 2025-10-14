@@ -755,9 +755,6 @@ class Grid {
      * Print visual representation of the grid
      */
     printVisualGrid() {
-        console.log('=====================================');
-        console.log('🎯 Grid Visual Layout:');
-        console.log('=====================================');
 
         for (let row = 0; row < this.rows; row++) {
             let rowStr = `Row ${row}: `;
@@ -794,10 +791,8 @@ class Grid {
                 }
             }
 
-            console.log(rowStr);
         }
 
-        console.log('=====================================');
     }
 
     /**

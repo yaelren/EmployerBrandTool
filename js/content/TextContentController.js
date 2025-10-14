@@ -16,7 +16,7 @@ class TextContentController extends ContentController {
     getDefaultContent() {
         return {
             text: '',
-            color: '#000000',
+            color: '#808080',
             textAlign: 'center',
             positionH: 'center',
             positionV: 'middle',

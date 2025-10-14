@@ -9,8 +9,7 @@ class MainTextController {
         this.config = {
             fontSize: 100,
             fontFamily: '"Wix Madefor Display", Arial, sans-serif',
-            lineSpacing: 0, // Space between lines in pixels (legacy, kept for compatibility)
-            lineSpacingBetween: 0, // Space between individual text lines (line-height)
+            lineSpacing: 0, // Space between lines in pixels (working implementation)
             lineSpacingVertical: 0, // Padding around main text block (top/bottom)
             lineSpacingHorizontal: 0, // Padding around main text block (left/right)
             color: '#000000',
@@ -436,14 +435,14 @@ class MainTextController {
         }
         
         this.textBounds.forEach((bounds, index) => {
-            // Vertical position: accumulate heights of previous lines + spacing between lines
+            // Vertical position: accumulate heights of previous lines + line spacing
             if (index === 0) {
                 bounds.y = startY;
             } else {
                 // Calculate cumulative height of all previous lines + spacing between lines
                 let cumulativeHeight = 0;
                 for (let i = 0; i < index; i++) {
-                    cumulativeHeight += this.textBounds[i].height + this.config.lineSpacingBetween;
+                    cumulativeHeight += this.textBounds[i].height + this.config.lineSpacing;
                 }
                 bounds.y = startY + cumulativeHeight;
             }
