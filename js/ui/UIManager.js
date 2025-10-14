@@ -318,7 +318,13 @@ class UIManager {
                 
                 // Show temporary padding debug
                 if (this.app && this.app.showTemporaryPaddingDebug) {
+                    console.log('Calling showTemporaryPaddingDebug from UIManager (horizontal)');
                     this.app.showTemporaryPaddingDebug(1500);
+                } else {
+                    console.log('App or showTemporaryPaddingDebug method not available:', {
+                        app: this.app,
+                        hasMethod: this.app ? typeof this.app.showTemporaryPaddingDebug : 'no app'
+                    });
                 }
             };
             
@@ -346,7 +352,13 @@ class UIManager {
                 
                 // Show temporary padding debug
                 if (this.app && this.app.showTemporaryPaddingDebug) {
+                    console.log('Calling showTemporaryPaddingDebug from UIManager (vertical)');
                     this.app.showTemporaryPaddingDebug(1500);
+                } else {
+                    console.log('App or showTemporaryPaddingDebug method not available:', {
+                        app: this.app,
+                        hasMethod: this.app ? typeof this.app.showTemporaryPaddingDebug : 'no app'
+                    });
                 }
             };
             
