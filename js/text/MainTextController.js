@@ -9,10 +9,12 @@ class MainTextController {
         this.config = {
             fontSize: 100,
             fontFamily: '"Wix Madefor Display", Arial, sans-serif',
-            lineSpacing: 0, // Space between lines in pixels
+            lineSpacing: 0, // Space between lines in pixels (legacy, kept for compatibility)
+            lineSpacingBetween: 0, // Space between individual text lines (line-height)
+            lineSpacingVertical: 0, // Padding around main text block (top/bottom)
+            lineSpacingHorizontal: 0, // Padding around main text block (left/right)
             color: '#000000',
             defaultAlignment: 'center',
-            enableWrap: true,
             fillCanvas: false,
             canvasWidth: 600,
             canvasHeight: 600,
@@ -93,9 +95,7 @@ class MainTextController {
         this.rawText = text;
         
         // Manual mode only - no auto-sizing
-        if (!this.config.enableWrap) {
-            this.optimizeFontSizeNoWrap();
-        }
+        this.optimizeFontSizeNoWrap();
         
         this.parseLines();
         this.measureLines();
@@ -193,10 +193,6 @@ class MainTextController {
      * @private
      */
     wrapTextWithFontSize(text, fontSize) {
-        if (!this.config.enableWrap) {
-            return text.split('\n');
-        }
-        
         const inputLines = text.split('\n');
         const wrappedLines = [];
         
@@ -272,12 +268,7 @@ class MainTextController {
             });
         }
 
-        let rawLines;
-        if (this.config.enableWrap) {
-            rawLines = this.wrapTextToCanvas(this.rawText);
-        } else {
-            rawLines = this.rawText.split('\n');
-        }
+        let rawLines = this.wrapTextToCanvas(this.rawText);
 
         this.lines = rawLines.map((text, index) => ({
             text: text,
@@ -445,14 +436,14 @@ class MainTextController {
         }
         
         this.textBounds.forEach((bounds, index) => {
-            // Vertical position: accumulate heights of previous lines + line spacing
+            // Vertical position: accumulate heights of previous lines + spacing between lines
             if (index === 0) {
                 bounds.y = startY;
             } else {
-                // Calculate cumulative height of all previous lines
+                // Calculate cumulative height of all previous lines + spacing between lines
                 let cumulativeHeight = 0;
                 for (let i = 0; i < index; i++) {
-                    cumulativeHeight += this.textBounds[i].height + this.config.lineSpacing;
+                    cumulativeHeight += this.textBounds[i].height + this.config.lineSpacingBetween;
                 }
                 bounds.y = startY + cumulativeHeight;
             }

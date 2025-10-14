@@ -51,13 +51,19 @@ class Grid {
                 right: textConfig.paddingRight || 0
             };
 
+            // Get line spacing from textEngine config
+            const lineSpacing = {
+                vertical: textConfig.lineSpacingVertical || 0,
+                horizontal: textConfig.lineSpacingHorizontal || 0
+            };
+
             // Use GridDetector to build unified matrix
             const gridDetector = this.app.gridDetector || new GridDetector();
             if (this.app.minSpotSize) {
                 gridDetector.setMinCellSize(this.app.minSpotSize);
             }
 
-            const gridResult = gridDetector.detect(canvas, textBounds, padding);
+            const gridResult = gridDetector.detect(canvas, textBounds, padding, lineSpacing);
 
             // Apply grid result
             this.matrix = gridResult.matrix;

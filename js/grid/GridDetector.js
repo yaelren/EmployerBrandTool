@@ -33,7 +33,7 @@ class GridDetector {
      * @param {Object} padding - Padding object with top, bottom, left, right
      * @returns {Object} Grid structure with matrix and metadata
      */
-    detect(canvas, textBounds, padding = {top: 0, bottom: 0, left: 0, right: 0}) {
+    detect(canvas, textBounds, padding = {top: 0, bottom: 0, left: 0, right: 0}, lineSpacing = {vertical: 0, horizontal: 0}) {
         const startTime = performance.now();
 
         // Initialize GridBuilder for spatial layout discovery
@@ -108,9 +108,9 @@ class GridDetector {
             // Dynamic column assignment based on which cells exist in this row
             let currentCol = 0;
 
-            // Check for content cell to the LEFT of text (respecting left padding)
+            // Check for content cell to the LEFT of text (respecting left padding and main text cell padding)
             // Position horizontally aligned with text baseline
-            const leftCellWidth = bounds.x - padding.left;
+            const leftCellWidth = bounds.x - padding.left - lineSpacing.horizontal;
             const hasLeftCell = leftCellWidth >= this.minCellSize && bounds.height >= this.minCellSize;
 
             if (hasLeftCell) {
@@ -147,13 +147,15 @@ class GridDetector {
                 height: bounds.height,
                 style: bounds.style || {},
                 row: currentRow,
-                col: currentCol  // Dynamic: col 0 if no left cell, col 1 if left cell exists
+                col: currentCol,  // Dynamic: col 0 if no left cell, col 1 if left cell exists
+                // Add horizontal spacing as a property for rendering
+                horizontalSpacing: lineSpacing.horizontal
             };
             regions.push(textCell);
             currentCol++;  // Right cell (if exists) will be in next column
 
-            // Check for content cell to the RIGHT of text (respecting right padding)
-            const rightCellX = bounds.x + bounds.width;
+            // Check for content cell to the RIGHT of text (respecting right padding and main text cell padding)
+            const rightCellX = bounds.x + bounds.width + lineSpacing.horizontal;
             const rightCellWidth = canvas.width - padding.right - rightCellX;
             if (rightCellWidth >= this.minCellSize && bounds.height >= this.minCellSize) {
                 const rightCell = {
@@ -178,11 +180,11 @@ class GridDetector {
 
             currentRow++;
 
-            // Check for gap AFTER this line (before next line)
+            // Check for gap AFTER this line (before next line) - accounting for vertical padding
             if (index < nonEmptyBounds.length - 1) {
                 const nextLine = nonEmptyBounds[index + 1];
-                const gapY = bounds.y + bounds.height;
-                const gapHeight = nextLine.y - gapY;
+                const gapY = bounds.y + bounds.height + lineSpacing.vertical; // Add bottom padding
+                const gapHeight = nextLine.y - lineSpacing.vertical - gapY; // Subtract top padding from next line
 
                 if (gapHeight >= this.minCellSize) {
                     const availableWidth = canvas.width - padding.left - padding.right;
@@ -208,10 +210,10 @@ class GridDetector {
             }
         });
 
-        // Step 3: Check for remaining space at the TOP (before first line, respecting top padding)
+        // Step 3: Check for remaining space at the TOP (before first line, respecting top padding and main text cell padding)
         if (nonEmptyBounds.length > 0) {
             const firstLine = nonEmptyBounds[0];
-            const topSpaceHeight = firstLine.y - padding.top;
+            const topSpaceHeight = firstLine.y - padding.top - lineSpacing.vertical;
 
             if (topSpaceHeight >= this.minCellSize) {
                 const availableWidth = canvas.width - padding.left - padding.right;
@@ -236,10 +238,10 @@ class GridDetector {
             }
         }
 
-        // Step 4: Check for remaining space at the BOTTOM (after last line, respecting bottom padding)
+        // Step 4: Check for remaining space at the BOTTOM (after last line, respecting bottom padding and main text cell padding)
         if (nonEmptyBounds.length > 0) {
             const lastLine = nonEmptyBounds[nonEmptyBounds.length - 1];
-            const bottomSpaceY = lastLine.y + lastLine.height;
+            const bottomSpaceY = lastLine.y + lastLine.height + lineSpacing.vertical;
             const bottomSpaceHeight = canvas.height - padding.bottom - bottomSpaceY;
 
             if (bottomSpaceHeight >= this.minCellSize) {

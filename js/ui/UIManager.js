@@ -40,8 +40,12 @@ class UIManager {
             backgroundFillMode: 'backgroundFillMode',
             fontFamily: 'fontFamily',
             fontSize: 'fontSize',
-            lineSpacing: 'lineSpacing',
-            enableWrap: 'enableWrap',
+            lineSpacingBetween: 'lineSpacingBetween',
+            lineSpacingBetweenValue: 'lineSpacingBetweenValue',
+            lineSpacingVertical: 'lineSpacingVertical',
+            lineSpacingVerticalValue: 'lineSpacingVerticalValue',
+            lineSpacingHorizontal: 'lineSpacingHorizontal',
+            lineSpacingHorizontalValue: 'lineSpacingHorizontalValue',
             paddingHorizontal: 'paddingHorizontal',
             paddingHorizontalValue: 'paddingHorizontalValue',
             paddingVertical: 'paddingVertical',
@@ -498,25 +502,52 @@ class UIManager {
             this.app.onTextChanged(); // Trigger auto-detection when value changes
         });
 
-        // Line spacing changes
-        this.elements.lineSpacing.addEventListener('input', () => {
-            const lineSpacing = parseInt(this.elements.lineSpacing.value);
-            this.app.textEngine.updateConfig({ lineSpacing });
-            this.app.applySavedAlignments(); // Restore alignments after config change
-            this.app.render(); // Update display immediately
-        });
+        // Space between lines control
+        if (this.elements.lineSpacingBetween) {
+            this.elements.lineSpacingBetween.addEventListener('input', () => {
+                const spacing = parseInt(this.elements.lineSpacingBetween.value);
+                if (this.elements.lineSpacingBetweenValue) {
+                    this.elements.lineSpacingBetweenValue.textContent = spacing + 'px';
+                }
+                this.updateLineSpacingBetween(spacing);
+            });
 
-        // Line spacing auto-detection on change
-        this.elements.lineSpacing.addEventListener('change', () => {
-            this.app.onTextChanged(); // Trigger auto-detection when value changes
-        });
+            this.elements.lineSpacingBetween.addEventListener('change', () => {
+                const spacing = parseInt(this.elements.lineSpacingBetween.value);
+                this.app.onTextChanged(); // Trigger auto-detection when value changes
+            });
+        }
 
-        // Text wrapping toggle
-        this.elements.enableWrap.addEventListener('change', () => {
-            const enableWrap = this.elements.enableWrap.checked;
-            this.app.textEngine.updateConfig({ enableWrap });
-            this.app.onTextChanged();
-        });
+        // Line spacing controls
+        if (this.elements.lineSpacingVertical) {
+            this.elements.lineSpacingVertical.addEventListener('input', () => {
+                const spacing = parseInt(this.elements.lineSpacingVertical.value);
+                if (this.elements.lineSpacingVerticalValue) {
+                    this.elements.lineSpacingVerticalValue.textContent = spacing + 'px';
+                }
+                this.updateLineSpacing('vertical', spacing);
+            });
+
+            this.elements.lineSpacingVertical.addEventListener('change', () => {
+                const spacing = parseInt(this.elements.lineSpacingVertical.value);
+                this.app.onTextChanged(); // Trigger auto-detection when value changes
+            });
+        }
+
+        if (this.elements.lineSpacingHorizontal) {
+            this.elements.lineSpacingHorizontal.addEventListener('input', () => {
+                const spacing = parseInt(this.elements.lineSpacingHorizontal.value);
+                if (this.elements.lineSpacingHorizontalValue) {
+                    this.elements.lineSpacingHorizontalValue.textContent = spacing + 'px';
+                }
+                this.updateLineSpacing('horizontal', spacing);
+            });
+
+            this.elements.lineSpacingHorizontal.addEventListener('change', () => {
+                const spacing = parseInt(this.elements.lineSpacingHorizontal.value);
+                this.app.onTextChanged(); // Trigger auto-detection when value changes
+            });
+        }
 
         // Symmetrical padding controls
         if (this.elements.paddingHorizontal) {
@@ -1883,6 +1914,49 @@ class UIManager {
             right: paddingH,
             top: paddingV,
             bottom: paddingV
+        });
+
+        this.app.render(); // Update display immediately
+    }
+
+    /**
+     * Update space between lines (line-height spacing)
+     * @param {number} value - Spacing value in pixels
+     */
+    updateLineSpacingBetween(value) {
+        this.app.textEngine.updateConfig({
+            lineSpacingBetween: value
+        });
+
+        // Update main text component line spacing
+        this.app.mainTextComponent.lineSpacing = value;
+
+        this.app.render(); // Update display immediately
+    }
+
+    /**
+     * Update line spacing for text positioning
+     * @param {string} direction - 'vertical' or 'horizontal'
+     * @param {number} value - Spacing value in pixels
+     */
+    updateLineSpacing(direction, value) {
+        if (direction === 'vertical') {
+            this.app.textEngine.updateConfig({
+                lineSpacingVertical: value
+            });
+        } else if (direction === 'horizontal') {
+            this.app.textEngine.updateConfig({
+                lineSpacingHorizontal: value
+            });
+        }
+
+        // Update main text component line spacing
+        const spacingV = this.elements.lineSpacingVertical ? parseInt(this.elements.lineSpacingVertical.value) : 0;
+        const spacingH = this.elements.lineSpacingHorizontal ? parseInt(this.elements.lineSpacingHorizontal.value) : 0;
+        
+        this.app.mainTextComponent.setLineSpacing({
+            vertical: spacingV,
+            horizontal: spacingH
         });
 
         this.app.render(); // Update display immediately

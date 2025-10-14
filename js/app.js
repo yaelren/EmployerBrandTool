@@ -974,11 +974,20 @@ class EmployerBrandToolPOC {
         // Update text mode (manual only)
         this.mainTextComponent.fontSize = parseInt(this.uiManager.elements.fontSize.value);
         
-        // Update line spacing
-        this.mainTextComponent.lineSpacing = parseInt(this.uiManager.elements.lineSpacing.value);
+        // Update space between lines
+        const spacingBetween = this.uiManager.elements.lineSpacingBetween ? parseInt(this.uiManager.elements.lineSpacingBetween.value) : 0;
+        this.mainTextComponent.lineSpacing = spacingBetween;
         
-        // Update wrapping
-        this.mainTextComponent.wrapText = this.uiManager.elements.enableWrap.checked;
+        // Update main text cell padding (vertical and horizontal)
+        const spacingV = this.uiManager.elements.lineSpacingVertical ? parseInt(this.uiManager.elements.lineSpacingVertical.value) : 0;
+        const spacingH = this.uiManager.elements.lineSpacingHorizontal ? parseInt(this.uiManager.elements.lineSpacingHorizontal.value) : 0;
+        this.mainTextComponent.setLineSpacing({
+            vertical: spacingV,
+            horizontal: spacingH
+        });
+        
+        // Update wrapping (always enabled now)
+        this.mainTextComponent.wrapText = true;
         
         // Update positioning (always manual mode)
         const activePos = document.querySelector('.pos-btn.active');

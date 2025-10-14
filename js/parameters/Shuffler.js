@@ -489,12 +489,34 @@ class Shuffler {
                     this.app.uiManager?.updateSymmetricalPadding('vertical', value);
                     break;
 
-                case 'lineSpacing':
-                    if (elements.lineSpacing) {
-                        elements.lineSpacing.value = value;
-                        elements.lineSpacingValue.textContent = value + 'px';
+                case 'lineSpacingBetween':
+                    if (elements.lineSpacingBetween) {
+                        elements.lineSpacingBetween.value = value;
+                        if (elements.lineSpacingBetweenValue) {
+                            elements.lineSpacingBetweenValue.textContent = value + 'px';
+                        }
                     }
-                    this.app.textEngine.updateConfig({ lineSpacing: value });
+                    this.app.textEngine.updateConfig({ lineSpacingBetween: value });
+                    break;
+
+                case 'lineSpacingVertical':
+                    if (elements.lineSpacingVertical) {
+                        elements.lineSpacingVertical.value = value;
+                        if (elements.lineSpacingVerticalValue) {
+                            elements.lineSpacingVerticalValue.textContent = value + 'px';
+                        }
+                    }
+                    this.app.textEngine.updateConfig({ lineSpacingVertical: value });
+                    break;
+
+                case 'lineSpacingHorizontal':
+                    if (elements.lineSpacingHorizontal) {
+                        elements.lineSpacingHorizontal.value = value;
+                        if (elements.lineSpacingHorizontalValue) {
+                            elements.lineSpacingHorizontalValue.textContent = value + 'px';
+                        }
+                    }
+                    this.app.textEngine.updateConfig({ lineSpacingHorizontal: value });
                     break;
 
                 case 'textAlignment':
