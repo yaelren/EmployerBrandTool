@@ -34,7 +34,7 @@ class EmployerBrandToolPOC {
         this.showHoverOutline = false;
 
         // Temporary debug display state
-        this.showTemporaryPaddingDebug = false;
+        this.temporaryPaddingDebugVisible = false;
         this.paddingDebugTimeout = null;
 
         // Main text component
@@ -785,14 +785,14 @@ class EmployerBrandToolPOC {
         }
         
         // Show padding debug
-        this.showTemporaryPaddingDebug = true;
-        console.log('showTemporaryPaddingDebug set to true');
+        this.temporaryPaddingDebugVisible = true;
+        console.log('temporaryPaddingDebugVisible set to true');
         this.render();
         
         // Hide after duration
         this.paddingDebugTimeout = setTimeout(() => {
-            this.showTemporaryPaddingDebug = false;
-            console.log('showTemporaryPaddingDebug set to false');
+            this.temporaryPaddingDebugVisible = false;
+            console.log('temporaryPaddingDebugVisible set to false');
             this.render();
         }, duration);
     }
@@ -865,8 +865,8 @@ class EmployerBrandToolPOC {
             }
 
             // Render temporary padding debug if enabled
-            if (this.showTemporaryPaddingDebug) {
-                console.log('Rendering temporary padding debug, showTemporaryPaddingDebug:', this.showTemporaryPaddingDebug);
+            if (this.temporaryPaddingDebugVisible) {
+                console.log('Rendering temporary padding debug, temporaryPaddingDebugVisible:', this.temporaryPaddingDebugVisible);
                 // Ensure debug controller exists for temporary padding debug
                 if (!this.debugController) {
                     console.log('Creating debug controller for temporary padding debug');
