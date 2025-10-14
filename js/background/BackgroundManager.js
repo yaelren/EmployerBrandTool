@@ -8,6 +8,8 @@ class BackgroundManager {
         this.backgroundColor = '#ffffff';
         this.backgroundImage = null;
         this.backgroundImageDataURL = null;
+        this.backgroundVideo = null;
+        this.backgroundVideoDataURL = null;
         this.backgroundFitMode = 'fill-canvas'; // 'stretch-canvas' | 'fit-canvas' | 'fill-canvas' | 'stretch-padding' | 'fit-padding' | 'fill-padding'
         this.padding = { top: 0, bottom: 0, left: 0, right: 0 };
     }
@@ -51,6 +53,44 @@ class BackgroundManager {
     }
     
     /**
+     * Set the background video
+     * @param {File|HTMLVideoElement} video - Video file or element
+     * @param {Function} onLoadCallback - Callback when video is loaded
+     */
+    setBackgroundVideo(video, onLoadCallback = null) {
+        if (video instanceof File) {
+            // Convert file to data URL
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                this.backgroundVideoDataURL = e.target.result;
+                this.backgroundVideo = document.createElement('video');
+                this.backgroundVideo.preload = 'metadata';
+                this.backgroundVideo.crossOrigin = 'anonymous';
+                this.backgroundVideo.autoplay = true;
+                this.backgroundVideo.loop = true;
+                this.backgroundVideo.muted = true;
+                this.backgroundVideo.controls = false;
+                
+                this.backgroundVideo.addEventListener('loadedmetadata', () => {
+                    // Video loaded successfully - trigger callback if provided
+                    if (onLoadCallback) {
+                        onLoadCallback();
+                    }
+                });
+                
+                this.backgroundVideo.src = this.backgroundVideoDataURL;
+            };
+            reader.readAsDataURL(video);
+        } else if (video instanceof HTMLVideoElement) {
+            this.backgroundVideo = video;
+            this.backgroundVideoDataURL = null;
+            if (onLoadCallback) {
+                onLoadCallback();
+            }
+        }
+    }
+    
+    /**
      * Set the background fit mode
      * @param {string} mode - 'stretch-canvas' | 'fit-canvas' | 'fill-canvas' | 'stretch-padding' | 'fit-padding' | 'fill-padding'
      */
@@ -75,7 +115,27 @@ class BackgroundManager {
     }
     
     /**
-     * Render the background (color + optional image)
+     * Clear the background video
+     */
+    clearBackgroundVideo() {
+        if (this.backgroundVideo) {
+            this.backgroundVideo.pause();
+            this.backgroundVideo.src = '';
+        }
+        this.backgroundVideo = null;
+        this.backgroundVideoDataURL = null;
+    }
+    
+    /**
+     * Clear all background media (image and video)
+     */
+    clearBackgroundMedia() {
+        this.clearBackgroundImage();
+        this.clearBackgroundVideo();
+    }
+    
+    /**
+     * Render the background (color + optional image/video)
      * @param {CanvasRenderingContext2D} ctx - Canvas context
      * @param {HTMLCanvasElement} canvas - Canvas element
      */
@@ -87,10 +147,43 @@ class BackgroundManager {
         ctx.fillStyle = this.backgroundColor;
         ctx.fillRect(0, 0, canvas.width, canvas.height);
         
-        // Render background image if present
-        if (this.backgroundImage) {
+        // Render background video if present (video takes priority over image)
+        if (this.backgroundVideo) {
+            this.renderBackgroundVideo(ctx, canvas);
+        } else if (this.backgroundImage) {
+            // Render background image if no video
             this.renderBackgroundImage(ctx, canvas);
         }
+    }
+    
+    /**
+     * Render background video with proper fit mode
+     * @param {CanvasRenderingContext2D} ctx - Canvas context
+     * @param {HTMLCanvasElement} canvas - Canvas element
+     * @private
+     */
+    renderBackgroundVideo(ctx, canvas) {
+        if (!this.backgroundVideo || this.backgroundVideo.readyState < HTMLMediaElement.HAVE_METADATA) {
+            return;
+        }
+        
+        ctx.save();
+        
+        if (this.backgroundFitMode === 'stretch-canvas') {
+            this.renderVideoStretchCanvas(ctx, canvas);
+        } else if (this.backgroundFitMode === 'fit-canvas') {
+            this.renderVideoFitCanvas(ctx, canvas);
+        } else if (this.backgroundFitMode === 'fill-canvas') {
+            this.renderVideoFillCanvas(ctx, canvas);
+        } else if (this.backgroundFitMode === 'stretch-padding') {
+            this.renderVideoStretchPadding(ctx, canvas);
+        } else if (this.backgroundFitMode === 'fit-padding') {
+            this.renderVideoFitPadding(ctx, canvas);
+        } else if (this.backgroundFitMode === 'fill-padding') {
+            this.renderVideoFillPadding(ctx, canvas);
+        }
+        
+        ctx.restore();
     }
     
     /**
@@ -261,6 +354,145 @@ class BackgroundManager {
     }
     
     /**
+     * Render video stretched to fill entire canvas
+     * @param {CanvasRenderingContext2D} ctx - Canvas context
+     * @param {HTMLCanvasElement} canvas - Canvas element
+     * @private
+     */
+    renderVideoStretchCanvas(ctx, canvas) {
+        // Stretch video to fill entire canvas (may distort aspect ratio)
+        ctx.drawImage(this.backgroundVideo, 0, 0, canvas.width, canvas.height);
+    }
+    
+    /**
+     * Render video fitted to entire canvas (maintain aspect ratio)
+     * @param {CanvasRenderingContext2D} ctx - Canvas context
+     * @param {HTMLCanvasElement} canvas - Canvas element
+     * @private
+     */
+    renderVideoFitCanvas(ctx, canvas) {
+        // Calculate scale to fit video within canvas while maintaining aspect ratio
+        const scaleX = canvas.width / this.backgroundVideo.videoWidth;
+        const scaleY = canvas.height / this.backgroundVideo.videoHeight;
+        const scale = Math.min(scaleX, scaleY);
+        
+        const scaledWidth = this.backgroundVideo.videoWidth * scale;
+        const scaledHeight = this.backgroundVideo.videoHeight * scale;
+        
+        // Center the video
+        const x = (canvas.width - scaledWidth) / 2;
+        const y = (canvas.height - scaledHeight) / 2;
+        
+        ctx.drawImage(this.backgroundVideo, x, y, scaledWidth, scaledHeight);
+    }
+    
+    /**
+     * Render video stretched to fill padding area
+     * @param {CanvasRenderingContext2D} ctx - Canvas context
+     * @param {HTMLCanvasElement} canvas - Canvas element
+     * @private
+     */
+    renderVideoStretchPadding(ctx, canvas) {
+        const availableWidth = canvas.width - this.padding.left - this.padding.right;
+        const availableHeight = canvas.height - this.padding.top - this.padding.bottom;
+        
+        if (availableWidth <= 0 || availableHeight <= 0) return;
+        
+        // Stretch video to fill the available area (may distort aspect ratio)
+        ctx.drawImage(
+            this.backgroundVideo,
+            this.padding.left,
+            this.padding.top,
+            availableWidth,
+            availableHeight
+        );
+    }
+    
+    /**
+     * Render video fitted to padding area (maintain aspect ratio)
+     * @param {CanvasRenderingContext2D} ctx - Canvas context
+     * @param {HTMLCanvasElement} canvas - Canvas element
+     * @private
+     */
+    renderVideoFitPadding(ctx, canvas) {
+        const availableWidth = canvas.width - this.padding.left - this.padding.right;
+        const availableHeight = canvas.height - this.padding.top - this.padding.bottom;
+        
+        if (availableWidth <= 0 || availableHeight <= 0) return;
+        
+        // Calculate scale to fit video within available area while maintaining aspect ratio
+        const scaleX = availableWidth / this.backgroundVideo.videoWidth;
+        const scaleY = availableHeight / this.backgroundVideo.videoHeight;
+        const scale = Math.min(scaleX, scaleY);
+        
+        const scaledWidth = this.backgroundVideo.videoWidth * scale;
+        const scaledHeight = this.backgroundVideo.videoHeight * scale;
+        
+        // Center the video within the available area
+        const x = this.padding.left + (availableWidth - scaledWidth) / 2;
+        const y = this.padding.top + (availableHeight - scaledHeight) / 2;
+        
+        ctx.drawImage(this.backgroundVideo, x, y, scaledWidth, scaledHeight);
+    }
+    
+    /**
+     * Render video filled to padding area (crop to fit)
+     * @param {CanvasRenderingContext2D} ctx - Canvas context
+     * @param {HTMLCanvasElement} canvas - Canvas element
+     * @private
+     */
+    renderVideoFillPadding(ctx, canvas) {
+        const availableWidth = canvas.width - this.padding.left - this.padding.right;
+        const availableHeight = canvas.height - this.padding.top - this.padding.bottom;
+        
+        if (availableWidth <= 0 || availableHeight <= 0) return;
+        
+        // Calculate scale to fill available area while maintaining aspect ratio (may crop)
+        const scaleX = availableWidth / this.backgroundVideo.videoWidth;
+        const scaleY = availableHeight / this.backgroundVideo.videoHeight;
+        const scale = Math.max(scaleX, scaleY);
+        
+        const scaledWidth = this.backgroundVideo.videoWidth * scale;
+        const scaledHeight = this.backgroundVideo.videoHeight * scale;
+        
+        // Calculate source rectangle for cropping (center crop)
+        // Convert scaled coordinates back to original video coordinates
+        const sourceX = (scaledWidth - availableWidth) / 2 / scale;
+        const sourceY = (scaledHeight - availableHeight) / 2 / scale;
+        const sourceWidth = availableWidth / scale;
+        const sourceHeight = availableHeight / scale;
+        
+        // Draw the cropped video to fill the exact padding area
+        ctx.drawImage(
+            this.backgroundVideo,
+            sourceX, sourceY, sourceWidth, sourceHeight,  // source rectangle (in original video space)
+            this.padding.left, this.padding.top, availableWidth, availableHeight  // destination rectangle
+        );
+    }
+    
+    /**
+     * Render video to fill entire canvas
+     * @param {CanvasRenderingContext2D} ctx - Canvas context
+     * @param {HTMLCanvasElement} canvas - Canvas element
+     * @private
+     */
+    renderVideoFillCanvas(ctx, canvas) {
+        // Calculate scale to fill canvas while maintaining aspect ratio
+        const scaleX = canvas.width / this.backgroundVideo.videoWidth;
+        const scaleY = canvas.height / this.backgroundVideo.videoHeight;
+        const scale = Math.max(scaleX, scaleY);
+        
+        const scaledWidth = this.backgroundVideo.videoWidth * scale;
+        const scaledHeight = this.backgroundVideo.videoHeight * scale;
+        
+        // Center the video
+        const x = (canvas.width - scaledWidth) / 2;
+        const y = (canvas.height - scaledHeight) / 2;
+        
+        ctx.drawImage(this.backgroundVideo, x, y, scaledWidth, scaledHeight);
+    }
+    
+    /**
      * Get current background information
      * @returns {Object} Background info object
      */
@@ -268,6 +500,7 @@ class BackgroundManager {
         return {
             backgroundColor: this.backgroundColor,
             hasImage: !!this.backgroundImage,
+            hasVideo: !!this.backgroundVideo,
             fitMode: this.backgroundFitMode,
             padding: { ...this.padding }
         };
@@ -279,5 +512,13 @@ class BackgroundManager {
      */
     isImageLoaded() {
         return this.backgroundImage && this.backgroundImage.complete;
+    }
+    
+    /**
+     * Check if background video is loaded
+     * @returns {boolean} True if video is loaded and ready
+     */
+    isVideoLoaded() {
+        return this.backgroundVideo && this.backgroundVideo.readyState >= HTMLMediaElement.HAVE_METADATA;
     }
 }

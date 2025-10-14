@@ -35,8 +35,11 @@ class UIManager {
             mainText: 'mainText',
             textColor: 'textColor',
             backgroundColor: 'backgroundColor',
-            backgroundImage: 'backgroundImage',
-            clearBackgroundImage: 'clearBackgroundImage',
+            backgroundMedia: 'backgroundMedia',
+            clearBackgroundMedia: 'clearBackgroundMedia',
+            backgroundVideoControls: 'backgroundVideoControls',
+            backgroundVideoAutoplay: 'backgroundVideoAutoplay',
+            backgroundVideoLoop: 'backgroundVideoLoop',
             backgroundFillMode: 'backgroundFillMode',
             fontFamily: 'fontFamily',
             fontSize: 'fontSize',
@@ -464,17 +467,17 @@ class UIManager {
             });
         }
 
-        // Background image upload
-        if (this.elements.backgroundImage) {
-            this.elements.backgroundImage.addEventListener('change', (e) => {
-                this.handleBackgroundImageUpload(e);
+        // Background media upload (image or video)
+        if (this.elements.backgroundMedia) {
+            this.elements.backgroundMedia.addEventListener('change', (e) => {
+                this.handleBackgroundMediaUpload(e);
             });
         }
 
-        // Clear background image
-        if (this.elements.clearBackgroundImage) {
-            this.elements.clearBackgroundImage.addEventListener('click', () => {
-                this.clearBackgroundImage();
+        // Clear background media
+        if (this.elements.clearBackgroundMedia) {
+            this.elements.clearBackgroundMedia.addEventListener('click', () => {
+                this.clearBackgroundMedia();
             });
         }
 
@@ -1962,20 +1965,6 @@ class UIManager {
         this.app.onTextChanged();
     }
 
-    /**
-     * Handle background image upload
-     * @param {Event} e - File input change event
-     */
-    handleBackgroundImageUpload(e) {
-        const file = e.target.files[0];
-        if (file && file.type.startsWith('image/')) {
-            // Set callback to render when image is loaded
-            this.app.canvasManager.setBackgroundImage(file, () => {
-                this.elements.clearBackgroundImage.style.display = 'block';
-                this.app.render();
-            });
-        }
-    }
 
     /**
      * Update background mode based on space and fill mode selections
@@ -2121,8 +2110,7 @@ class UIManager {
      * Clear background media (image or video)
      */
     clearBackgroundMedia() {
-        this.app.canvasManager.setBackgroundImage(null);
-        this.app.canvasManager.setBackgroundVideo(null);
+        this.app.canvasManager.clearBackgroundMedia();
         this.elements.backgroundMedia.value = '';
         this.elements.clearBackgroundMedia.style.display = 'none';
         this.elements.backgroundVideoControls.style.display = 'none';
@@ -2133,8 +2121,8 @@ class UIManager {
      * Update background video settings
      */
     updateBackgroundVideoSettings() {
-        if (this.app.canvasManager.backgroundVideo) {
-            const video = this.app.canvasManager.backgroundVideo;
+        if (this.app.canvasManager.backgroundManager.backgroundVideo) {
+            const video = this.app.canvasManager.backgroundManager.backgroundVideo;
             video.autoplay = this.elements.backgroundVideoAutoplay.checked;
             video.loop = this.elements.backgroundVideoLoop.checked;
             

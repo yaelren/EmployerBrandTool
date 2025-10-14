@@ -668,25 +668,20 @@ class EmployerBrandToolPOC {
      */
     onCanvasClick(event) {
         const canvasCoords = this.canvasManager.screenToCanvas(event.clientX, event.clientY);
-        console.log('Canvas clicked at:', canvasCoords);
         
         // Find clicked cell using grid system
         const clickedCell = this.grid ? this.grid.getCellAt(canvasCoords.x, canvasCoords.y) : null;
-        console.log('Clicked cell:', clickedCell);
         
         if (clickedCell) {
-            console.log('Cell type:', clickedCell.type);
             
             // Automatically switch to Grid Editor tab when clicking on a cell
             this.uiManager.switchTab('grid');
             
             // Handle different cell types
             if (clickedCell.type === 'main-text') {
-                console.log('Handling main text cell click');
                 // For main text cells, show cell 8 main text cell with animations
                 this.handleMainTextCellClick(clickedCell);
             } else if (clickedCell.type === 'content') {
-                console.log('Handling content cell click');
                 // For content cells, show content controls
                 this.handleContentCellClick(clickedCell);
             }
@@ -744,7 +739,6 @@ class EmployerBrandToolPOC {
                 // Show hover effects
                 this.showHoverOutline = true;
                 this.canvasManager.canvas.style.cursor = 'pointer';
-                console.log('Hovering over cell:', hoveredCell.id, hoveredCell.type);
                 
                 // Trigger a render to show hover outline
                 this.render();
@@ -1021,7 +1015,7 @@ class EmployerBrandToolPOC {
                 );
 
             // Check if background video needs frame updates
-            const hasBackgroundVideo = this.canvasManager.backgroundVideo instanceof HTMLVideoElement;
+            const hasBackgroundVideo = this.canvasManager.backgroundManager.backgroundVideo instanceof HTMLVideoElement;
 
             if (hasPlayingAnimations || hasVideos || hasLottieAnimations || hasBackgroundVideo) {
                 // Re-render canvas
@@ -1334,23 +1328,25 @@ class EmployerBrandToolPOC {
     
     /**
      * Set background video
-     * @param {HTMLVideoElement} video - Video element
+     * @param {File|HTMLVideoElement} video - Video file or element
      */
     setBackgroundVideo(video) {
-        this.canvasManager.setBackgroundVideo(video);
-        this.backgroundVideo = video;
-        this.backgroundImage = null; // Clear image when setting video
-        this.render();
-        
-        // Start animation loop for video frame updates
-        this._startAnimationLoop();
+        this.canvasManager.setBackgroundVideo(video, () => {
+            // Video loaded callback
+            this.backgroundVideo = this.canvasManager.backgroundManager.backgroundVideo;
+            this.backgroundImage = null; // Clear image when setting video
+            this.render();
+            
+            // Start animation loop for video frame updates
+            this._startAnimationLoop();
+        });
     }
     
     /**
      * Clear background video
      */
     clearBackgroundVideo() {
-        this.canvasManager.setBackgroundVideo(null);
+        this.canvasManager.clearBackgroundVideo();
         this.backgroundVideo = null;
         this.render();
     }

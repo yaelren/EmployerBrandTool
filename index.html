@@ -90,12 +90,24 @@
                                 </div>
                             </div>
                             
-                            <!-- Background Image with compact layout -->
+                            <!-- Background Media (Image/Video) with compact layout -->
                             <div class="chatooly-control-group">
-                                <label for="backgroundImage">Background Image</label>
-                                <div class="background-image-controls">
-                                    <input type="file" id="backgroundImage" accept="image/*">
-                                    <button type="button" id="clearBackgroundImage" style="display: none;" class="delicate-x">×</button>
+                                <label for="backgroundMedia">Background Media</label>
+                                <div class="background-media-controls">
+                                    <input type="file" id="backgroundMedia" accept="image/*,video/*">
+                                    <button type="button" id="clearBackgroundMedia" style="display: none;" class="delicate-x">×</button>
+                                </div>
+                                
+                                <!-- Video Controls (hidden by default) -->
+                                <div id="backgroundVideoControls" style="display: none;" class="video-controls">
+                                    <label>
+                                        <input type="checkbox" id="backgroundVideoAutoplay" checked>
+                                        Autoplay
+                                    </label>
+                                    <label>
+                                        <input type="checkbox" id="backgroundVideoLoop" checked>
+                                        Loop
+                                    </label>
                                 </div>
                                 
                                 <!-- Compact Image Space Controls -->

@@ -74,11 +74,13 @@ class CanvasManager {
     
     /**
      * Set background video
-     * @param {HTMLVideoElement} video - Video element
+     * @param {File|HTMLVideoElement} video - Video file or element
+     * @param {Function} onLoadCallback - Callback when video is loaded
      */
-    setBackgroundVideo(video) {
-        this.backgroundVideo = video;
-        this.backgroundImage = null; // Clear image when setting video
+    setBackgroundVideo(video, onLoadCallback = null) {
+        this.backgroundManager.setBackgroundVideo(video, onLoadCallback);
+        // Clear image when setting video
+        this.backgroundManager.clearBackgroundImage();
     }
     
     /**
@@ -105,120 +107,28 @@ class CanvasManager {
     }
     
     /**
+     * Clear background video
+     */
+    clearBackgroundVideo() {
+        this.backgroundManager.clearBackgroundVideo();
+    }
+    
+    /**
+     * Clear all background media (image and video)
+     */
+    clearBackgroundMedia() {
+        this.backgroundManager.clearBackgroundMedia();
+    }
+    
+    /**
      * Render background (color + optional image)
      */
     renderBackground() {
         this.backgroundManager.renderBackground(this.ctx, this.canvas);
     }
     
-    /**
-     * Render background video with proper fit mode
-     * @private
-     */
-    renderBackgroundVideo() {
-        if (!this.backgroundVideo || this.backgroundVideo.readyState < HTMLMediaElement.HAVE_METADATA) {
-            return;
-        }
-
-        const canvasWidth = this.canvas.width;
-        const canvasHeight = this.canvas.height;
-        const videoWidth = this.backgroundVideo.videoWidth;
-        const videoHeight = this.backgroundVideo.videoHeight;
-
-        const { drawX, drawY, drawWidth, drawHeight } = this.calculateBackgroundDimensions(
-            videoWidth, videoHeight, canvasWidth, canvasHeight
-        );
-
-        try {
-            this.ctx.drawImage(this.backgroundVideo, drawX, drawY, drawWidth, drawHeight);
-        } catch (error) {
-            console.warn('Error drawing background video:', error);
-        }
-    }
     
-    /**
-     * Render background image with proper fit mode
-     * @private
-     */
-    renderBackgroundImage() {
-        if (!this.backgroundImage) {
-            return;
-        }
-
-        const canvasWidth = this.canvas.width;
-        const canvasHeight = this.canvas.height;
-        const imageWidth = this.backgroundImage.width;
-        const imageHeight = this.backgroundImage.height;
-
-        const { drawX, drawY, drawWidth, drawHeight } = this.calculateBackgroundDimensions(
-            imageWidth, imageHeight, canvasWidth, canvasHeight
-        );
-
-        this.ctx.drawImage(this.backgroundImage, drawX, drawY, drawWidth, drawHeight);
-    }
     
-    /**
-     * Calculate background dimensions based on fit mode
-     * @param {number} mediaWidth - Width of image/video
-     * @param {number} mediaHeight - Height of image/video
-     * @param {number} canvasWidth - Canvas width
-     * @param {number} canvasHeight - Canvas height
-     * @returns {Object} Drawing dimensions and position
-     * @private
-     */
-    calculateBackgroundDimensions(mediaWidth, mediaHeight, canvasWidth, canvasHeight) {
-        const mediaAspect = mediaWidth / mediaHeight;
-        const canvasAspect = canvasWidth / canvasHeight;
-
-        let drawX, drawY, drawWidth, drawHeight;
-
-        switch (this.backgroundFitMode) {
-            case 'stretch':
-                // Stretch to fill entire canvas (may distort)
-                drawX = 0;
-                drawY = 0;
-                drawWidth = canvasWidth;
-                drawHeight = canvasHeight;
-                break;
-
-            case 'fill':
-                // Fill entire canvas, crop if necessary (maintain aspect ratio)
-                if (mediaAspect > canvasAspect) {
-                    // Media is wider - fit to height, crop width
-                    drawHeight = canvasHeight;
-                    drawWidth = drawHeight * mediaAspect;
-                    drawX = (canvasWidth - drawWidth) / 2;
-                    drawY = 0;
-                } else {
-                    // Media is taller - fit to width, crop height
-                    drawWidth = canvasWidth;
-                    drawHeight = drawWidth / mediaAspect;
-                    drawX = 0;
-                    drawY = (canvasHeight - drawHeight) / 2;
-                }
-                break;
-
-            case 'fit':
-            default:
-                // Fit entire media in canvas (may have letterboxing)
-                if (mediaAspect > canvasAspect) {
-                    // Media is wider - fit to width
-                    drawWidth = canvasWidth;
-                    drawHeight = drawWidth / mediaAspect;
-                    drawX = 0;
-                    drawY = (canvasHeight - drawHeight) / 2;
-                } else {
-                    // Media is taller - fit to height
-                    drawHeight = canvasHeight;
-                    drawWidth = drawHeight * mediaAspect;
-                    drawX = (canvasWidth - drawWidth) / 2;
-                    drawY = 0;
-                }
-                break;
-        }
-
-        return { drawX, drawY, drawWidth, drawHeight };
-    }
     
     /**
      * Render text lines on canvas
