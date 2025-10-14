@@ -777,8 +777,6 @@ class EmployerBrandToolPOC {
      * @param {number} duration - Duration in milliseconds (default: 2000)
      */
     showTemporaryPaddingDebug(duration = 2000) {
-        console.log('showTemporaryPaddingDebug called with duration:', duration);
-        
         // Clear any existing timeout
         if (this.paddingDebugTimeout) {
             clearTimeout(this.paddingDebugTimeout);
@@ -786,13 +784,11 @@ class EmployerBrandToolPOC {
         
         // Show padding debug
         this.temporaryPaddingDebugVisible = true;
-        console.log('temporaryPaddingDebugVisible set to true');
         this.render();
         
         // Hide after duration
         this.paddingDebugTimeout = setTimeout(() => {
             this.temporaryPaddingDebugVisible = false;
-            console.log('temporaryPaddingDebugVisible set to false');
             this.render();
         }, duration);
     }
@@ -866,10 +862,8 @@ class EmployerBrandToolPOC {
 
             // Render temporary padding debug if enabled
             if (this.temporaryPaddingDebugVisible) {
-                console.log('Rendering temporary padding debug, temporaryPaddingDebugVisible:', this.temporaryPaddingDebugVisible);
                 // Ensure debug controller exists for temporary padding debug
                 if (!this.debugController) {
-                    console.log('Creating debug controller for temporary padding debug');
                     this.debugController = new DebugController(this);
                 }
                 this.debugController.renderPaddingDebug(this.canvasManager.ctx, {

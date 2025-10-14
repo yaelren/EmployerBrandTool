@@ -242,19 +242,7 @@ class DebugController {
      */
     renderPaddingDebug(ctx, options) {
         if (options.mainTextComponent) {
-            console.log('Rendering padding debug for mainTextComponent:', {
-                containerX: options.mainTextComponent.containerX,
-                containerY: options.mainTextComponent.containerY,
-                containerWidth: options.mainTextComponent.containerWidth,
-                containerHeight: options.mainTextComponent.containerHeight,
-                paddingTop: options.mainTextComponent.paddingTop,
-                paddingRight: options.mainTextComponent.paddingRight,
-                paddingBottom: options.mainTextComponent.paddingBottom,
-                paddingLeft: options.mainTextComponent.paddingLeft
-            });
             this.renderPaddingAreas(ctx, options.mainTextComponent);
-        } else {
-            console.log('No mainTextComponent provided for padding debug');
         }
     }
     

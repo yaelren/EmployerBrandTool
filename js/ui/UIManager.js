@@ -318,13 +318,7 @@ class UIManager {
                 
                 // Show temporary padding debug
                 if (this.app && this.app.showTemporaryPaddingDebug) {
-                    console.log('Calling showTemporaryPaddingDebug from UIManager (horizontal)');
                     this.app.showTemporaryPaddingDebug(1500);
-                } else {
-                    console.log('App or showTemporaryPaddingDebug method not available:', {
-                        app: this.app,
-                        hasMethod: this.app ? typeof this.app.showTemporaryPaddingDebug : 'no app'
-                    });
                 }
             };
             
@@ -347,24 +341,16 @@ class UIManager {
                 if (paddingVerticalValue) {
                     paddingVerticalValue.textContent = padding + 'px';
                 }
-                console.log('Padding vertical input:', padding);
                 this.updateSymmetricalPaddingDisplay('vertical', padding);
                 
                 // Show temporary padding debug
                 if (this.app && this.app.showTemporaryPaddingDebug) {
-                    console.log('Calling showTemporaryPaddingDebug from UIManager (vertical)');
                     this.app.showTemporaryPaddingDebug(1500);
-                } else {
-                    console.log('App or showTemporaryPaddingDebug method not available:', {
-                        app: this.app,
-                        hasMethod: this.app ? typeof this.app.showTemporaryPaddingDebug : 'no app'
-                    });
                 }
             };
             
             this.handlePaddingVerticalChange = () => {
                 const padding = parseInt(paddingVertical.value);
-                console.log('Padding vertical change:', padding);
                 this.updateSymmetricalPadding('vertical', padding);
             };
             
