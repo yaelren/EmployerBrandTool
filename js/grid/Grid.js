@@ -710,6 +710,8 @@ class Grid {
                 let cell;
                 if (cellData.type === 'main-text') {
                     cell = MainTextCell.deserialize(cellData);
+                } else if (cellData.type === 'content') {
+                    cell = ContentCell.deserialize(cellData);
                 } else if (cellData.type === 'spot') {
                     cell = SpotCell.deserialize(cellData);
                 }

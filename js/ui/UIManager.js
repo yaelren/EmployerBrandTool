@@ -1749,6 +1749,9 @@ class UIManager {
             case 'grid':
                 contentId = 'gridTab';
                 break;
+            case 'presets':
+                contentId = 'presetsTab';
+                break;
         }
 
         const activeContent = document.getElementById(contentId);
@@ -1760,6 +1763,13 @@ class UIManager {
         if (tabName === 'grid') {
             setTimeout(() => {
                 this.setupGridTabEventListeners();
+            }, 50);
+        }
+
+        // Initialize preset UI when switching to presets tab
+        if (tabName === 'presets') {
+            setTimeout(() => {
+                this.app.initializePresetUI();
             }, 50);
         }
     }

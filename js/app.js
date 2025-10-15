@@ -43,6 +43,10 @@ class EmployerBrandToolPOC {
         // UI Manager
         this.uiManager = null; // Will be initialized after DOM is ready
 
+        // Preset Management System
+        this.presetManager = null; // Will be initialized after DOM is ready
+        this.presetUIComponent = null; // Will be initialized after DOM is ready
+
         // Content Controllers - Object-oriented content management
         this.contentControllers = {
             'empty': new EmptyContentController(this),
@@ -72,6 +76,11 @@ class EmployerBrandToolPOC {
         try {
             // Initialize UI Manager FIRST (other components depend on it)
             this.uiManager = new UIManager(this);
+
+            // Initialize Preset Management System
+            this.presetManager = new PresetManager(this);
+            this.presetUIComponent = new PresetUIComponent(this);
+            this.presetUIComponent.initialize(this.presetManager);
 
             // Initialize debug controller
             this.debugController = new DebugController(this);
@@ -898,10 +907,11 @@ class EmployerBrandToolPOC {
     renderByLayers(ctx, debugOptions) {
         const sortedLayers = this.layerManager.getSortedLayers();
         
-        sortedLayers.forEach(layer => {
+        sortedLayers.forEach((layer, layerIndex) => {
             if (!layer.visible) return;
             
             const layerCells = layer.getCells();
+            
             layerCells.forEach(cell => {
                 this.renderCellWithAnimations(ctx, cell, debugOptions);
             });
@@ -1394,6 +1404,48 @@ class EmployerBrandToolPOC {
         
         // Draw the background image
         ctx.drawImage(this.backgroundImage, drawX, drawY, drawWidth, drawHeight);
+    }
+
+    /**
+     * Save current state as a preset
+     * @param {string} presetName - Name for the preset
+     */
+    savePreset(presetName) {
+        if (!this.presetManager) {
+            console.error('PresetManager not initialized');
+            return;
+        }
+        this.presetManager.downloadPreset(presetName);
+    }
+
+    /**
+     * Load a preset from JSON data
+     * @param {Object} presetData - Preset JSON data
+     */
+    loadPreset(presetData) {
+        if (!this.presetManager) {
+            console.error('PresetManager not initialized');
+            return;
+        }
+        this.presetManager.deserializeState(presetData);
+    }
+
+    /**
+     * Initialize preset UI in the presets tab
+     */
+    initializePresetUI() {
+        if (!this.presetUIComponent) {
+            console.error('PresetUIComponent not initialized');
+            return;
+        }
+        
+        const presetsContainer = document.getElementById('presetsContainer');
+        
+        if (presetsContainer) {
+            this.presetUIComponent.render(presetsContainer);
+        } else {
+            console.error('App: presetsContainer element not found');
+        }
     }
 
 

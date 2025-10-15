@@ -47,6 +47,7 @@
                 <div class="tab-navigation">
                     <button class="tab-btn active" data-tab="mainText">Grid Builder</button>
                     <button class="tab-btn" data-tab="grid">Grid Editor</button>
+                    <button class="tab-btn" data-tab="presets">Presets</button>
                 </div>
                 
                 <!-- Main Text Tab -->
@@ -266,6 +267,17 @@ SPOTLIGHT
                     </div>
                 </div>
 
+                <!-- Presets Tab -->
+                <div id="presetsTab" class="tab-content">
+                    <div id="presetsContainer">
+                        <!-- Preset controls will be rendered here by PresetUIComponent -->
+                        <div style="padding: 20px; background: #2a2a2a; border-radius: 8px; margin: 20px 0;">
+                            <h3 style="color: #e5e5e5; margin: 0 0 10px 0;">Presets Tab</h3>
+                            <p style="color: #999; margin: 0;">This tab is working! The preset controls will appear here.</p>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- Spots and Animation tabs removed - functionality moved to Grid tab -->
                 <!-- Parameters tab removed -->
                 
@@ -396,8 +408,10 @@ SPOTLIGHT
 
     <!-- UI Management -->
     <script src="js/ui/UIManager.js"></script>
+    <script src="js/ui/PresetUIComponent.js"></script>
 
     <!-- Main Application -->
+    <script src="js/parameters/PresetManager.js"></script>
     <script src="js/app.js"></script>
     
     <!-- Collapsible Controls Toggle Functions -->
