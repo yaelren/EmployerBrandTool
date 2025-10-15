@@ -1123,8 +1123,8 @@ class EmployerBrandToolPOC {
         this.mainTextComponent.lineSpacing = parseInt(this.uiManager.elements.lineSpacing.value);
         
         // Update main text cell padding (vertical and horizontal)
-        const spacingV = this.uiManager.elements.lineSpacingVertical ? parseInt(this.uiManager.elements.lineSpacingVertical.value) : 0;
-        const spacingH = this.uiManager.elements.lineSpacingHorizontal ? parseInt(this.uiManager.elements.lineSpacingHorizontal.value) : 0;
+        const spacingV = this.uiManager.elements.marginVertical ? parseInt(this.uiManager.elements.marginVertical.value) : 0;
+        const spacingH = this.uiManager.elements.marginHorizontal ? parseInt(this.uiManager.elements.marginHorizontal.value) : 0;
         this.mainTextComponent.setLineSpacing({
             vertical: spacingV,
             horizontal: spacingH

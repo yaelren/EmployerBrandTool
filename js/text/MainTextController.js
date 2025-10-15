@@ -10,8 +10,8 @@ class MainTextController {
             fontSize: 100,
             fontFamily: '"Wix Madefor Display", Arial, sans-serif',
             lineSpacing: 0, // Space between lines in pixels (working implementation)
-            lineSpacingVertical: 0, // Padding around main text block (top/bottom)
-            lineSpacingHorizontal: 0, // Padding around main text block (left/right)
+            marginVertical: 0, // Margin around main text block (top/bottom)
+            marginHorizontal: 0, // Margin around main text block (left/right)
             color: '#000000',
             defaultAlignment: 'center',
             fillCanvas: false,

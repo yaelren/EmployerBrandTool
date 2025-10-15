@@ -44,10 +44,10 @@ class UIManager {
             fontFamily: 'fontFamily',
             fontSize: 'fontSize',
             lineSpacing: 'lineSpacing',
-            lineSpacingVertical: 'lineSpacingVertical',
-            lineSpacingVerticalValue: 'lineSpacingVerticalValue',
-            lineSpacingHorizontal: 'lineSpacingHorizontal',
-            lineSpacingHorizontalValue: 'lineSpacingHorizontalValue',
+            marginVertical: 'marginVertical',
+            marginVerticalValue: 'marginVerticalValue',
+            marginHorizontal: 'marginHorizontal',
+            marginHorizontalValue: 'marginHorizontalValue',
             paddingHorizontal: 'paddingHorizontal',
             paddingHorizontalValue: 'paddingHorizontalValue',
             paddingVertical: 'paddingVertical',
@@ -523,26 +523,26 @@ class UIManager {
         });
 
         // Line spacing controls
-        if (this.elements.lineSpacingVertical) {
-            this.elements.lineSpacingVertical.addEventListener('input', () => {
-                const spacing = parseInt(this.elements.lineSpacingVertical.value);
+        if (this.elements.marginVertical) {
+            this.elements.marginVertical.addEventListener('input', () => {
+                const spacing = parseInt(this.elements.marginVertical.value);
                 this.updateLineSpacing('vertical', spacing);
             });
 
-            this.elements.lineSpacingVertical.addEventListener('change', () => {
-                const spacing = parseInt(this.elements.lineSpacingVertical.value);
+            this.elements.marginVertical.addEventListener('change', () => {
+                const spacing = parseInt(this.elements.marginVertical.value);
                 this.app.onTextChanged(); // Trigger auto-detection when value changes
             });
         }
 
-        if (this.elements.lineSpacingHorizontal) {
-            this.elements.lineSpacingHorizontal.addEventListener('input', () => {
-                const spacing = parseInt(this.elements.lineSpacingHorizontal.value);
+        if (this.elements.marginHorizontal) {
+            this.elements.marginHorizontal.addEventListener('input', () => {
+                const spacing = parseInt(this.elements.marginHorizontal.value);
                 this.updateLineSpacing('horizontal', spacing);
             });
 
-            this.elements.lineSpacingHorizontal.addEventListener('change', () => {
-                const spacing = parseInt(this.elements.lineSpacingHorizontal.value);
+            this.elements.marginHorizontal.addEventListener('change', () => {
+                const spacing = parseInt(this.elements.marginHorizontal.value);
                 this.app.onTextChanged(); // Trigger auto-detection when value changes
             });
         }
@@ -1935,17 +1935,17 @@ class UIManager {
     updateLineSpacing(direction, value) {
         if (direction === 'vertical') {
             this.app.textEngine.updateConfig({
-                lineSpacingVertical: value
+                marginVertical: value
             });
         } else if (direction === 'horizontal') {
             this.app.textEngine.updateConfig({
-                lineSpacingHorizontal: value
+                marginHorizontal: value
             });
         }
 
         // Update main text component line spacing
-        const spacingV = this.elements.lineSpacingVertical ? parseInt(this.elements.lineSpacingVertical.value) : 0;
-        const spacingH = this.elements.lineSpacingHorizontal ? parseInt(this.elements.lineSpacingHorizontal.value) : 0;
+        const spacingV = this.elements.marginVertical ? parseInt(this.elements.marginVertical.value) : 0;
+        const spacingH = this.elements.marginHorizontal ? parseInt(this.elements.marginHorizontal.value) : 0;
         
         this.app.mainTextComponent.setLineSpacing({
             vertical: spacingV,

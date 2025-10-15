@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Padding Fix Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .test-section { margin: 20px 0; padding: 15px; border: 1px solid #ccc; }
+        button { margin: 5px; padding: 10px; }
+        .status { margin: 10px 0; padding: 10px; background: #f0f0f0; }
+        .success { background: #d4edda; color: #155724; }
+        .error { background: #f8d7da; color: #721c24; }
+    </style>
+</head>
+<body>
+    <h1>MainTextCell Padding Fix Test</h1>
+    
+    <div class="test-section">
+        <h2>Test Steps:</h2>
+        <ol>
+            <li>Set some text and adjust padding</li>
+            <li>Save a preset</li>
+            <li>Change padding to different values</li>
+            <li>Load the preset</li>
+            <li>Verify padding is correctly applied to both UI and canvas/grid</li>
+        </ol>
+    </div>
+
+    <div class="test-section">
+        <h2>Manual Test Controls:</h2>
+        <button onclick="testPaddingFix()">Run Padding Fix Test</button>
+        <button onclick="createTestPreset()">Create Test Preset</button>
+        <button onclick="loadTestPreset()">Load Test Preset</button>
+        <button onclick="checkPaddingSync()">Check Padding Sync</button>
+    </div>
+
+    <div id="status" class="status">Ready to test...</div>
+
+    <script>
+        // Test functions
+        function testPaddingFix() {
+            const status = document.getElementById('status');
+            status.innerHTML = 'Testing padding fix...';
+            
+            try {
+                // Check if app is available
+                if (typeof window.app === 'undefined') {
+                    throw new Error('App not initialized');
+                }
+                
+                // Test 1: Check if textEngine exists
+                if (!window.app.textEngine) {
+                    throw new Error('textEngine not found');
+                }
+                
+                // Test 2: Check if grid exists
+                if (!window.app.grid) {
+                    throw new Error('grid not found');
+                }
+                
+                // Test 3: Check if PresetManager exists
+                if (!window.app.presetManager) {
+                    throw new Error('presetManager not found');
+                }
+                
+                status.innerHTML = '<div class="success">✅ All components found. Ready for manual testing.</div>';
+                
+            } catch (error) {
+                status.innerHTML = `<div class="error">❌ Test failed: ${error.message}</div>`;
+            }
+        }
+        
+        function createTestPreset() {
+            const status = document.getElementById('status');
+            try {
+                if (!window.app.presetManager) {
+                    throw new Error('PresetManager not available');
+                }
+                
+                // Set some test text
+                if (window.app.uiManager && window.app.uiManager.elements.mainText) {
+                    window.app.uiManager.elements.mainText.value = 'TEST\nPADDING\nFIX';
+                }
+                
+                // Set test padding
+                if (window.app.uiManager && window.app.uiManager.elements.paddingHorizontal) {
+                    window.app.uiManager.elements.paddingHorizontal.value = '50';
+                }
+                if (window.app.uiManager && window.app.uiManager.elements.paddingVertical) {
+                    window.app.uiManager.elements.paddingVertical.value = '30';
+                }
+                
+                // Update the components
+                if (window.app.onTextChanged) {
+                    window.app.onTextChanged();
+                }
+                
+                // Save preset
+                window.app.presetManager.downloadPreset('PaddingFixTest');
+                
+                status.innerHTML = '<div class="success">✅ Test preset created and downloaded</div>';
+                
+            } catch (error) {
+                status.innerHTML = `<div class="error">❌ Failed to create test preset: ${error.message}</div>`;
+            }
+        }
+        
+        function loadTestPreset() {
+            const status = document.getElementById('status');
+            status.innerHTML = '<div class="error">❌ Manual test: Please load the downloaded preset file using the UI</div>';
+        }
+        
+        function checkPaddingSync() {
+            const status = document.getElementById('status');
+            try {
+                if (!window.app) {
+                    throw new Error('App not available');
+                }
+                
+                const uiPaddingH = window.app.uiManager?.elements?.paddingHorizontal?.value || '0';
+                const uiPaddingV = window.app.uiManager?.elements?.paddingVertical?.value || '0';
+                
+                const textEnginePaddingTop = window.app.textEngine?.config?.paddingTop || 0;
+                const textEnginePaddingLeft = window.app.textEngine?.config?.paddingLeft || 0;
+                
+                const mainTextPaddingTop = window.app.mainTextComponent?.paddingTop || 0;
+                const mainTextPaddingLeft = window.app.mainTextComponent?.paddingLeft || 0;
+                
+                const isSynced = (
+                    parseInt(uiPaddingH) === textEnginePaddingLeft &&
+                    parseInt(uiPaddingV) === textEnginePaddingTop &&
+                    parseInt(uiPaddingH) === mainTextPaddingLeft &&
+                    parseInt(uiPaddingV) === mainTextPaddingTop
+                );
+                
+                if (isSynced) {
+                    status.innerHTML = `
+                        <div class="success">
+                            ✅ Padding is properly synced:<br>
+                            UI: ${uiPaddingH}px H, ${uiPaddingV}px V<br>
+                            TextEngine: ${textEnginePaddingLeft}px L, ${textEnginePaddingTop}px T<br>
+                            MainTextComponent: ${mainTextPaddingLeft}px L, ${mainTextPaddingTop}px T
+                        </div>
+                    `;
+                } else {
+                    status.innerHTML = `
+                        <div class="error">
+                            ❌ Padding sync issue:<br>
+                            UI: ${uiPaddingH}px H, ${uiPaddingV}px V<br>
+                            TextEngine: ${textEnginePaddingLeft}px L, ${textEnginePaddingTop}px T<br>
+                            MainTextComponent: ${mainTextPaddingLeft}px L, ${mainTextPaddingTop}px T
+                        </div>
+                    `;
+                }
+                
+            } catch (error) {
+                status.innerHTML = `<div class="error">❌ Failed to check padding sync: ${error.message}</div>`;
+            }
+        }
+    </script>
+</body>
+</html>

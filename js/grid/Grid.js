@@ -53,8 +53,8 @@ class Grid {
 
             // Get line spacing from textEngine config
             const lineSpacing = {
-                vertical: textConfig.lineSpacingVertical || 0,
-                horizontal: textConfig.lineSpacingHorizontal || 0
+                vertical: textConfig.marginVertical || 0,
+                horizontal: textConfig.marginHorizontal || 0
             };
 
             // Use GridDetector to build unified matrix

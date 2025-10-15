@@ -42,8 +42,8 @@ class TextComponent {
         
         // Line spacing for multi-line text
         this.lineSpacing = 0;
-        this.lineSpacingVertical = 0; // Space between text lines vertically
-        this.lineSpacingHorizontal = 0; // Space between text and surrounding elements horizontally
+        this.marginVertical = 0; // Space between text lines vertically
+        this.marginHorizontal = 0; // Space between text and surrounding elements horizontally
         
         // Container bounds (will be set by subclasses)
         this.containerX = 0;
@@ -473,8 +473,8 @@ class TextComponent {
      * @param {Object} spacing - Spacing object with vertical and horizontal properties
      */
     setLineSpacing(spacing) {
-        if (spacing.vertical !== undefined) this.lineSpacingVertical = spacing.vertical;
-        if (spacing.horizontal !== undefined) this.lineSpacingHorizontal = spacing.horizontal;
+        if (spacing.vertical !== undefined) this.marginVertical = spacing.vertical;
+        if (spacing.horizontal !== undefined) this.marginHorizontal = spacing.horizontal;
         this.invalidateCache();
     }
     

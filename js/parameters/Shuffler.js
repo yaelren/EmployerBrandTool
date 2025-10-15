@@ -496,24 +496,24 @@ class Shuffler {
                     this.app.textEngine.updateConfig({ lineSpacing: value });
                     break;
 
-                case 'lineSpacingVertical':
-                    if (elements.lineSpacingVertical) {
-                        elements.lineSpacingVertical.value = value;
-                        if (elements.lineSpacingVerticalValue) {
-                            elements.lineSpacingVerticalValue.textContent = value + 'px';
+                case 'marginVertical':
+                    if (elements.marginVertical) {
+                        elements.marginVertical.value = value;
+                        if (elements.marginVerticalValue) {
+                            elements.marginVerticalValue.textContent = value + 'px';
                         }
                     }
-                    this.app.textEngine.updateConfig({ lineSpacingVertical: value });
+                    this.app.textEngine.updateConfig({ marginVertical: value });
                     break;
 
-                case 'lineSpacingHorizontal':
-                    if (elements.lineSpacingHorizontal) {
-                        elements.lineSpacingHorizontal.value = value;
-                        if (elements.lineSpacingHorizontalValue) {
-                            elements.lineSpacingHorizontalValue.textContent = value + 'px';
+                case 'marginHorizontal':
+                    if (elements.marginHorizontal) {
+                        elements.marginHorizontal.value = value;
+                        if (elements.marginHorizontalValue) {
+                            elements.marginHorizontalValue.textContent = value + 'px';
                         }
                     }
-                    this.app.textEngine.updateConfig({ lineSpacingHorizontal: value });
+                    this.app.textEngine.updateConfig({ marginHorizontal: value });
                     break;
 
                 case 'textAlignment':

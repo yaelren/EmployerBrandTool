@@ -95,8 +95,8 @@ class PresetManager {
             fontSize: mainText.fontSize,
             color: mainText.color,
             lineSpacing: mainText.lineSpacing,
-            lineSpacingVertical: parseInt(ui.lineSpacingVertical?.value || 0),
-            lineSpacingHorizontal: parseInt(ui.lineSpacingHorizontal?.value || 0),
+            marginVertical: parseInt(ui.marginVertical?.value || 0),
+            marginHorizontal: parseInt(ui.marginHorizontal?.value || 0),
             fontWeight: mainText.fontWeight,
             fontStyle: mainText.fontStyle,
             underline: mainText.underline,
@@ -405,11 +405,11 @@ class PresetManager {
         
         // Set line spacing
         mainText.lineSpacing = mainTextData.lineSpacing;
-        if (ui.lineSpacingVertical) {
-            ui.lineSpacingVertical.value = mainTextData.lineSpacingVertical;
+        if (ui.marginVertical) {
+            ui.marginVertical.value = mainTextData.marginVertical;
         }
-        if (ui.lineSpacingHorizontal) {
-            ui.lineSpacingHorizontal.value = mainTextData.lineSpacingHorizontal;
+        if (ui.marginHorizontal) {
+            ui.marginHorizontal.value = mainTextData.marginHorizontal;
         }
         
         // Set alignment
