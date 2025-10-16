@@ -205,32 +205,44 @@ class PresetManager {
             // Validate the preset structure
             this.validatePresetJSON(stateData);
 
-            // Clear existing state
+            // Clear existing state completely
             this.clearCurrentState();
 
-            // Restore in order
-            this.restoreCanvasState(stateData.canvas);
+            // Restore in order (all synchronous, no delays)
+            this.restoreCanvasState(stateData.canvas);       // Canvas size FIRST
             this.restoreBackgroundState(stateData.background);
-            this.restoreMainTextState(stateData.mainText);
-            this.restoreGridState(stateData.grid);
+            this.restoreMainTextState(stateData.mainText);   // Now syncs textEngine properly
+            this.restoreGridState(stateData.grid);           // Grid deserialize
             this.restoreLayerState(stateData.layers);
 
-            // Update UI elements to match the restored state
+            // Update UI elements to match restored state (no renders triggered)
             this.updateUIElements(stateData);
-            
-            // Single final render with a small delay to ensure all updates are complete
-            setTimeout(() => {
-                this.app.render();
-                
-                // Also trigger canvas update and text refresh to ensure everything renders
-                if (this.app.canvasManager && this.app.canvasManager.updateCanvas) {
-                    this.app.canvasManager.updateCanvas();
+
+            // Apply saved alignments (like onTextChanged does)
+            if (this.app.applySavedAlignments) {
+                this.app.applySavedAlignments();
+            }
+
+            // Update line alignment controls
+            if (this.app.uiManager && this.app.uiManager.updateLineAlignmentControls) {
+                this.app.uiManager.updateLineAlignmentControls();
+            }
+
+            // Rebuild grid from scratch (uses fresh textEngine data)
+            if (this.app.grid) {
+                this.app.grid.buildFromExisting();
+
+                // Sync spots array with grid
+                this.app.spots = this.app.grid.getContentCells();
+                if (this.app.uiManager && this.app.uiManager.updateSpotsUI) {
+                    this.app.uiManager.updateSpotsUI();
                 }
-                
-                if (this.app.onTextChanged) {
-                    this.app.onTextChanged();
-                }
-            }, 50);
+            }
+
+            // Single synchronous render (no setTimeout, no redundant calls)
+            this.app.render();
+
+            console.log('✅ Preset loaded successfully');
 
         } catch (error) {
             console.error('❌ Failed to deserialize state:', error);
@@ -276,26 +288,27 @@ class PresetManager {
         // Clear text
         this.app.uiManager.elements.mainText.value = '';
         this.app.mainTextComponent.text = '';
-        
-        // Clear spots
+
+        // Clear spots and waiting spots completely
         this.app.spots = [];
         this.app.savedSpotData = [];
-        this.app.waitingSpots = [];
-        
+        this.app.waitingSpots = []; // Ensure waiting spots are cleared
+
         // Clear saved alignments
         this.app.savedLineAlignments = {};
-        
+
         // Clear background
         this.app.canvasManager.clearBackgroundMedia();
-        
-        // Clear grid
+
+        // Clear grid completely
         if (this.app.grid) {
             // Clear the matrix and reset grid state
             this.app.grid.matrix = [];
             this.app.grid.rows = 0;
             this.app.grid.cols = 0;
             this.app.grid.isReady = false;
-            
+            this.app.grid.waitingContent = []; // Clear waiting content in grid
+
             // Clear all cells from layers
             this.app.grid.getAllCells().forEach(cell => {
                 if (cell && cell.layerId) {
@@ -306,7 +319,7 @@ class PresetManager {
                 }
             });
         }
-        
+
         // Clear layers
         this.app.layerManager.clearAllLayers();
     }
@@ -317,8 +330,29 @@ class PresetManager {
      * @private
      */
     restoreCanvasState(canvasData) {
-        // Canvas dimensions are handled by Chatooly CDN
-        // Just update padding
+        // Set canvas size via Chatooly CDN FIRST
+        if (window.Chatooly && window.Chatooly.canvasResizer) {
+            window.Chatooly.canvasResizer.setExportSize(
+                canvasData.width,
+                canvasData.height
+            );
+            window.Chatooly.canvasResizer.applyExportSize();
+        }
+
+        // Update textEngine canvas dimensions
+        this.app.textEngine.updateConfig({
+            canvasWidth: canvasData.width,
+            canvasHeight: canvasData.height
+        });
+
+        // Update mainTextComponent container
+        this.app.mainTextComponent.setContainer(
+            0, 0,
+            canvasData.width,
+            canvasData.height
+        );
+
+        // Update padding
         if (this.app.uiManager.elements.paddingHorizontal) {
             this.app.uiManager.elements.paddingHorizontal.value = canvasData.padding.left;
         }
@@ -370,62 +404,84 @@ class PresetManager {
     restoreMainTextState(mainTextData) {
         const ui = this.app.uiManager.elements;
         const mainText = this.app.mainTextComponent;
-        
-        // Set text content
+
+        // 1. Update UI elements (for visibility)
         ui.mainText.value = mainTextData.content;
-        mainText.text = mainTextData.content;
-        
-        // Set font properties
         if (ui.fontFamily) {
             ui.fontFamily.value = mainTextData.fontFamily;
-            mainText.fontFamily = mainTextData.fontFamily;
         }
-        
         if (ui.fontSize) {
             ui.fontSize.value = mainTextData.fontSize;
-            mainText.fontSize = mainTextData.fontSize;
         }
-        
-        // Set colors
         if (ui.textColor) {
             ui.textColor.value = mainTextData.color;
-            mainText.color = mainTextData.color;
         }
-        
         if (ui.mainTextHighlightColor) {
             ui.mainTextHighlightColor.value = mainTextData.highlightColor;
-            mainText.highlightColor = mainTextData.highlightColor;
         }
-        
-        // Set styling
-        mainText.fontWeight = mainTextData.fontWeight;
-        mainText.fontStyle = mainTextData.fontStyle;
-        mainText.underline = mainTextData.underline;
-        mainText.highlight = mainTextData.highlight;
-        
-        // Set line spacing
-        mainText.lineSpacing = mainTextData.lineSpacing;
         if (ui.marginVertical) {
             ui.marginVertical.value = mainTextData.marginVertical;
         }
         if (ui.marginHorizontal) {
             ui.marginHorizontal.value = mainTextData.marginHorizontal;
         }
-        
-        // Set alignment
+
+        // 2. Update mainTextComponent (visual properties)
+        mainText.text = mainTextData.content;
+        mainText.fontFamily = mainTextData.fontFamily;
+        mainText.fontSize = mainTextData.fontSize;
+        mainText.color = mainTextData.color;
+        mainText.fontWeight = mainTextData.fontWeight;
+        mainText.fontStyle = mainTextData.fontStyle;
+        mainText.underline = mainTextData.underline;
+        mainText.highlight = mainTextData.highlight;
+        mainText.highlightColor = mainTextData.highlightColor;
+        mainText.lineSpacing = mainTextData.lineSpacing;
         mainText.alignH = mainTextData.alignH;
         mainText.alignV = mainTextData.alignV;
-        
-        // Restore line alignments
+
+        // 3. Sync to textEngine (CRITICAL - SAME AS onTextChanged)
+        // This is the missing piece that causes margins/alignment bugs!
+        this.app.textEngine.updateConfig({
+            fontSize: mainTextData.fontSize,
+            fontFamily: mainTextData.fontFamily,
+            color: mainTextData.color,
+            lineSpacing: mainTextData.lineSpacing,
+            marginVertical: mainTextData.marginVertical,
+            marginHorizontal: mainTextData.marginHorizontal,
+            defaultAlignment: mainTextData.alignH,
+            textPositionHorizontal: mainTextData.alignH,
+            textPositionVertical: mainTextData.alignV,
+            textStyles: {
+                bold: mainTextData.fontWeight === 'bold',
+                italic: mainTextData.fontStyle === 'italic',
+                underline: mainTextData.underline,
+                highlight: mainTextData.highlight,
+                highlightColor: mainTextData.highlightColor
+            }
+        });
+
+        // 4. Set text and recalculate bounds (CRITICAL)
+        // Without this, textEngine.textBounds stays empty and grid can't render
+        this.app.textEngine.setText(mainTextData.content);
+
+        // 5. Restore line alignments
         this.app.savedLineAlignments = { ...mainTextData.lineAlignments };
-        
-        // Set background fill preference
+
+        // 6. Apply line alignments to textEngine
+        if (mainTextData.lineAlignments) {
+            Object.entries(mainTextData.lineAlignments).forEach(([index, alignment]) => {
+                this.app.textEngine.setLineAlignment(parseInt(index), alignment);
+            });
+        }
+
+        // 7. Set background fill preference
         this.app.mainTextFillWithBackgroundColor = mainTextData.fillWithBackgroundColor;
         if (ui.mainTextFillWithBackgroundColor) {
             ui.mainTextFillWithBackgroundColor.checked = mainTextData.fillWithBackgroundColor;
         }
-        
-        // Update UI button states
+
+        // 8. Update UI button states
         this.updateTextStyleButtons();
     }
 
