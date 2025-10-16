@@ -26,8 +26,16 @@ export class WixPresetAPI {
             console.log('🔄 Initializing Wix REST API...');
             this.clientId = clientId;
 
-            // Generate visitor access token
-            await this.generateAccessToken();
+            // Try loading existing tokens first
+            const hasExistingTokens = this.loadTokens();
+
+            if (hasExistingTokens) {
+                // Check if token is still valid
+                await this.ensureValidToken();
+            } else {
+                // Generate new visitor access token
+                await this.generateAccessToken();
+            }
 
             console.log('✅ Wix REST API initialized successfully');
             this.initialized = true;
@@ -40,22 +48,157 @@ export class WixPresetAPI {
 
     /**
      * Generate visitor access token using OAuth
+     * Uses Wix OAuth2 anonymous grant type for visitor access
+     * Tokens expire after 4 hours (14,400 seconds)
      */
     async generateAccessToken() {
         try {
-            // For visitor tokens (anonymous access), we use a simple approach
-            // In production, you'd implement proper OAuth flow
-            // For now, we'll use a public API key approach or visitor session
+            console.log('🎫 Generating visitor access token...');
+            console.log('   → Client ID:', this.clientId);
 
-            console.log('🎫 Using visitor session for anonymous access');
+            // Wix OAuth2 endpoint for token generation
+            const tokenEndpoint = 'https://www.wixapis.com/oauth2/token';
 
-            // Note: Wix Headless typically requires proper OAuth setup
-            // This is a simplified version - you may need to implement full OAuth flow
-            this.accessToken = 'visitor-token'; // Placeholder - will be replaced with actual implementation
+            // Request visitor (anonymous) token
+            const response = await fetch(tokenEndpoint, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    clientId: this.clientId,
+                    grantType: 'anonymous'
+                })
+            });
+
+            if (!response.ok) {
+                const errorText = await response.text();
+                throw new Error(`Token generation failed: ${response.status} ${errorText}`);
+            }
+
+            const data = await response.json();
+
+            // Store tokens
+            this.accessToken = data.access_token;
+            this.refreshToken = data.refresh_token;
+            this.tokenExpiresAt = Date.now() + (data.expires_in * 1000);
+
+            console.log('✅ Visitor token generated successfully');
+            console.log('   → Token type:', data.token_type);
+            console.log('   → Expires in:', data.expires_in, 'seconds (4 hours)');
+            console.log('   → Token expiry:', new Date(this.tokenExpiresAt).toLocaleString());
+
+            // Store tokens in localStorage for persistence
+            this.saveTokens();
 
         } catch (error) {
             console.error('❌ Failed to generate access token:', error);
             throw error;
+        }
+    }
+
+    /**
+     * Refresh access token using refresh token
+     */
+    async refreshAccessToken() {
+        try {
+            console.log('🔄 Refreshing access token...');
+
+            if (!this.refreshToken) {
+                throw new Error('No refresh token available');
+            }
+
+            const tokenEndpoint = 'https://www.wixapis.com/oauth2/token';
+
+            const response = await fetch(tokenEndpoint, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    clientId: this.clientId,
+                    grantType: 'refresh_token',
+                    refreshToken: this.refreshToken
+                })
+            });
+
+            if (!response.ok) {
+                const errorText = await response.text();
+                throw new Error(`Token refresh failed: ${response.status} ${errorText}`);
+            }
+
+            const data = await response.json();
+
+            // Update tokens
+            this.accessToken = data.access_token;
+            this.refreshToken = data.refresh_token || this.refreshToken;
+            this.tokenExpiresAt = Date.now() + (data.expires_in * 1000);
+
+            console.log('✅ Token refreshed successfully');
+            console.log('   → New expiry:', new Date(this.tokenExpiresAt).toLocaleString());
+
+            // Save updated tokens
+            this.saveTokens();
+
+        } catch (error) {
+            console.error('❌ Failed to refresh token:', error);
+            // If refresh fails, generate new token
+            await this.generateAccessToken();
+        }
+    }
+
+    /**
+     * Check if token is expired and refresh if needed
+     */
+    async ensureValidToken() {
+        const now = Date.now();
+        const buffer = 5 * 60 * 1000; // 5 minutes buffer
+
+        if (!this.accessToken || now >= (this.tokenExpiresAt - buffer)) {
+            console.log('⚠️ Token expired or expiring soon, refreshing...');
+            if (this.refreshToken) {
+                await this.refreshAccessToken();
+            } else {
+                await this.generateAccessToken();
+            }
+        }
+    }
+
+    /**
+     * Save tokens to localStorage for persistence
+     */
+    saveTokens() {
+        try {
+            localStorage.setItem('wix_access_token', this.accessToken);
+            localStorage.setItem('wix_refresh_token', this.refreshToken);
+            localStorage.setItem('wix_token_expires_at', this.tokenExpiresAt.toString());
+            console.log('💾 Tokens saved to localStorage');
+        } catch (error) {
+            console.warn('⚠️ Failed to save tokens to localStorage:', error);
+        }
+    }
+
+    /**
+     * Load tokens from localStorage
+     */
+    loadTokens() {
+        try {
+            this.accessToken = localStorage.getItem('wix_access_token');
+            this.refreshToken = localStorage.getItem('wix_refresh_token');
+            const expiresAt = localStorage.getItem('wix_token_expires_at');
+            if (expiresAt) {
+                this.tokenExpiresAt = parseInt(expiresAt);
+            }
+
+            if (this.accessToken) {
+                console.log('📦 Loaded existing tokens from localStorage');
+                console.log('   → Expiry:', new Date(this.tokenExpiresAt).toLocaleString());
+                return true;
+            }
+            return false;
+        } catch (error) {
+            console.warn('⚠️ Failed to load tokens from localStorage:', error);
+            return false;
         }
     }
 
@@ -99,44 +242,133 @@ export class WixPresetAPI {
     }
 
     /**
-     * Upload image to Wix Media Manager (using data URL as fallback for now)
+     * Upload image to Wix Media Manager
+     * Falls back to data URLs if Wix upload fails
      * @param {HTMLImageElement|HTMLCanvasElement} imageElement
      * @param {string} filename - Optional custom filename
-     * @returns {Promise<string>} - Image URL (data URL for now, will be Wix CDN in production)
+     * @returns {Promise<string>} - Image URL (Wix CDN URL or data URL fallback)
      */
     async uploadImage(imageElement, filename = null) {
         this.ensureInitialized();
 
         try {
-            console.log(`📤 Processing image: ${filename}`);
+            console.log(`📤 Uploading image to Wix Media Manager: ${filename}`);
 
-            // TEMPORARY SOLUTION: Use data URLs instead of uploading to Wix
-            // This allows the system to work without full OAuth setup
-            // In production, this would upload to Wix Media Manager
+            // Ensure token is valid
+            await this.ensureValidToken();
 
-            const canvas = document.createElement('canvas');
-            const ctx = canvas.getContext('2d');
+            // Convert image to blob
+            const blob = await this.imageToBlob(imageElement);
+            console.log(`   → Blob size: ${(blob.size / 1024).toFixed(2)} KB`);
 
-            if (imageElement instanceof HTMLCanvasElement) {
-                canvas.width = imageElement.width;
-                canvas.height = imageElement.height;
-                ctx.drawImage(imageElement, 0, 0);
-            } else {
-                canvas.width = imageElement.naturalWidth || imageElement.width;
-                canvas.height = imageElement.naturalHeight || imageElement.height;
-                ctx.drawImage(imageElement, 0, 0);
-            }
+            // Generate upload URL from Wix
+            const uploadData = await this.generateMediaUploadUrl('image/png', filename);
+            console.log(`   → Upload URL generated`);
+            console.log(`   → File ID: ${uploadData.fileId}`);
 
-            const dataURL = canvas.toDataURL('image/png');
+            // Upload blob to Wix CDN
+            const cdnUrl = await this.uploadToWixCDN(uploadData.uploadUrl, blob);
+            console.log(`✅ Image uploaded to Wix CDN`);
+            console.log(`   → CDN URL: ${cdnUrl}`);
 
-            console.log(`✅ Image processed (using data URL for now)`);
-            console.warn('⚠️ Production: This would upload to Wix CDN');
-
-            return dataURL;
+            return cdnUrl;
 
         } catch (error) {
-            console.error('❌ Image processing failed:', error);
-            throw new Error(`Failed to process image: ${error.message}`);
+            console.error('❌ Wix upload failed, falling back to data URL:', error);
+
+            // Fallback to data URL
+            try {
+                const canvas = document.createElement('canvas');
+                const ctx = canvas.getContext('2d');
+
+                if (imageElement instanceof HTMLCanvasElement) {
+                    canvas.width = imageElement.width;
+                    canvas.height = imageElement.height;
+                    ctx.drawImage(imageElement, 0, 0);
+                } else {
+                    canvas.width = imageElement.naturalWidth || imageElement.width;
+                    canvas.height = imageElement.naturalHeight || imageElement.height;
+                    ctx.drawImage(imageElement, 0, 0);
+                }
+
+                const dataURL = canvas.toDataURL('image/png');
+                console.log(`⚠️ Using data URL fallback (${(dataURL.length / 1024).toFixed(2)} KB)`);
+                return dataURL;
+
+            } catch (fallbackError) {
+                console.error('❌ Fallback failed:', fallbackError);
+                throw new Error(`Failed to process image: ${fallbackError.message}`);
+            }
+        }
+    }
+
+    /**
+     * Generate upload URL from Wix Media Manager
+     * @param {string} mimeType - MIME type (e.g., 'image/png')
+     * @param {string} filename - Optional filename
+     * @returns {Promise<{uploadUrl: string, fileId: string}>}
+     */
+    async generateMediaUploadUrl(mimeType, filename = null) {
+        try {
+            const endpoint = `${this.baseURL}/site-media/v1/files/generate-upload-url`;
+
+            const response = await fetch(endpoint, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${this.accessToken}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    mimeType: mimeType,
+                    options: filename ? { filename: filename } : {}
+                })
+            });
+
+            if (!response.ok) {
+                const errorText = await response.text();
+                throw new Error(`Upload URL generation failed: ${response.status} ${errorText}`);
+            }
+
+            const data = await response.json();
+            return {
+                uploadUrl: data.uploadUrl,
+                fileId: data.fileId
+            };
+
+        } catch (error) {
+            console.error('❌ Failed to generate upload URL:', error);
+            throw error;
+        }
+    }
+
+    /**
+     * Upload blob to Wix CDN using upload URL
+     * @param {string} uploadUrl - Upload URL from generateMediaUploadUrl
+     * @param {Blob} blob - Image blob
+     * @returns {Promise<string>} - CDN URL
+     */
+    async uploadToWixCDN(uploadUrl, blob) {
+        try {
+            const response = await fetch(uploadUrl, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': blob.type || 'application/octet-stream'
+                },
+                body: blob
+            });
+
+            if (!response.ok) {
+                const errorText = await response.text();
+                throw new Error(`CDN upload failed: ${response.status} ${errorText}`);
+            }
+
+            // Extract CDN URL from upload URL (before query params)
+            const cdnUrl = uploadUrl.split('?')[0];
+            return cdnUrl;
+
+        } catch (error) {
+            console.error('❌ Failed to upload to CDN:', error);
+            throw error;
         }
     }
 
