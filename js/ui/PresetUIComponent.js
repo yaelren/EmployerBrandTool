@@ -1,12 +1,13 @@
 /**
- * PresetUIComponent.js - UI controls for preset save/load functionality
- * Handles user interactions for saving and loading presets
+ * PresetUIComponent.js - Cloud-only preset UI controls
+ * Handles user interactions for saving, loading, and managing presets in Wix cloud
  */
 
 class PresetUIComponent {
     constructor(app) {
         this.app = app;
         this.presetManager = null; // Will be set when PresetManager is initialized
+        this.currentPresetId = null; // Track currently selected preset
     }
 
     /**
@@ -27,152 +28,289 @@ class PresetUIComponent {
             console.error('PresetUIComponent: No container provided');
             return;
         }
-        
+
         container.innerHTML = `
-            <div class="preset-controls">
-                <div class="preset-section">
-                    <h3>Save Preset</h3>
-                    <p class="preset-description">Download your current design as a preset file</p>
-                    <button type="button" class="preset-save-btn chatooly-btn chatooly-btn-primary">
-                        💾 Save Preset
-                    </button>
-                </div>
-                
-                <div class="preset-section">
-                    <h3>Load Preset</h3>
-                    <p class="preset-description">Upload a preset file to restore a design</p>
-                    <div class="preset-load-controls">
-                        <input type="file" id="presetFileInput" accept=".json" class="preset-file-input" style="display: none;">
-                        <button type="button" class="preset-load-btn chatooly-btn chatooly-btn-secondary">
-                            📁 Load Preset
+            <div class="preset-controls preset-cloud-controls">
+                <!-- Save Section -->
+                <div class="preset-section preset-save-section">
+                    <h3>💾 Save New Preset</h3>
+                    <p class="preset-description">Save your current design to the cloud</p>
+                    <div class="preset-save-controls">
+                        <input
+                            type="text"
+                            id="presetNameInput"
+                            class="preset-name-input"
+                            placeholder="Enter preset name..."
+                            maxlength="50">
+                        <button type="button" class="preset-save-cloud-btn chatooly-btn chatooly-btn-primary">
+                            💾 Save to Cloud
                         </button>
                     </div>
                 </div>
-                
-                <div class="preset-info">
-                    <h4>About Presets</h4>
+
+                <!-- Load Section -->
+                <div class="preset-section preset-load-section">
+                    <h3>📥 Load Preset</h3>
+                    <p class="preset-description">Select a preset from your cloud library</p>
+                    <div class="preset-load-controls">
+                        <select id="presetDropdown" class="preset-dropdown">
+                            <option value="">-- Select Preset --</option>
+                        </select>
+                        <div class="preset-action-buttons">
+                            <button type="button" class="preset-load-cloud-btn chatooly-btn chatooly-btn-primary">
+                                📥 Load
+                            </button>
+                            <button type="button" class="preset-delete-btn chatooly-btn chatooly-btn-danger">
+                                🗑️ Delete
+                            </button>
+                            <button type="button" class="preset-refresh-btn chatooly-btn chatooly-btn-secondary">
+                                🔄 Refresh
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Info Section -->
+                <div class="preset-info preset-cloud-info">
+                    <h4>ℹ️ About Cloud Presets</h4>
                     <ul class="preset-features">
-                        <li>✅ Saves all text, styling, and animations</li>
-                        <li>✅ Includes background images and colors</li>
-                        <li>✅ Preserves all content cells and layers</li>
+                        <li>✅ Automatically saved to Wix cloud</li>
+                        <li>✅ All images uploaded to Wix CDN</li>
+                        <li>✅ Access from any device</li>
+                        <li>✅ No file downloads needed</li>
                         <li>⚠️ Videos cannot be saved (Phase I limitation)</li>
-                        <li>⚠️ Custom fonts revert to defaults</li>
                     </ul>
                 </div>
             </div>
         `;
 
         this.setupEventListeners();
+
+        // Populate dropdown on render
+        this.populatePresetDropdown();
     }
 
     /**
      * Setup event listeners for preset controls
      */
     setupEventListeners() {
-        // Save preset button
-        const saveBtn = document.querySelector('.preset-save-btn');
+        // Save to cloud button
+        const saveBtn = document.querySelector('.preset-save-cloud-btn');
         if (saveBtn) {
-            saveBtn.addEventListener('click', () => this.handleSavePreset());
+            saveBtn.addEventListener('click', () => this.handleSaveToCloud());
         }
 
-        // Load preset button
-        const loadBtn = document.querySelector('.preset-load-btn');
+        // Enter key on name input = save
+        const nameInput = document.getElementById('presetNameInput');
+        if (nameInput) {
+            nameInput.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') {
+                    this.handleSaveToCloud();
+                }
+            });
+        }
+
+        // Load from cloud button
+        const loadBtn = document.querySelector('.preset-load-cloud-btn');
         if (loadBtn) {
-            loadBtn.addEventListener('click', () => this.handleLoadPreset());
+            loadBtn.addEventListener('click', () => this.handleLoadFromCloud());
         }
 
-        // File input change
-        const fileInput = document.getElementById('presetFileInput');
-        if (fileInput) {
-            fileInput.addEventListener('change', (e) => this.handleFileSelect(e));
+        // Delete preset button
+        const deleteBtn = document.querySelector('.preset-delete-btn');
+        if (deleteBtn) {
+            deleteBtn.addEventListener('click', () => this.handleDeletePreset());
+        }
+
+        // Refresh dropdown button
+        const refreshBtn = document.querySelector('.preset-refresh-btn');
+        if (refreshBtn) {
+            refreshBtn.addEventListener('click', () => this.populatePresetDropdown());
+        }
+
+        // Dropdown selection change
+        const dropdown = document.getElementById('presetDropdown');
+        if (dropdown) {
+            dropdown.addEventListener('change', (e) => {
+                this.currentPresetId = e.target.value;
+            });
         }
     }
 
     /**
-     * Handle save preset button click
+     * Populate preset dropdown from Wix cloud
      */
-    handleSavePreset() {
+    async populatePresetDropdown() {
+        if (!this.presetManager) {
+            console.error('PresetManager not initialized');
+            return;
+        }
+
+        const dropdown = document.getElementById('presetDropdown');
+        if (!dropdown) return;
+
+        try {
+            console.log('🔄 Fetching presets from cloud...');
+
+            // Fetch presets from Wix
+            const presets = await this.presetManager.listCloudPresets();
+
+            // Clear dropdown
+            dropdown.innerHTML = '<option value="">-- Select Preset --</option>';
+
+            // Add presets to dropdown
+            if (presets.length === 0) {
+                const option = document.createElement('option');
+                option.value = '';
+                option.textContent = '(No presets saved yet)';
+                option.disabled = true;
+                dropdown.appendChild(option);
+                console.log('ℹ️ No presets found in cloud');
+            } else {
+                presets.forEach(preset => {
+                    const option = document.createElement('option');
+                    option.value = preset._id;
+                    option.textContent = preset.name || 'Unnamed Preset';
+                    dropdown.appendChild(option);
+                });
+                console.log(`✅ Loaded ${presets.length} presets into dropdown`);
+            }
+
+        } catch (error) {
+            console.error('❌ Failed to populate dropdown:', error);
+            dropdown.innerHTML = '<option value="">-- Error loading presets --</option>';
+            this.showError('Failed to load presets from cloud');
+        }
+    }
+
+    /**
+     * Handle save to cloud button click
+     */
+    async handleSaveToCloud() {
         if (!this.presetManager) {
             this.showError('Preset system not initialized');
             return;
         }
 
-        // Check for background video and show warning
+        const nameInput = document.getElementById('presetNameInput');
+        const presetName = nameInput?.value.trim();
+
+        if (!presetName) {
+            this.showError('Please enter a preset name');
+            nameInput?.focus();
+            return;
+        }
+
+        // Check for background video warning
         if (this.hasBackgroundVideo()) {
             const proceed = confirm(
                 '⚠️ Background Video Detected\n\n' +
-                'Videos cannot be saved in presets (Phase I limitation).\n' +
+                'Videos cannot be saved in presets.\n' +
                 'The preset will be saved without the video.\n\n' +
                 'Continue?'
             );
-            if (!proceed) {
-                return;
-            }
-        }
-
-        // Get preset name from user
-        const presetName = prompt('Enter a name for your preset:', 'My Design');
-        
-        if (!presetName || presetName.trim() === '') {
-            return; // User cancelled or entered empty name
+            if (!proceed) return;
         }
 
         try {
-            this.showLoading('Saving preset...');
-            this.presetManager.downloadPreset(presetName.trim());
-            this.showSuccess(`Preset "${presetName}" saved successfully!`);
+            this.showLoading('Saving to cloud...');
+
+            // Save to cloud (uploads assets automatically)
+            await this.presetManager.saveToCloud(presetName);
+
+            // Clear input
+            nameInput.value = '';
+
+            // Refresh dropdown
+            await this.populatePresetDropdown();
+
+            this.showSuccess(`✅ Preset "${presetName}" saved to cloud!`);
+
         } catch (error) {
-            console.error('Save preset error:', error);
-            this.showError('Failed to save preset: ' + error.message);
+            console.error('❌ Save to cloud failed:', error);
+            this.showError(`Failed to save preset: ${error.message}`);
         } finally {
             this.hideLoading();
         }
     }
 
     /**
-     * Handle load preset button click
+     * Handle load from cloud button click
      */
-    handleLoadPreset() {
-        const fileInput = document.getElementById('presetFileInput');
-        if (fileInput) {
-            fileInput.click();
-        }
-    }
-
-    /**
-     * Handle file selection
-     * @param {Event} event - File input change event
-     */
-    async handleFileSelect(event) {
-        const file = event.target.files[0];
-        if (!file) {
+    async handleLoadFromCloud() {
+        if (!this.presetManager) {
+            this.showError('Preset system not initialized');
             return;
         }
 
-        // Validate file type
-        if (!file.name.toLowerCase().endsWith('.json')) {
-            this.showError('Please select a valid JSON preset file');
-            return;
-        }
-
-        // Validate file size (50MB limit)
-        const maxSize = 50 * 1024 * 1024; // 50MB
-        if (file.size > maxSize) {
-            this.showError('File too large. Maximum size is 50MB');
+        if (!this.currentPresetId) {
+            this.showError('Please select a preset to load');
             return;
         }
 
         try {
-            this.showLoading('Loading preset...');
-            await this.presetManager.loadPresetFromFile(file);
-            this.showSuccess(`Preset "${file.name}" loaded successfully!`);
+            this.showLoading('Loading from cloud...');
+
+            // Load preset from Wix
+            const preset = await this.presetManager.loadFromCloud(this.currentPresetId);
+
+            this.showSuccess(`✅ Preset "${preset.name}" loaded successfully!`);
+
         } catch (error) {
-            console.error('Load preset error:', error);
-            this.showError('Failed to load preset: ' + error.message);
+            console.error('❌ Load from cloud failed:', error);
+            this.showError(`Failed to load preset: ${error.message}`);
         } finally {
             this.hideLoading();
-            // Clear the file input
-            event.target.value = '';
+        }
+    }
+
+    /**
+     * Handle delete preset button click
+     */
+    async handleDeletePreset() {
+        if (!this.presetManager) {
+            this.showError('Preset system not initialized');
+            return;
+        }
+
+        if (!this.currentPresetId) {
+            this.showError('Please select a preset to delete');
+            return;
+        }
+
+        // Get preset name for confirmation
+        const dropdown = document.getElementById('presetDropdown');
+        const selectedOption = dropdown?.options[dropdown.selectedIndex];
+        const presetName = selectedOption?.textContent || 'this preset';
+
+        // Confirm deletion
+        const confirmed = confirm(
+            `🗑️ Delete Preset?\n\n` +
+            `Are you sure you want to delete "${presetName}"?\n\n` +
+            `This action cannot be undone.`
+        );
+
+        if (!confirmed) return;
+
+        try {
+            this.showLoading('Deleting preset...');
+
+            // Delete from Wix
+            await this.presetManager.deleteFromCloud(this.currentPresetId);
+
+            // Clear selection
+            this.currentPresetId = null;
+
+            // Refresh dropdown
+            await this.populatePresetDropdown();
+
+            this.showSuccess(`✅ Preset "${presetName}" deleted from cloud`);
+
+        } catch (error) {
+            console.error('❌ Delete from cloud failed:', error);
+            this.showError(`Failed to delete preset: ${error.message}`);
+        } finally {
+            this.hideLoading();
         }
     }
 
@@ -189,7 +327,6 @@ class PresetUIComponent {
      * @param {string} message - Loading message
      */
     showLoading(message) {
-        // Create or update loading indicator
         let loadingEl = document.getElementById('presetLoading');
         if (!loadingEl) {
             loadingEl = document.createElement('div');
@@ -273,63 +410,5 @@ class PresetUIComponent {
 
         // Auto-scroll to message
         messageEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    }
-
-    /**
-     * Update preset info based on current state
-     */
-    updatePresetInfo() {
-        const infoEl = document.querySelector('.preset-info');
-        if (!infoEl) return;
-
-        const features = infoEl.querySelector('.preset-features');
-        if (!features) return;
-
-        // Update features based on current state
-        const hasVideo = this.hasBackgroundVideo();
-        const videoItem = features.querySelector('li:nth-child(4)');
-        if (videoItem) {
-            videoItem.innerHTML = hasVideo ? 
-                '⚠️ Background video detected (will be skipped)' : 
-                '✅ No background video';
-        }
-
-        // Check for custom fonts
-        const hasCustomFont = this.hasCustomFont();
-        const fontItem = features.querySelector('li:nth-child(5)');
-        if (fontItem) {
-            fontItem.innerHTML = hasCustomFont ? 
-                '⚠️ Custom font detected (will revert to default)' : 
-                '✅ Using standard fonts';
-        }
-    }
-
-    /**
-     * Check if current design uses custom fonts
-     * @returns {boolean} True if custom font is detected
-     */
-    hasCustomFont() {
-        const fontFamily = this.app.mainTextComponent.fontFamily;
-        // Check if font family contains custom font indicators
-        return fontFamily && (
-            fontFamily.includes('Custom') || 
-            fontFamily.includes('Uploaded') ||
-            !fontFamily.includes('Wix') && !fontFamily.includes('Arial') && !fontFamily.includes('sans-serif')
-        );
-    }
-
-    /**
-     * Get current preset summary for display
-     * @returns {Object} Summary of current state
-     */
-    getCurrentStateSummary() {
-        return {
-            hasText: this.app.mainTextComponent.text.trim().length > 0,
-            hasBackgroundImage: this.app.canvasManager.backgroundManager.backgroundImage !== null,
-            hasBackgroundVideo: this.hasBackgroundVideo(),
-            hasCustomFont: this.hasCustomFont(),
-            cellCount: this.app.grid ? this.app.grid.getAllCells().length : 0,
-            animatedCells: this.app.grid ? this.app.grid.getAnimatedCells().length : 0
-        };
     }
 }

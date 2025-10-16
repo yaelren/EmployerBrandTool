@@ -37,5 +37,8 @@
     "/tests/playwright-report/"
   ],
   "dependencies": {
+    "@wix/data": "^1.0.306",
+    "@wix/media": "^1.0.195",
+    "@wix/sdk": "^1.17.1"
   }
 }

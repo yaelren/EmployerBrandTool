@@ -32,6 +32,9 @@ yarn-error.log*
 .env
 .env.local
 
+# Wix Configuration (contains sensitive Client ID)
+js/config/wix-config.js
+
 # Template development files
 template-dev/
 
@@ -40,3 +43,7 @@ template-dev/
 test-results/
 tests/test-results/
 playwright-report/
+
+# Vercel
+.vercel
+.vercel/

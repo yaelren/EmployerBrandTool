@@ -6,6 +6,16 @@
 class PresetManager {
     constructor(app) {
         this.app = app;
+        this.wixAPI = null; // Will be set by app.js after WixAPI initialization
+    }
+
+    /**
+     * Set Wix API instance for cloud operations
+     * @param {WixPresetAPI} wixAPI - Initialized WixPresetAPI instance
+     */
+    setWixAPI(wixAPI) {
+        this.wixAPI = wixAPI;
+        console.log('✅ WixAPI connected to PresetManager');
     }
 
     /**
@@ -54,24 +64,28 @@ class PresetManager {
     }
 
     /**
-     * Serialize background state
+     * Serialize background state (NO base64 - URLs only)
      * @returns {Object} Background state
      * @private
      */
     serializeBackgroundState() {
         const bg = this.app.canvasManager.backgroundManager;
-        
-        // If we have an image but no data URL, convert it
-        let imageDataURL = bg.backgroundImageDataURL;
-        if (bg.backgroundImage && !imageDataURL) {
-            imageDataURL = this.imageToDataURL(bg.backgroundImage);
+
+        const hasImage = !!bg.backgroundImage;
+        console.log('📸 SAVE: Serializing background state...');
+        console.log('   → Has image element:', hasImage);
+        if (hasImage) {
+            console.log('   → Image element type:', bg.backgroundImage.constructor.name);
+            console.log('   → Image dimensions:', bg.backgroundImage.width, 'x', bg.backgroundImage.height);
+            console.log('   → Image will be uploaded to cloud');
+        } else {
+            console.log('   → No image to serialize');
         }
-        
+
         return {
             color: bg.backgroundColor,
-            imageDataURL: imageDataURL,
-            // Skip video for Phase I - videos cannot be saved in presets
-            videoDataURL: null,
+            imageURL: bg.backgroundImageURL || null, // Will be set during cloud upload
+            imageElement: bg.backgroundImage, // Temp reference for upload
             fitMode: bg.backgroundFitMode,
             videoSettings: {
                 autoplay: this.app.uiManager.elements.backgroundVideoAutoplay?.checked || false,
@@ -138,9 +152,9 @@ class PresetManager {
     }
 
     /**
-     * Process cell content for media serialization
+     * Process cell content for cloud serialization (NO base64 - URLs only)
      * @param {Object} cellData - Cell data from existing serialize() method
-     * @returns {Object} Processed cell data with media converted to base64
+     * @returns {Object} Processed cell data with temp image references for upload
      * @private
      */
     processCellContentForSerialization(cellData) {
@@ -149,13 +163,17 @@ class PresetManager {
         const processedData = { ...cellData };
         const content = { ...cellData.content };
 
-        // Handle media content - convert images to base64
+        // Handle media content - store temp reference for cloud upload
         if (cellData.contentType === 'media' && cellData.content.media) {
             if (cellData.content.media instanceof HTMLImageElement) {
-                content.imageDataURL = this.imageToDataURL(cellData.content.media);
-                content.media = null; // Remove the actual image element
+                console.log(`📸 SAVE: Processing cell ${cellData.id} with image`);
+                console.log('   → Image dimensions:', cellData.content.media.width, 'x', cellData.content.media.height);
+                content.imageElement = cellData.content.media; // Temp ref for upload
+                content.imageURL = null; // Will be set during cloud upload
+                content.media = null; // Remove actual element
             } else if (cellData.content.media instanceof HTMLVideoElement) {
-                // Skip videos for Phase I
+                console.log(`⚠️ SAVE: Cell ${cellData.id} has video (will be skipped)`);
+                // Skip videos
                 content.media = null;
                 content.videoSkipped = true;
             }
@@ -202,6 +220,13 @@ class PresetManager {
      */
     deserializeState(stateData) {
         try {
+            console.log('📦 LOAD: Deserializing preset...');
+            console.log('   → Preset name:', stateData.presetName);
+            console.log('   → Has background image:', !!stateData.background?.imageURL);
+            if (stateData.background?.imageURL) {
+                console.log('   → Background image URL length:', stateData.background.imageURL.length, 'characters');
+            }
+
             // Validate the preset structure
             this.validatePresetJSON(stateData);
 
@@ -209,10 +234,19 @@ class PresetManager {
             this.clearCurrentState();
 
             // Restore in order (all synchronous, no delays)
+            console.log('🔄 LOAD: Restoring canvas state...');
             this.restoreCanvasState(stateData.canvas);       // Canvas size FIRST
+
+            console.log('🔄 LOAD: Restoring background state...');
             this.restoreBackgroundState(stateData.background);
+
+            console.log('🔄 LOAD: Restoring main text state...');
             this.restoreMainTextState(stateData.mainText);   // Now syncs textEngine properly
+
+            console.log('🔄 LOAD: Restoring grid state...');
             this.restoreGridState(stateData.grid);           // Grid deserialize
+
+            console.log('🔄 LOAD: Restoring layer state...');
             this.restoreLayerState(stateData.layers);
 
             // Update UI elements to match restored state (no renders triggered)
@@ -362,32 +396,43 @@ class PresetManager {
     }
 
     /**
-     * Restore background state
+     * Restore background state from Wix URL
      * @param {Object} backgroundData - Background state data
      * @private
      */
     restoreBackgroundState(backgroundData) {
         const bg = this.app.canvasManager.backgroundManager;
-        
+
         // Set background color
         bg.setBackgroundColor(backgroundData.color);
-        
-        // Restore background image if present
-        if (backgroundData.imageDataURL) {
+
+        // Restore background image from Wix CDN URL
+        if (backgroundData.imageURL) {
+            console.log('🔄 LOAD: Restoring background image...');
+            console.log('   → URL type:', backgroundData.imageURL.substring(0, 30));
+            console.log('   → URL length:', backgroundData.imageURL.length, 'characters');
+
             const img = new Image();
             img.onload = () => {
                 bg.setBackgroundImage(img);
+                console.log('   ✅ Background image loaded and set!');
+                console.log('   → Image size:', img.width, 'x', img.height);
+                console.log('   → Now visible on canvas');
             };
-            img.onerror = () => {
-                console.error('PresetManager: Failed to load background image');
+            img.onerror = (e) => {
+                console.error('   ❌ LOAD: Failed to load background image!');
+                console.error('   → Error type:', e.type);
+                console.error('   → URL preview:', backgroundData.imageURL.substring(0, 100) + '...');
             };
-            img.src = backgroundData.imageDataURL;
+            img.src = backgroundData.imageURL;
+        } else {
+            console.log('ℹ️ LOAD: No background image URL to restore');
         }
-        
+
         // Set fit mode
         bg.setBackgroundFitMode(backgroundData.fitMode);
-        
-        // Restore video settings (UI only, no video data)
+
+        // Restore video settings (UI only)
         if (this.app.uiManager.elements.backgroundVideoAutoplay) {
             this.app.uiManager.elements.backgroundVideoAutoplay.checked = backgroundData.videoSettings.autoplay;
         }
@@ -539,43 +584,49 @@ class PresetManager {
     }
 
     /**
-     * Restore media content from base64 data URLs
+     * Restore media content from Wix CDN URLs
      * @private
      */
     restoreMediaContent() {
         if (!this.app.grid) return;
 
         const allCells = this.app.grid.getAllCells();
-        
+
         allCells.forEach(cell => {
-            if (cell && cell.type === 'content' && cell.content && cell.content.imageDataURL) {
-                this.restoreImageFromDataURL(cell, cell.content.imageDataURL);
+            if (cell && cell.type === 'content' && cell.content && cell.content.imageURL) {
+                this.restoreImageFromURL(cell, cell.content.imageURL);
             }
         });
     }
 
     /**
-     * Restore image from base64 data URL
+     * Restore image from Wix CDN URL
      * @param {ContentCell} cell - Cell to restore image to
-     * @param {string} imageDataURL - Base64 data URL
+     * @param {string} imageURL - Wix CDN URL
      * @private
      */
-    restoreImageFromDataURL(cell, imageDataURL) {
+    restoreImageFromURL(cell, imageURL) {
+        console.log(`🔄 LOAD: Restoring cell image for ${cell.id}...`);
+        console.log('   → URL type:', imageURL.substring(0, 30));
+        console.log('   → URL length:', imageURL.length, 'characters');
+
         const img = new Image();
         img.onload = () => {
             if (cell.content) {
-                cell.content.image = img;
-                delete cell.content.imageDataURL;
+                cell.content.media = img; // CellRenderer looks for .media not .image
+                console.log(`   ✅ Cell image loaded and set! (${cell.id})`);
+                console.log('   → Image size:', img.width, 'x', img.height);
+                console.log('   → cell.content.media set to:', cell.content.media.constructor.name);
+                console.log('   → Triggering canvas render...');
                 this.app.render();
             }
         };
-        img.onerror = () => {
-            console.warn(`Failed to load image for cell ${cell.id}`);
-            if (cell.content) {
-                delete cell.content.imageDataURL;
-            }
+        img.onerror = (e) => {
+            console.error(`   ❌ LOAD: Failed to load cell image! (${cell.id})`);
+            console.error('   → Error type:', e.type);
+            console.error('   → URL preview:', imageURL.substring(0, 100) + '...');
         };
-        img.src = imageDataURL;
+        img.src = imageURL;
     }
 
     /**
@@ -616,94 +667,151 @@ class PresetManager {
         }
     }
 
-    /**
-     * Convert image to data URL
-     * @param {HTMLImageElement} image - Image to convert
-     * @returns {string} Data URL
-     * @private
-     */
-    imageToDataURL(image) {
-        try {
-            const canvas = document.createElement('canvas');
-            const ctx = canvas.getContext('2d');
-            canvas.width = image.width || image.naturalWidth;
-            canvas.height = image.height || image.naturalHeight;
-            ctx.drawImage(image, 0, 0);
-            return canvas.toDataURL();
-        } catch (error) {
-            console.warn('Failed to convert image to data URL:', error);
-            return null;
-        }
-    }
+    // ==============================================
+    // CLOUD PRESET METHODS (Wix Headless)
+    // ==============================================
 
     /**
-     * Generate slugified filename for preset
-     * @param {string} presetName - Original preset name
-     * @returns {string} Slugified filename
-     */
-    generateFilename(presetName) {
-        const slug = presetName
-            .toLowerCase()
-            .replace(/[^a-z0-9\s-]/g, '') // Remove special chars
-            .replace(/\s+/g, '-') // Replace spaces with hyphens
-            .replace(/-+/g, '-') // Replace multiple hyphens with single
-            .trim();
-        
-        const timestamp = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
-        return `${slug}-${timestamp}.json`;
-    }
-
-    /**
-     * Download preset as JSON file
+     * Save preset to Wix cloud with automatic asset uploads
      * @param {string} presetName - Name for the preset
+     * @returns {Promise} Promise that resolves when save is complete
      */
-    downloadPreset(presetName) {
+    async saveToCloud(presetName) {
+        if (!this.wixAPI) {
+            throw new Error('Wix API not initialized. Cannot save to cloud.');
+        }
+
         try {
+            console.log(`🔄 Starting cloud save: "${presetName}"`);
+
+            // 1. Get current state (with temp image references)
             const state = this.serializeState(presetName);
-            const jsonString = JSON.stringify(state, null, 2);
-            const blob = new Blob([jsonString], { type: 'application/json' });
-            const url = URL.createObjectURL(blob);
-            
-            const filename = this.generateFilename(presetName);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = filename;
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-            URL.revokeObjectURL(url);
-            
-            console.log('✅ Preset downloaded:', filename);
+
+            // 2. Upload background image if exists
+            if (state.background.imageElement) {
+                console.log('📤 SAVE: Uploading background image...');
+                console.log('   → Image element type:', state.background.imageElement.constructor.name);
+                console.log('   → Image dimensions:', state.background.imageElement.width, 'x', state.background.imageElement.height);
+
+                state.background.imageURL = await this.wixAPI.uploadImage(
+                    state.background.imageElement,
+                    `bg-${presetName}-${Date.now()}.png`
+                );
+
+                console.log('   ✅ Data URL created, length:', state.background.imageURL.length, 'characters');
+                console.log('   → Preview:', state.background.imageURL.substring(0, 50) + '...');
+                delete state.background.imageElement; // Remove temp reference
+            } else {
+                console.log('ℹ️ SAVE: No background image to upload');
+            }
+
+            // 3. Upload all cell images
+            if (state.grid.snapshot && state.grid.snapshot.layout && state.grid.snapshot.layout.cells) {
+                console.log(`📋 SAVE: Checking ${state.grid.snapshot.layout.cells.length} cells for images...`);
+                let cellImageCount = 0;
+
+                for (let i = 0; i < state.grid.snapshot.layout.cells.length; i++) {
+                    const cellData = state.grid.snapshot.layout.cells[i];
+                    if (cellData.content && cellData.content.imageElement) {
+                        cellImageCount++;
+                        console.log(`📤 SAVE: Uploading cell image ${i + 1}...`);
+                        console.log('   → Cell index:', i);
+                        console.log('   → Image dimensions:', cellData.content.imageElement.width, 'x', cellData.content.imageElement.height);
+
+                        cellData.content.imageURL = await this.wixAPI.uploadImage(
+                            cellData.content.imageElement,
+                            `cell-${presetName}-${i}-${Date.now()}.png`
+                        );
+
+                        console.log('   ✅ Cell image uploaded, URL length:', cellData.content.imageURL.length, 'characters');
+                        delete cellData.content.imageElement; // Remove temp reference
+                    }
+                }
+                console.log(`✅ SAVE: Uploaded ${cellImageCount} cell image(s)`);
+            }
+
+            // 4. Save preset to Wix collection
+            console.log('💾 Saving preset to Wix...');
+            const savedPreset = await this.wixAPI.savePreset(presetName, state);
+
+            console.log(`✅ Preset saved to cloud: "${presetName}"`);
+            return savedPreset;
+
         } catch (error) {
-            console.error('❌ Failed to download preset:', error);
-            throw error;
+            console.error('❌ Failed to save preset to cloud:', error);
+            throw new Error(`Cloud save failed: ${error.message}`);
         }
     }
 
     /**
-     * Load preset from file
-     * @param {File} file - JSON file to load
-     * @returns {Promise} Promise that resolves when loading is complete
+     * Load preset from Wix cloud by ID
+     * @param {string} presetId - Wix preset _id
+     * @returns {Promise} Promise that resolves when load is complete
      */
-    async loadPresetFromFile(file) {
-        return new Promise((resolve, reject) => {
-            const reader = new FileReader();
-            reader.onload = (e) => {
-                try {
-                    const jsonData = JSON.parse(e.target.result);
-                    this.deserializeState(jsonData);
-                    resolve(jsonData);
-                } catch (error) {
-                    console.error('❌ Failed to parse preset file:', error);
-                    reject(error);
-                }
-            };
-            reader.onerror = () => {
-                reject(new Error('Failed to read file'));
-            };
-            reader.readAsText(file);
-        });
+    async loadFromCloud(presetId) {
+        if (!this.wixAPI) {
+            throw new Error('Wix API not initialized. Cannot load from cloud.');
+        }
+
+        try {
+            console.log(`🔄 Loading preset from cloud: ${presetId}`);
+
+            // 1. Fetch preset from Wix
+            const preset = await this.wixAPI.loadPreset(presetId);
+
+            // 2. Deserialize the settings (URLs load automatically in browser)
+            this.deserializeState(preset.settings);
+
+            console.log(`✅ Preset loaded from cloud: "${preset.name}"`);
+            return preset;
+
+        } catch (error) {
+            console.error('❌ Failed to load preset from cloud:', error);
+            throw new Error(`Cloud load failed: ${error.message}`);
+        }
     }
+
+    /**
+     * List all presets from Wix cloud
+     * @returns {Promise<Array>} Promise that resolves with array of presets
+     */
+    async listCloudPresets() {
+        if (!this.wixAPI) {
+            throw new Error('Wix API not initialized. Cannot list presets.');
+        }
+
+        try {
+            return await this.wixAPI.listPresets();
+        } catch (error) {
+            console.error('❌ Failed to list cloud presets:', error);
+            return [];
+        }
+    }
+
+    /**
+     * Delete preset from Wix cloud
+     * @param {string} presetId - Wix preset _id
+     * @returns {Promise} Promise that resolves when delete is complete
+     */
+    async deleteFromCloud(presetId) {
+        if (!this.wixAPI) {
+            throw new Error('Wix API not initialized. Cannot delete from cloud.');
+        }
+
+        try {
+            await this.wixAPI.deletePreset(presetId);
+            console.log(`✅ Preset deleted from cloud: ${presetId}`);
+        } catch (error) {
+            console.error('❌ Failed to delete preset from cloud:', error);
+            throw new Error(`Cloud delete failed: ${error.message}`);
+        }
+    }
+
+    // ==============================================
+    // LOCAL FILE METHODS (REMOVED - Cloud only)
+    // ==============================================
+    // downloadPreset() - REMOVED: Use saveToCloud() instead
+    // loadPresetFromFile() - REMOVED: Use loadFromCloud() instead
 
     /**
      * Update UI elements to match the restored preset state

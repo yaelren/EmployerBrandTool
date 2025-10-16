@@ -82,6 +82,9 @@ class EmployerBrandToolPOC {
             this.presetUIComponent = new PresetUIComponent(this);
             this.presetUIComponent.initialize(this.presetManager);
 
+            // Initialize Wix Cloud Backend for Presets
+            await this.initializeWixCloud();
+
             // Initialize debug controller
             this.debugController = new DebugController(this);
 
@@ -1445,6 +1448,33 @@ class EmployerBrandToolPOC {
             this.presetUIComponent.render(presetsContainer);
         } else {
             console.error('App: presetsContainer element not found');
+        }
+    }
+
+    /**
+     * Initialize Wix Cloud API for preset storage
+     */
+    async initializeWixCloud() {
+        try {
+            console.log('🔄 Initializing Wix Cloud Backend...');
+
+            // Dynamically import modules
+            const { WixPresetAPI } = await import('./api/WixPresetAPI.js');
+            const { WIX_CONFIG } = await import('./config/wix-config.js');
+
+            // Create and initialize Wix API
+            this.wixAPI = new WixPresetAPI();
+            await this.wixAPI.initialize(WIX_CONFIG.clientId);
+
+            // Connect Wix API to PresetManager
+            this.presetManager.setWixAPI(this.wixAPI);
+
+            console.log('✅ Wix Cloud Backend initialized successfully');
+
+        } catch (error) {
+            console.error('❌ Failed to initialize Wix Cloud Backend:', error);
+            console.warn('⚠️ Preset system will not be available');
+            // Don't throw - app can still work without cloud presets
         }
     }
 
