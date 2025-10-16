@@ -417,7 +417,8 @@ class PresetManager {
                 bg.setBackgroundImage(img);
                 console.log('   ✅ Background image loaded and set!');
                 console.log('   → Image size:', img.width, 'x', img.height);
-                console.log('   → Now visible on canvas');
+                console.log('   → Triggering canvas render...');
+                this.app.render(); // CRITICAL: Trigger render so image appears!
             };
             img.onerror = (e) => {
                 console.error('   ❌ LOAD: Failed to load background image!');
@@ -709,9 +710,16 @@ class PresetManager {
             if (state.grid.snapshot && state.grid.snapshot.layout && state.grid.snapshot.layout.cells) {
                 console.log(`📋 SAVE: Checking ${state.grid.snapshot.layout.cells.length} cells for images...`);
                 let cellImageCount = 0;
+                let videoSkipCount = 0;
 
                 for (let i = 0; i < state.grid.snapshot.layout.cells.length; i++) {
                     const cellData = state.grid.snapshot.layout.cells[i];
+
+                    // Count skipped videos
+                    if (cellData.content && cellData.content.videoSkipped) {
+                        videoSkipCount++;
+                    }
+
                     if (cellData.content && cellData.content.imageElement) {
                         cellImageCount++;
                         console.log(`📤 SAVE: Uploading cell image ${i + 1}...`);
@@ -728,6 +736,9 @@ class PresetManager {
                     }
                 }
                 console.log(`✅ SAVE: Uploaded ${cellImageCount} cell image(s)`);
+                if (videoSkipCount > 0) {
+                    console.warn(`⚠️ SAVE: Skipped ${videoSkipCount} video(s) - videos cannot be saved in presets yet`);
+                }
             }
 
             // 4. Save preset to Wix collection

@@ -182,7 +182,47 @@ export class WixPresetAPI {
 
         } catch (error) {
             console.error('❌ Failed to save preset:', error);
+
+            // Check if it's a quota exceeded error
+            if (error.name === 'QuotaExceededError') {
+                console.error('💾 localStorage is full!');
+                console.error('   → Current presets:', existingPresets.length);
+                console.error('   → Consider deleting old presets or migrating to Wix REST API');
+                throw new Error('localStorage quota exceeded. Please delete some old presets or migrate to cloud storage.');
+            }
+
             throw new Error(`Failed to save preset: ${error.message}`);
+        }
+    }
+
+    /**
+     * Get localStorage usage information
+     * @returns {Object} Storage usage stats
+     */
+    getStorageInfo() {
+        try {
+            const presetsKey = 'wix_presets';
+            const presetsJSON = localStorage.getItem(presetsKey) || '[]';
+            const presets = JSON.parse(presetsJSON);
+
+            // Calculate size in bytes (approximate)
+            const totalSize = new Blob([presetsJSON]).size;
+            const totalSizeMB = (totalSize / 1024 / 1024).toFixed(2);
+
+            // Estimate quota (typically 5-10MB)
+            const estimatedQuotaMB = 5;
+            const usagePercent = ((totalSize / (estimatedQuotaMB * 1024 * 1024)) * 100).toFixed(1);
+
+            return {
+                presetCount: presets.length,
+                totalSize: totalSize,
+                totalSizeMB: totalSizeMB,
+                usagePercent: usagePercent,
+                estimatedQuotaMB: estimatedQuotaMB
+            };
+        } catch (error) {
+            console.error('Failed to get storage info:', error);
+            return null;
         }
     }
 
