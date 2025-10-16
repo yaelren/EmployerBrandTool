@@ -11,6 +11,7 @@
 export class WixPresetAPI {
     constructor() {
         this.clientId = null;
+        this.apiKey = null;  // Optional API key for Media Manager
         this.accessToken = null;
         this.initialized = false;
         this.collectionName = 'presets';
@@ -18,13 +19,20 @@ export class WixPresetAPI {
     }
 
     /**
-     * Initialize Wix API with OAuth client ID
+     * Initialize Wix API with OAuth client ID and optional API key
      * @param {string} clientId - Wix OAuth Client ID
+     * @param {string|null} apiKey - Optional Wix API Key for Media Manager
      */
-    async initialize(clientId) {
+    async initialize(clientId, apiKey = null) {
         try {
             console.log('🔄 Initializing Wix REST API...');
             this.clientId = clientId;
+            this.apiKey = apiKey;
+
+            if (apiKey) {
+                console.log('🔑 API Key provided - Media Manager uploads will use admin authentication');
+                console.log('   ⚠️ API key exposed in browser - use only for personal/demo projects');
+            }
 
             // Try loading existing tokens first
             const hasExistingTokens = this.loadTokens();
@@ -242,64 +250,172 @@ export class WixPresetAPI {
     }
 
     /**
-     * Upload image to Wix Media Manager
-     * Falls back to data URLs if Wix upload fails
-     * @param {HTMLImageElement|HTMLCanvasElement} imageElement
-     * @param {string} filename - Optional custom filename
-     * @returns {Promise<string>} - Image URL (Wix CDN URL or data URL fallback)
+     * Convert video element to blob
+     * Records video frames using MediaRecorder API
+     * @param {HTMLVideoElement} videoElement
+     * @param {string} mimeType - Target MIME type (e.g., 'video/webm', 'video/mp4')
+     * @returns {Promise<Blob>}
      */
-    async uploadImage(imageElement, filename = null) {
+    async videoToBlob(videoElement, mimeType = 'video/webm') {
+        return new Promise((resolve, reject) => {
+            try {
+                // Check if we can capture the video stream
+                if (!videoElement.captureStream && !videoElement.mozCaptureStream) {
+                    reject(new Error('Video capture not supported in this browser'));
+                    return;
+                }
+
+                // Get video stream
+                const stream = videoElement.captureStream ?
+                    videoElement.captureStream() :
+                    videoElement.mozCaptureStream();
+
+                // Determine best available codec
+                let codecMimeType = mimeType;
+                if (!MediaRecorder.isTypeSupported(codecMimeType)) {
+                    // Try WebM with VP9
+                    if (MediaRecorder.isTypeSupported('video/webm;codecs=vp9')) {
+                        codecMimeType = 'video/webm;codecs=vp9';
+                    }
+                    // Try WebM with VP8
+                    else if (MediaRecorder.isTypeSupported('video/webm;codecs=vp8')) {
+                        codecMimeType = 'video/webm;codecs=vp8';
+                    }
+                    // Fallback to basic WebM
+                    else if (MediaRecorder.isTypeSupported('video/webm')) {
+                        codecMimeType = 'video/webm';
+                    }
+                    else {
+                        reject(new Error(`No supported video codec found. Requested: ${mimeType}`));
+                        return;
+                    }
+                    console.log(`   → Using codec: ${codecMimeType} (fallback from ${mimeType})`);
+                }
+
+                const mediaRecorder = new MediaRecorder(stream, {
+                    mimeType: codecMimeType
+                });
+
+                const chunks = [];
+
+                mediaRecorder.ondataavailable = (event) => {
+                    if (event.data && event.data.size > 0) {
+                        chunks.push(event.data);
+                    }
+                };
+
+                mediaRecorder.onstop = () => {
+                    const blob = new Blob(chunks, { type: codecMimeType });
+                    resolve(blob);
+                };
+
+                mediaRecorder.onerror = (event) => {
+                    reject(new Error(`MediaRecorder error: ${event.error}`));
+                };
+
+                // Start recording
+                mediaRecorder.start();
+
+                // Record for duration of video or max 30 seconds
+                const recordDuration = Math.min(videoElement.duration * 1000, 30000);
+
+                setTimeout(() => {
+                    mediaRecorder.stop();
+                    stream.getTracks().forEach(track => track.stop());
+                }, recordDuration);
+
+            } catch (error) {
+                reject(new Error(`Video to blob conversion failed: ${error.message}`));
+            }
+        });
+    }
+
+    /**
+     * Upload media (image, GIF, video) to Wix Media Manager
+     * Falls back to data URLs for images/GIFs if Wix upload fails
+     * @param {HTMLImageElement|HTMLCanvasElement|HTMLVideoElement|Blob} mediaElement
+     * @param {string} filename - Custom filename with extension
+     * @param {string} mimeType - MIME type (e.g., 'image/png', 'video/mp4', 'image/gif')
+     * @returns {Promise<string>} - Media URL (Wix CDN URL or data URL fallback)
+     */
+    async uploadMedia(mediaElement, filename, mimeType) {
         this.ensureInitialized();
 
+        const mediaType = mimeType.split('/')[0]; // 'image', 'video', etc.
+
         try {
-            console.log(`📤 Uploading image to Wix Media Manager: ${filename}`);
+            console.log(`📤 Uploading ${mediaType} to Wix Media Manager: ${filename}`);
 
             // Ensure token is valid
             await this.ensureValidToken();
 
-            // Convert image to blob
-            const blob = await this.imageToBlob(imageElement);
+            // Convert media to blob
+            let blob;
+            if (mediaElement instanceof Blob) {
+                blob = mediaElement;
+            } else if (mediaElement instanceof HTMLVideoElement) {
+                blob = await this.videoToBlob(mediaElement, mimeType);
+            } else {
+                // Image or canvas
+                blob = await this.imageToBlob(mediaElement);
+            }
+
             console.log(`   → Blob size: ${(blob.size / 1024).toFixed(2)} KB`);
+            console.log(`   → MIME type: ${mimeType}`);
 
             // Generate upload URL from Wix
-            const uploadData = await this.generateMediaUploadUrl('image/png', filename);
+            const uploadData = await this.generateMediaUploadUrl(mimeType, filename);
             console.log(`   → Upload URL generated`);
             console.log(`   → File ID: ${uploadData.fileId}`);
 
             // Upload blob to Wix CDN
             const cdnUrl = await this.uploadToWixCDN(uploadData.uploadUrl, blob);
-            console.log(`✅ Image uploaded to Wix CDN`);
+            console.log(`✅ ${mediaType.charAt(0).toUpperCase() + mediaType.slice(1)} uploaded to Wix CDN`);
             console.log(`   → CDN URL: ${cdnUrl}`);
 
             return cdnUrl;
 
         } catch (error) {
-            console.error('❌ Wix upload failed, falling back to data URL:', error);
+            console.error(`❌ Wix ${mediaType} upload failed:`, error);
 
-            // Fallback to data URL
-            try {
-                const canvas = document.createElement('canvas');
-                const ctx = canvas.getContext('2d');
+            // Fallback only works for images and GIFs (not videos - too large)
+            if (mediaType === 'image' && !(mediaElement instanceof Blob)) {
+                try {
+                    console.log(`⚠️ Falling back to data URL for ${mediaType}...`);
+                    const canvas = document.createElement('canvas');
+                    const ctx = canvas.getContext('2d');
 
-                if (imageElement instanceof HTMLCanvasElement) {
-                    canvas.width = imageElement.width;
-                    canvas.height = imageElement.height;
-                    ctx.drawImage(imageElement, 0, 0);
-                } else {
-                    canvas.width = imageElement.naturalWidth || imageElement.width;
-                    canvas.height = imageElement.naturalHeight || imageElement.height;
-                    ctx.drawImage(imageElement, 0, 0);
+                    if (mediaElement instanceof HTMLCanvasElement) {
+                        canvas.width = mediaElement.width;
+                        canvas.height = mediaElement.height;
+                        ctx.drawImage(mediaElement, 0, 0);
+                    } else {
+                        canvas.width = mediaElement.naturalWidth || mediaElement.width;
+                        canvas.height = mediaElement.naturalHeight || mediaElement.height;
+                        ctx.drawImage(mediaElement, 0, 0);
+                    }
+
+                    const dataURL = canvas.toDataURL(mimeType);
+                    console.log(`⚠️ Using data URL fallback (${(dataURL.length / 1024).toFixed(2)} KB)`);
+                    return dataURL;
+
+                } catch (fallbackError) {
+                    console.error('❌ Fallback failed:', fallbackError);
+                    throw new Error(`Failed to process ${mediaType}: ${fallbackError.message}`);
                 }
-
-                const dataURL = canvas.toDataURL('image/png');
-                console.log(`⚠️ Using data URL fallback (${(dataURL.length / 1024).toFixed(2)} KB)`);
-                return dataURL;
-
-            } catch (fallbackError) {
-                console.error('❌ Fallback failed:', fallbackError);
-                throw new Error(`Failed to process image: ${fallbackError.message}`);
             }
+
+            // No fallback for videos or blobs
+            throw new Error(`Failed to upload ${mediaType}: ${error.message}`);
         }
+    }
+
+    /**
+     * Legacy method - redirects to uploadMedia
+     * @deprecated Use uploadMedia() instead
+     */
+    async uploadImage(imageElement, filename = null) {
+        return this.uploadMedia(imageElement, filename || `image-${Date.now()}.png`, 'image/png');
     }
 
     /**
@@ -312,17 +428,64 @@ export class WixPresetAPI {
         try {
             const endpoint = `${this.baseURL}/site-media/v1/files/generate-upload-url`;
 
+            const requestBody = {
+                mimeType: mimeType
+            };
+
+            // Add fileName if provided (optional parameter)
+            if (filename) {
+                requestBody.fileName = filename;
+            }
+
+            // Use API key for Media Manager if available, otherwise use OAuth token
+            const authToken = this.apiKey || this.accessToken;
+            const authType = this.apiKey ? 'API Key (admin)' : 'OAuth Token (visitor)';
+
+            console.log('   🔍 DEBUG: Request details');
+            console.log('   → Auth type:', authType);
+            console.log('   → API key format:', this.apiKey ? `${this.apiKey.substring(0, 20)}...` : 'none');
+            console.log('   → API key prefix:', this.apiKey ? this.apiKey.split('.')[0] : 'none');
+            console.log('   → Request body:', JSON.stringify(requestBody, null, 2));
+            console.log('   → Endpoint:', endpoint);
+
+            // ⚠️ IMPORTANT: Wix API Keys might need different header format
+            // Check if API key needs "wix-site-id" or "wix-account-id" headers
+            const headers = {
+                'Content-Type': 'application/json'
+            };
+
+            if (this.apiKey) {
+                // API Key authentication
+                // IST tokens (Instance Tokens) need Bearer prefix
+                // JWS tokens (Account API Keys) use direct format
+                const authHeader = this.apiKey.startsWith('IST.')
+                    ? `Bearer ${this.apiKey}`
+                    : this.apiKey.startsWith('JWS.')
+                        ? this.apiKey
+                        : `Bearer ${this.apiKey}`; // Default to Bearer for unknown formats
+
+                headers['Authorization'] = authHeader;
+                console.log('   🔑 Token type:', this.apiKey.split('.')[0]);
+                console.log('   → Auth format:', authHeader.substring(0, 40) + '...');
+
+                // Try adding wix-site-id header if available (IST tokens may need this)
+                if (this.siteId) {
+                    headers['wix-site-id'] = this.siteId;
+                    console.log('   → Site ID header:', this.siteId);
+                }
+            } else {
+                // OAuth token authentication
+                headers['Authorization'] = `Bearer ${this.accessToken}`;
+                console.log('   ✅ Using OAuth Bearer token');
+            }
+
             const response = await fetch(endpoint, {
                 method: 'POST',
-                headers: {
-                    'Authorization': `Bearer ${this.accessToken}`,
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({
-                    mimeType: mimeType,
-                    options: filename ? { filename: filename } : {}
-                })
+                headers: headers,
+                body: JSON.stringify(requestBody)
             });
+
+            console.log('   → Response status:', response.status, response.statusText);
 
             if (!response.ok) {
                 const errorText = await response.text();
@@ -382,47 +545,50 @@ export class WixPresetAPI {
         this.ensureInitialized();
 
         try {
-            console.log(`💾 Saving preset to localStorage: "${name}"`);
+            console.log(`💾 Saving preset to Wix Data Collections: "${name}"`);
 
-            // TEMPORARY SOLUTION: Use localStorage instead of Wix
-            // This allows the system to work without full OAuth setup
+            // Ensure token is valid
+            await this.ensureValidToken();
 
-            const presetId = `preset_${Date.now()}`;
-            const presetData = {
-                _id: presetId,
-                name: name,
-                settings: settings,
-                _createdDate: new Date().toISOString(),
-                _updatedDate: new Date().toISOString()
-            };
+            // Save to Wix Data Collections using correct v2 API format
+            const response = await fetch(`${this.baseURL}/wix-data/v2/items`, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${this.accessToken}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    dataCollectionId: this.collectionName,
+                    dataItem: {
+                        data: {
+                            name: name,
+                            settings: settings
+                        }
+                    }
+                })
+            });
 
-            // Get existing presets
-            const presetsKey = 'wix_presets';
-            const existingPresetsJSON = localStorage.getItem(presetsKey);
-            const existingPresets = existingPresetsJSON ? JSON.parse(existingPresetsJSON) : [];
-
-            // Add new preset
-            existingPresets.push(presetData);
-
-            // Save back to localStorage
-            localStorage.setItem(presetsKey, JSON.stringify(existingPresets));
-
-            console.log(`✅ Preset saved with ID: ${presetId}`);
-            console.warn('⚠️ Production: This would save to Wix Data Collections');
-
-            return presetData;
-
-        } catch (error) {
-            console.error('❌ Failed to save preset:', error);
-
-            // Check if it's a quota exceeded error
-            if (error.name === 'QuotaExceededError') {
-                console.error('💾 localStorage is full!');
-                console.error('   → Current presets:', existingPresets.length);
-                console.error('   → Consider deleting old presets or migrating to Wix REST API');
-                throw new Error('localStorage quota exceeded. Please delete some old presets or migrate to cloud storage.');
+            if (!response.ok) {
+                const errorText = await response.text();
+                throw new Error(`Wix Data Collections save failed: ${response.status} - ${errorText}`);
             }
 
+            const result = await response.json();
+            console.log(`✅ Preset saved to Wix Data Collections`);
+            console.log(`   → Preset ID: ${result.dataItem.data._id}`);
+            console.log(`   → Preset Name: ${result.dataItem.data.name}`);
+
+            // Return in expected format with system fields at root level
+            return {
+                _id: result.dataItem.data._id,
+                name: result.dataItem.data.name,
+                settings: result.dataItem.data.settings,
+                _createdDate: result.dataItem.data._createdDate,
+                _updatedDate: result.dataItem.data._updatedDate
+            };
+
+        } catch (error) {
+            console.error('❌ Failed to save preset to Wix:', error);
             throw new Error(`Failed to save preset: ${error.message}`);
         }
     }
@@ -466,20 +632,44 @@ export class WixPresetAPI {
         this.ensureInitialized();
 
         try {
-            console.log('📋 Fetching preset list from localStorage...');
+            console.log('📋 Fetching preset list from Wix Data Collections...');
 
-            // TEMPORARY SOLUTION: Use localStorage instead of Wix
-            const presetsKey = 'wix_presets';
-            const presetsJSON = localStorage.getItem(presetsKey);
-            const presets = presetsJSON ? JSON.parse(presetsJSON) : [];
+            // Ensure token is valid
+            await this.ensureValidToken();
 
-            // Sort by created date descending
-            presets.sort((a, b) => new Date(b._createdDate) - new Date(a._createdDate));
+            // Query Wix Data Collections using correct v2 API format
+            const response = await fetch(`${this.baseURL}/wix-data/v2/items/query`, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${this.accessToken}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    dataCollectionId: this.collectionName,
+                    query: {
+                        sort: [{ fieldName: '_createdDate', order: 'desc' }]
+                    }
+                })
+            });
 
-            console.log(`✅ Found ${presets.length} presets`);
-            if (presets.length === 0) {
-                console.warn('⚠️ Production: Would query Wix Data Collections');
+            if (!response.ok) {
+                const errorText = await response.text();
+                throw new Error(`Wix Data Collections query failed: ${response.status} - ${errorText}`);
             }
+
+            const result = await response.json();
+            const rawItems = result.dataItems || [];
+
+            // Transform to expected format (flatten data structure)
+            const presets = rawItems.map(item => ({
+                _id: item.data._id,
+                name: item.data.name,
+                settings: item.data.settings,
+                _createdDate: item.data._createdDate,
+                _updatedDate: item.data._updatedDate
+            }));
+
+            console.log(`✅ Found ${presets.length} presets in Wix Data Collections`);
 
             return presets;
 
@@ -498,23 +688,40 @@ export class WixPresetAPI {
         this.ensureInitialized();
 
         try {
-            console.log(`📥 Loading preset from localStorage: ${presetId}`);
+            console.log(`📥 Loading preset from Wix Data Collections: ${presetId}`);
 
-            // TEMPORARY SOLUTION: Use localStorage instead of Wix
-            const presetsKey = 'wix_presets';
-            const presetsJSON = localStorage.getItem(presetsKey);
-            const presets = presetsJSON ? JSON.parse(presetsJSON) : [];
+            // Ensure token is valid
+            await this.ensureValidToken();
 
-            const preset = presets.find(p => p._id === presetId);
+            // Fetch from Wix Data Collections using correct v2 API format
+            const response = await fetch(`${this.baseURL}/wix-data/v2/items/${presetId}?dataCollectionId=${this.collectionName}`, {
+                method: 'GET',
+                headers: {
+                    'Authorization': `Bearer ${this.accessToken}`,
+                    'Content-Type': 'application/json'
+                }
+            });
 
-            if (!preset) {
-                throw new Error(`Preset not found: ${presetId}`);
+            if (!response.ok) {
+                if (response.status === 404) {
+                    throw new Error(`Preset not found: ${presetId}`);
+                }
+                const errorText = await response.text();
+                throw new Error(`Wix Data Collections load failed: ${response.status} - ${errorText}`);
             }
 
-            console.log(`✅ Preset loaded: "${preset.name}"`);
-            console.warn('⚠️ Production: Would fetch from Wix Data Collections');
+            const result = await response.json();
+            console.log(`✅ Preset loaded from Wix: "${result.dataItem.data.name}"`);
+            console.log(`   → Created: ${new Date(result.dataItem.data._createdDate.$date).toLocaleString()}`);
 
-            return preset;
+            // Return in expected format (flatten data structure)
+            return {
+                _id: result.dataItem.data._id,
+                name: result.dataItem.data.name,
+                settings: result.dataItem.data.settings,
+                _createdDate: result.dataItem.data._createdDate,
+                _updatedDate: result.dataItem.data._updatedDate
+            };
 
         } catch (error) {
             console.error('❌ Failed to load preset:', error);
@@ -531,23 +738,30 @@ export class WixPresetAPI {
         this.ensureInitialized();
 
         try {
-            console.log(`🗑️ Deleting preset from localStorage: ${presetId}`);
+            console.log(`🗑️ Deleting preset from Wix Data Collections: ${presetId}`);
 
-            // TEMPORARY SOLUTION: Use localStorage instead of Wix
-            const presetsKey = 'wix_presets';
-            const presetsJSON = localStorage.getItem(presetsKey);
-            const presets = presetsJSON ? JSON.parse(presetsJSON) : [];
+            // Ensure token is valid
+            await this.ensureValidToken();
 
-            const filteredPresets = presets.filter(p => p._id !== presetId);
+            // Delete from Wix Data Collections using correct v2 API format
+            const response = await fetch(`${this.baseURL}/wix-data/v2/items/${presetId}?dataCollectionId=${this.collectionName}`, {
+                method: 'DELETE',
+                headers: {
+                    'Authorization': `Bearer ${this.accessToken}`,
+                    'Content-Type': 'application/json'
+                }
+            });
 
-            if (filteredPresets.length === presets.length) {
-                throw new Error(`Preset not found: ${presetId}`);
+            if (!response.ok) {
+                if (response.status === 404) {
+                    throw new Error(`Preset not found: ${presetId}`);
+                }
+                const errorText = await response.text();
+                throw new Error(`Wix Data Collections delete failed: ${response.status} - ${errorText}`);
             }
 
-            localStorage.setItem(presetsKey, JSON.stringify(filteredPresets));
-
-            console.log(`✅ Preset deleted successfully`);
-            console.warn('⚠️ Production: Would delete from Wix Data Collections');
+            console.log(`✅ Preset deleted from Wix Data Collections`);
+            console.log(`   → Preset ID: ${presetId}`);
 
         } catch (error) {
             console.error('❌ Failed to delete preset:', error);

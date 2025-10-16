@@ -365,7 +365,6 @@ class UIManager {
         if (this.elements.minSpotSize) {
             this.elements.minSpotSize.addEventListener('input', () => {
                 const minSize = parseInt(this.elements.minSpotSize.value);
-                console.log('Minimum spot size changed to:', minSize);
                 this.app.gridDetector.setMinCellSize(minSize);
                 this.app.minSpotSize = minSize; // Store for Grid.buildFromExisting()
                 this.app.onTextChanged(); // Trigger spot detection with new size
@@ -375,7 +374,6 @@ class UIManager {
         // Text color changes
         this.elements.textColor.addEventListener('input', () => {
             const color = this.elements.textColor.value;
-            console.log('Text color changed to:', color);
             this.app.mainTextComponent.color = color;
             this.app.syncGridCellStyling(); // Sync to grid cells
             this.app.render();
@@ -936,7 +934,6 @@ class UIManager {
      * @param {MainTextCell} cell - Clicked main text cell
      */
     showMainTextCellControls(cell) {
-        console.log('showMainTextCellControls called with cell:', cell);
         const controlsContainer = document.getElementById('selectedCellControls');
         const infoContainer = document.getElementById('selectedCellInfo');
         const sectionsContainer = document.querySelector('.cell-control-sections');
@@ -948,7 +945,6 @@ class UIManager {
 
         // Show controls container
         controlsContainer.style.display = 'block';
-        console.log('Controls container shown');
 
         // Update cell info - show it's a main text cell
         infoContainer.textContent = `Main Text Cell ${cell.id}`;
@@ -959,7 +955,6 @@ class UIManager {
         // Create animation controls for main text cell
         this.createMainTextAnimationControls(cell, sectionsContainer);
         this.createLayerControls(cell, sectionsContainer);
-        console.log('Main text cell controls created');
     }
 
     /**
@@ -1802,7 +1797,6 @@ class UIManager {
             // Remove existing listeners to avoid duplicates
             backgroundColor.removeEventListener('input', this.handleBackgroundColorChange);
             this.handleBackgroundColorChange = () => {
-                console.log('Background color changed:', backgroundColor.value);
                 this.app.canvasManager.setBackgroundColor(backgroundColor.value);
                 this.app.render();
             };
@@ -1818,7 +1812,6 @@ class UIManager {
                 if (backgroundOpacityValue) {
                     backgroundOpacityValue.textContent = opacity + '%';
                 }
-                console.log('Background opacity changed:', opacity);
                 this.updateBackgroundColor();
             };
             backgroundOpacity.addEventListener('input', this.handleBackgroundOpacityChange);
@@ -2086,11 +2079,6 @@ class UIManager {
                 });
 
                 video.addEventListener('canplay', () => {
-                    console.log('Background video can play, current state:', {
-                        paused: video.paused,
-                        autoplay: video.autoplay,
-                        readyState: video.readyState
-                    });
                     // Ensure video starts playing if autoplay is enabled
                     if (this.elements.backgroundVideoAutoplay.checked && video.paused) {
                         console.log('Attempting to start background video playback from canplay event...');

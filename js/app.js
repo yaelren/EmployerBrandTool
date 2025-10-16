@@ -1464,7 +1464,7 @@ class EmployerBrandToolPOC {
 
             // Create and initialize Wix API
             this.wixAPI = new WixPresetAPI();
-            await this.wixAPI.initialize(WIX_CONFIG.clientId);
+            await this.wixAPI.initialize(WIX_CONFIG.clientId, WIX_CONFIG.apiKey);
 
             // Connect Wix API to PresetManager
             this.presetManager.setWixAPI(this.wixAPI);

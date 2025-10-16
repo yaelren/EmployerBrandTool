@@ -170,12 +170,16 @@ class PresetManager {
                 console.log('   → Image dimensions:', cellData.content.media.width, 'x', cellData.content.media.height);
                 content.imageElement = cellData.content.media; // Temp ref for upload
                 content.imageURL = null; // Will be set during cloud upload
+                content.mediaType = 'image';
                 content.media = null; // Remove actual element
             } else if (cellData.content.media instanceof HTMLVideoElement) {
-                console.log(`⚠️ SAVE: Cell ${cellData.id} has video (will be skipped)`);
-                // Skip videos
-                content.media = null;
-                content.videoSkipped = true;
+                console.log(`🎥 SAVE: Processing cell ${cellData.id} with video`);
+                console.log('   → Video dimensions:', cellData.content.media.videoWidth, 'x', cellData.content.media.videoHeight);
+                console.log('   → Video duration:', cellData.content.media.duration, 'seconds');
+                content.videoElement = cellData.content.media; // Temp ref for upload
+                content.videoURL = null; // Will be set during cloud upload
+                content.mediaType = 'video';
+                content.media = null; // Remove actual element
             }
         }
 
@@ -585,7 +589,7 @@ class PresetManager {
     }
 
     /**
-     * Restore media content from Wix CDN URLs
+     * Restore media content from Wix CDN URLs (images and videos)
      * @private
      */
     restoreMediaContent() {
@@ -594,8 +598,15 @@ class PresetManager {
         const allCells = this.app.grid.getAllCells();
 
         allCells.forEach(cell => {
-            if (cell && cell.type === 'content' && cell.content && cell.content.imageURL) {
-                this.restoreImageFromURL(cell, cell.content.imageURL);
+            if (cell && cell.type === 'content' && cell.content) {
+                // Restore images
+                if (cell.content.imageURL) {
+                    this.restoreImageFromURL(cell, cell.content.imageURL);
+                }
+                // Restore videos
+                if (cell.content.videoURL) {
+                    this.restoreVideoFromURL(cell, cell.content.videoURL);
+                }
             }
         });
     }
@@ -628,6 +639,52 @@ class PresetManager {
             console.error('   → URL preview:', imageURL.substring(0, 100) + '...');
         };
         img.src = imageURL;
+    }
+
+    /**
+     * Restore video from Wix CDN URL
+     * @param {ContentCell} cell - Cell to restore video to
+     * @param {string} videoURL - Wix CDN URL
+     * @private
+     */
+    restoreVideoFromURL(cell, videoURL) {
+        console.log(`🔄 LOAD: Restoring cell video for ${cell.id}...`);
+        console.log('   → URL type:', videoURL.substring(0, 30));
+        console.log('   → URL length:', videoURL.length, 'characters');
+
+        const video = document.createElement('video');
+        video.crossOrigin = 'anonymous';
+        video.muted = true; // Required for autoplay
+        video.loop = true;
+        video.playsInline = true;
+
+        video.addEventListener('loadedmetadata', () => {
+            if (cell.content) {
+                cell.content.media = video; // CellRenderer looks for .media
+                console.log(`   ✅ Cell video loaded and set! (${cell.id})`);
+                console.log('   → Video size:', video.videoWidth, 'x', video.videoHeight);
+                console.log('   → Video duration:', video.duration, 'seconds');
+                console.log('   → cell.content.media set to:', cell.content.media.constructor.name);
+                console.log('   → Triggering canvas render...');
+
+                // Start playing
+                video.play().catch(err => {
+                    console.warn(`   ⚠️ Autoplay prevented for ${cell.id}:`, err.message);
+                });
+
+                this.app.render();
+            }
+        });
+
+        video.addEventListener('error', (e) => {
+            console.error(`   ❌ LOAD: Failed to load cell video! (${cell.id})`);
+            console.error('   → Error type:', e.type);
+            console.error('   → Error code:', video.error ? video.error.code : 'unknown');
+            console.error('   → URL preview:', videoURL.substring(0, 100) + '...');
+        });
+
+        video.src = videoURL;
+        video.load();
     }
 
     /**
@@ -694,51 +751,66 @@ class PresetManager {
                 console.log('   → Image element type:', state.background.imageElement.constructor.name);
                 console.log('   → Image dimensions:', state.background.imageElement.width, 'x', state.background.imageElement.height);
 
-                state.background.imageURL = await this.wixAPI.uploadImage(
+                state.background.imageURL = await this.wixAPI.uploadMedia(
                     state.background.imageElement,
-                    `bg-${presetName}-${Date.now()}.png`
+                    `bg-${presetName}-${Date.now()}.png`,
+                    'image/png'
                 );
 
-                console.log('   ✅ Data URL created, length:', state.background.imageURL.length, 'characters');
+                console.log('   ✅ Media uploaded, URL length:', state.background.imageURL.length, 'characters');
                 console.log('   → Preview:', state.background.imageURL.substring(0, 50) + '...');
                 delete state.background.imageElement; // Remove temp reference
             } else {
                 console.log('ℹ️ SAVE: No background image to upload');
             }
 
-            // 3. Upload all cell images
+            // 3. Upload all cell media (images and videos)
             if (state.grid.snapshot && state.grid.snapshot.layout && state.grid.snapshot.layout.cells) {
-                console.log(`📋 SAVE: Checking ${state.grid.snapshot.layout.cells.length} cells for images...`);
+                console.log(`📋 SAVE: Checking ${state.grid.snapshot.layout.cells.length} cells for media...`);
                 let cellImageCount = 0;
-                let videoSkipCount = 0;
+                let cellVideoCount = 0;
 
                 for (let i = 0; i < state.grid.snapshot.layout.cells.length; i++) {
                     const cellData = state.grid.snapshot.layout.cells[i];
 
-                    // Count skipped videos
-                    if (cellData.content && cellData.content.videoSkipped) {
-                        videoSkipCount++;
-                    }
-
+                    // Upload cell images
                     if (cellData.content && cellData.content.imageElement) {
                         cellImageCount++;
                         console.log(`📤 SAVE: Uploading cell image ${i + 1}...`);
                         console.log('   → Cell index:', i);
                         console.log('   → Image dimensions:', cellData.content.imageElement.width, 'x', cellData.content.imageElement.height);
 
-                        cellData.content.imageURL = await this.wixAPI.uploadImage(
+                        cellData.content.imageURL = await this.wixAPI.uploadMedia(
                             cellData.content.imageElement,
-                            `cell-${presetName}-${i}-${Date.now()}.png`
+                            `cell-${presetName}-${i}-${Date.now()}.png`,
+                            'image/png'
                         );
 
                         console.log('   ✅ Cell image uploaded, URL length:', cellData.content.imageURL.length, 'characters');
                         delete cellData.content.imageElement; // Remove temp reference
+                        delete cellData.content.mediaType;
+                    }
+
+                    // Upload cell videos (requires API key)
+                    if (cellData.content && cellData.content.videoElement) {
+                        cellVideoCount++;
+                        console.log(`📤 SAVE: Uploading cell video ${i + 1}...`);
+                        console.log('   → Cell index:', i);
+                        console.log('   → Video dimensions:', cellData.content.videoElement.videoWidth, 'x', cellData.content.videoElement.videoHeight);
+                        console.log('   → Video duration:', cellData.content.videoElement.duration, 'seconds');
+
+                        cellData.content.videoURL = await this.wixAPI.uploadMedia(
+                            cellData.content.videoElement,
+                            `cell-${presetName}-${i}-${Date.now()}.webm`,
+                            'video/webm'
+                        );
+
+                        console.log('   ✅ Cell video uploaded, URL length:', cellData.content.videoURL.length, 'characters');
+                        delete cellData.content.videoElement; // Remove temp reference
+                        delete cellData.content.mediaType;
                     }
                 }
-                console.log(`✅ SAVE: Uploaded ${cellImageCount} cell image(s)`);
-                if (videoSkipCount > 0) {
-                    console.warn(`⚠️ SAVE: Skipped ${videoSkipCount} video(s) - videos cannot be saved in presets yet`);
-                }
+                console.log(`✅ SAVE: Uploaded ${cellImageCount} image(s) and ${cellVideoCount} video(s)`);
             }
 
             // 4. Save preset to Wix collection

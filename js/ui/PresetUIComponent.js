@@ -237,14 +237,27 @@ class PresetUIComponent {
             return;
         }
 
-        // Check for background video warning
-        if (this.hasBackgroundVideo()) {
-            const proceed = confirm(
-                '⚠️ Background Video Detected\n\n' +
-                'Videos cannot be saved in presets.\n' +
-                'The preset will be saved without the video.\n\n' +
-                'Continue?'
-            );
+        // Check for video warnings (background or cell videos)
+        const hasBgVideo = this.hasBackgroundVideo();
+        const hasCellVideos = this.hasCellVideos();
+
+        if (hasBgVideo || hasCellVideos) {
+            let message = '⚠️ Video Content Detected\n\n';
+
+            if (hasBgVideo && hasCellVideos) {
+                message += 'Background and cell videos cannot be saved in presets.\n';
+            } else if (hasBgVideo) {
+                message += 'Background video cannot be saved in presets.\n';
+            } else {
+                message += 'Cell videos cannot be saved in presets.\n';
+            }
+
+            message += 'The preset will be saved without the videos.\n\n';
+            message += 'Reason: OAuth visitor authentication limitation.\n';
+            message += 'See MEDIA_MANAGER_AUTH_LIMITATION.md for details.\n\n';
+            message += 'Continue?';
+
+            const proceed = confirm(message);
             if (!proceed) return;
         }
 
@@ -448,6 +461,22 @@ class PresetUIComponent {
      */
     hasBackgroundVideo() {
         return this.app.canvasManager.backgroundManager.backgroundVideo !== null;
+    }
+
+    /**
+     * Check if there are any cell videos
+     * @returns {boolean} True if any cell has video content
+     */
+    hasCellVideos() {
+        if (!this.app.grid) return false;
+
+        const allCells = this.app.grid.getAllCells();
+        return allCells.some(cell => {
+            return cell &&
+                   cell.type === 'content' &&
+                   cell.content &&
+                   cell.content.media instanceof HTMLVideoElement;
+        });
     }
 
     /**
