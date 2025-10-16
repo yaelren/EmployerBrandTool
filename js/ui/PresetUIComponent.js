@@ -34,7 +34,7 @@ class PresetUIComponent {
                 <!-- Save Section -->
                 <div class="preset-section preset-save-section">
                     <h3>💾 Save New Preset</h3>
-                    <p class="preset-description">Save your current design to the cloud</p>
+                    <p class="preset-description">Save your current design locally or to the cloud</p>
                     <div class="preset-save-controls">
                         <input
                             type="text"
@@ -42,9 +42,31 @@ class PresetUIComponent {
                             class="preset-name-input"
                             placeholder="Enter preset name..."
                             maxlength="50">
-                        <button type="button" class="preset-save-cloud-btn chatooly-btn chatooly-btn-primary">
-                            💾 Save to Cloud
+                        <div class="preset-save-buttons">
+                            <button type="button" class="preset-save-local-btn chatooly-btn chatooly-btn-secondary">
+                                📁 Save Locally
+                            </button>
+                            <button type="button" class="preset-save-cloud-btn chatooly-btn chatooly-btn-primary">
+                                ☁️ Save to Cloud
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Load Local File Section -->
+                <div class="preset-section preset-load-local-section">
+                    <h3>📂 Load Local Preset</h3>
+                    <p class="preset-description">Upload a preset file from your computer</p>
+                    <div class="preset-load-file-controls">
+                        <input
+                            type="file"
+                            id="presetFileInput"
+                            accept=".json"
+                            style="display: none;">
+                        <button type="button" class="preset-load-file-btn chatooly-btn chatooly-btn-secondary">
+                            📂 Choose File
                         </button>
+                        <span id="selectedFileName" class="selected-file-name"></span>
                     </div>
                 </div>
 
@@ -94,13 +116,19 @@ class PresetUIComponent {
      * Setup event listeners for preset controls
      */
     setupEventListeners() {
-        // Save to cloud button
-        const saveBtn = document.querySelector('.preset-save-cloud-btn');
-        if (saveBtn) {
-            saveBtn.addEventListener('click', () => this.handleSaveToCloud());
+        // Save locally button
+        const saveLocalBtn = document.querySelector('.preset-save-local-btn');
+        if (saveLocalBtn) {
+            saveLocalBtn.addEventListener('click', () => this.handleSaveLocally());
         }
 
-        // Enter key on name input = save
+        // Save to cloud button
+        const saveCloudBtn = document.querySelector('.preset-save-cloud-btn');
+        if (saveCloudBtn) {
+            saveCloudBtn.addEventListener('click', () => this.handleSaveToCloud());
+        }
+
+        // Enter key on name input = save to cloud (default)
         const nameInput = document.getElementById('presetNameInput');
         if (nameInput) {
             nameInput.addEventListener('keypress', (e) => {
@@ -108,6 +136,14 @@ class PresetUIComponent {
                     this.handleSaveToCloud();
                 }
             });
+        }
+
+        // Load local file button
+        const loadFileBtn = document.querySelector('.preset-load-file-btn');
+        const fileInput = document.getElementById('presetFileInput');
+        if (loadFileBtn && fileInput) {
+            loadFileBtn.addEventListener('click', () => fileInput.click());
+            fileInput.addEventListener('change', (e) => this.handleLoadFromFile(e));
         }
 
         // Load from cloud button
@@ -311,6 +347,98 @@ class PresetUIComponent {
             this.showError(`Failed to delete preset: ${error.message}`);
         } finally {
             this.hideLoading();
+        }
+    }
+
+    /**
+     * Handle save locally button click (downloads JSON file)
+     */
+    async handleSaveLocally() {
+        if (!this.presetManager) {
+            this.showError('Preset system not initialized');
+            return;
+        }
+
+        const nameInput = document.getElementById('presetNameInput');
+        const presetName = nameInput?.value.trim();
+
+        if (!presetName) {
+            this.showError('Please enter a preset name');
+            return;
+        }
+
+        try {
+            this.showLoading('Saving locally...');
+
+            // Serialize state (without uploading images to cloud)
+            const state = this.presetManager.serializeState(presetName);
+
+            // Create JSON blob
+            const jsonString = JSON.stringify(state, null, 2);
+            const blob = new Blob([jsonString], { type: 'application/json' });
+
+            // Create download link
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `${presetName.replace(/[^a-z0-9]/gi, '_').toLowerCase()}.json`;
+
+            // Trigger download
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+
+            // Clear input
+            nameInput.value = '';
+
+            this.showSuccess(`✅ Preset "${presetName}" downloaded to your computer!`);
+
+        } catch (error) {
+            console.error('❌ Local save failed:', error);
+            this.showError(`Failed to save locally: ${error.message}`);
+        } finally {
+            this.hideLoading();
+        }
+    }
+
+    /**
+     * Handle load from file (uploaded JSON)
+     */
+    async handleLoadFromFile(event) {
+        if (!this.presetManager) {
+            this.showError('Preset system not initialized');
+            return;
+        }
+
+        const file = event.target.files[0];
+        if (!file) return;
+
+        try {
+            this.showLoading(`Loading ${file.name}...`);
+
+            // Show selected file name
+            const fileNameSpan = document.getElementById('selectedFileName');
+            if (fileNameSpan) {
+                fileNameSpan.textContent = file.name;
+            }
+
+            // Read file
+            const text = await file.text();
+            const stateData = JSON.parse(text);
+
+            // Deserialize state
+            this.presetManager.deserializeState(stateData);
+
+            this.showSuccess(`✅ Preset "${stateData.presetName || file.name}" loaded successfully!`);
+
+        } catch (error) {
+            console.error('❌ Load from file failed:', error);
+            this.showError(`Failed to load file: ${error.message}`);
+        } finally {
+            this.hideLoading();
+            // Clear file input
+            event.target.value = '';
         }
     }
 
