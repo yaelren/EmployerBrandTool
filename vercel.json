@@ -1,21 +1,5 @@
 {
-  "version": 2,
-  "builds": [
-    {
-      "src": "api/**/*.js",
-      "use": "@vercel/node"
-    }
-  ],
-  "routes": [
-    {
-      "src": "/api/(.*)",
-      "dest": "/api/$1"
-    },
-    {
-      "src": "/(.*)",
-      "dest": "/$1"
-    }
-  ],
+  "buildCommand": "echo 'No build needed - static files only'",
   "headers": [
     {
       "source": "/api/(.*)",
@@ -33,16 +17,6 @@
           "value": "Content-Type, Authorization"
         }
       ]
-    }
-  ],
-  "rewrites": [
-    {
-      "source": "/api/media/list",
-      "destination": "/api/media/list.js"
-    },
-    {
-      "source": "/api/media/upload",
-      "destination": "/api/media/upload.js"
     }
   ]
 }
