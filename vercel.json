@@ -1,5 +1,7 @@
 {
+  "installCommand": "echo 'No dependencies to install'",
   "buildCommand": "echo 'No build needed - static files only'",
+  "outputDirectory": ".",
   "headers": [
     {
       "source": "/api/(.*)",
