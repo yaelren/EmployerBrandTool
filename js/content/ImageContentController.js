@@ -398,8 +398,8 @@ class ImageContentController extends ContentController {
                              selectedFile.displayName?.endsWith('.lottie');
 
             if (isLottie) {
-                alert('❌ Lottie animations are not yet supported in cells.\n\nLottie rendering support is coming soon!');
-                console.warn('⚠️ Lottie files not yet supported for cell content');
+                // Load Lottie animation from Media Manager URL
+                this.handleLottieFromURL(cell, selectedFile.fileUrl, selectedFile.displayName);
                 return;
             }
 
@@ -596,6 +596,102 @@ class ImageContentController extends ContentController {
             if (cell.content.loop !== false) { // Default to true
                 video.loop = true;
             }
+        }
+    }
+
+    /**
+     * Load and setup Lottie animation from Media Manager URL
+     * @param {ContentCell} cell - Cell object
+     * @param {string} url - CDN URL to Lottie JSON file
+     * @param {string} fileName - File name
+     * @private
+     */
+    async handleLottieFromURL(cell, url, fileName) {
+        try {
+            // Fetch the JSON data from the URL
+            const response = await fetch(url);
+            if (!response.ok) {
+                throw new Error(`Failed to fetch Lottie file: ${response.status}`);
+            }
+            const animationData = await response.json();
+
+            // Check if lottie library is available
+            if (typeof lottie === 'undefined') {
+                console.error('Lottie library not loaded');
+                alert('Lottie library not loaded. Please refresh the page.');
+                return;
+            }
+
+            // Get animation dimensions
+            const width = animationData.w || 512;
+            const height = animationData.h || 512;
+
+            // Create a hidden container div for Lottie canvas
+            const container = document.createElement('div');
+            container.style.position = 'absolute';
+            container.style.left = '-9999px';
+            container.style.width = width + 'px';
+            container.style.height = height + 'px';
+            container.style.pointerEvents = 'none';
+            document.body.appendChild(container);
+
+            // Create Lottie animation instance with canvas renderer
+            const lottieAnimation = lottie.loadAnimation({
+                container: container,
+                renderer: 'canvas',
+                loop: true,
+                autoplay: true,
+                animationData: animationData,
+                rendererSettings: {
+                    preserveAspectRatio: 'xMidYMid meet',
+                    clearCanvas: true,
+                    progressiveLoad: false
+                }
+            });
+
+            // Get the canvas that Lottie created
+            const canvas = container.querySelector('canvas');
+
+            if (!canvas) {
+                console.error('Lottie did not create a canvas element');
+                document.body.removeChild(container);
+                alert('Failed to initialize Lottie animation.');
+                return;
+            }
+
+            // Store canvas, animation instance, and container
+            this.updateContent(cell, {
+                media: canvas,
+                mediaType: 'lottie',
+                mediaUrl: url, // Store CDN URL
+                fileName: fileName,
+                lottieAnimation: lottieAnimation,
+                lottieContainer: container,
+                scale: 1,
+                rotation: 0
+            });
+
+            console.log('✅ Lottie animation loaded from Media Manager:', {
+                fileName: fileName,
+                url: url,
+                width: width,
+                height: height
+            });
+
+            // Recreate controls to show file display
+            if (this.app.uiManager && this.app.uiManager.showSelectedCellControls) {
+                const selectedCell = this.app.selectedCell;
+                if (selectedCell) {
+                    this.app.uiManager.showSelectedCellControls(selectedCell.cell, selectedCell.row, selectedCell.col);
+                }
+            }
+
+            // Start animation loop to continuously render Lottie frames
+            this.app._startAnimationLoop();
+
+        } catch (error) {
+            console.error('❌ Error loading Lottie animation from Media Manager:', error);
+            alert('Failed to load Lottie animation. Please try again.');
         }
     }
 

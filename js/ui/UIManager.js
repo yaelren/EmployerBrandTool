@@ -2035,8 +2035,8 @@ class UIManager {
                              selectedFile.displayName?.endsWith('.lottie');
 
             if (isLottie) {
-                alert('❌ Lottie animations are not yet supported as background media.\n\nPlease use Lottie files in cell content instead.');
-                console.warn('⚠️ Lottie files not supported for background media');
+                alert('💡 Lottie animations work great in cells!\n\nFor background media, please use images or videos instead.');
+                console.warn('⚠️ Lottie files not supported for background media (use in cells instead)');
                 return;
             }
 
