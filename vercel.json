@@ -1,11 +1,6 @@
 {
   "version": 2,
-  "name": "chatooly-employer-brand-tool",
   "builds": [
-    {
-      "src": "index.html",
-      "use": "@vercel/static"
-    },
     {
       "src": "api/**/*.js",
       "use": "@vercel/node"
@@ -17,15 +12,37 @@
       "dest": "/api/$1"
     },
     {
-      "src": "/(.*\\.(css|js|jpg|jpeg|png|gif|svg|ico|woff|woff2|ttf|eot|json))",
-      "dest": "/$1"
-    },
-    {
       "src": "/(.*)",
-      "dest": "/index.html"
+      "dest": "/$1"
     }
   ],
-  "env": {
-    "NODE_ENV": "production"
-  }
+  "headers": [
+    {
+      "source": "/api/(.*)",
+      "headers": [
+        {
+          "key": "Access-Control-Allow-Origin",
+          "value": "*"
+        },
+        {
+          "key": "Access-Control-Allow-Methods",
+          "value": "GET, POST, PUT, DELETE, OPTIONS"
+        },
+        {
+          "key": "Access-Control-Allow-Headers",
+          "value": "Content-Type, Authorization"
+        }
+      ]
+    }
+  ],
+  "rewrites": [
+    {
+      "source": "/api/media/list",
+      "destination": "/api/media/list.js"
+    },
+    {
+      "source": "/api/media/upload",
+      "destination": "/api/media/upload.js"
+    }
+  ]
 }
