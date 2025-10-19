@@ -131,6 +131,7 @@ class ImageContentController extends ContentController {
             <div class="media-upload-row">
                 ${!hasFile ? `
                     <input type="file" class="spot-media-input" accept="image/*,video/*,.gif,.mp4,.webm,.mov,.json,application/json">
+                    <button type="button" class="browse-cell-media-btn browse-media-btn">📁 Browse</button>
                 ` : `
                     <div class="uploaded-file-inline">
                         <span class="file-name">${fileName}</span>
@@ -138,6 +139,7 @@ class ImageContentController extends ContentController {
                         <button type="button" class="change-file-btn" title="Change file">Change</button>
                     </div>
                     <input type="file" class="spot-media-input" accept="image/*,video/*,.gif,.mp4,.webm,.mov,.json,application/json" style="display: none;">
+                    <button type="button" class="browse-cell-media-btn browse-media-btn" style="display: none;">📁 Browse</button>
                 `}
             </div>
             ${hasFile && (cell.content.mediaType === 'video' || cell.content.mediaType === 'lottie') ? `
@@ -153,12 +155,13 @@ class ImageContentController extends ContentController {
         const mediaInput = mediaGroup.querySelector('.spot-media-input');
         const removeBtn = mediaGroup.querySelector('.remove-file-btn');
         const changeBtn = mediaGroup.querySelector('.change-file-btn');
+        const browseBtn = mediaGroup.querySelector('.browse-cell-media-btn');
         const loopToggle = mediaGroup.querySelector('.media-loop');
-        
+
         this.addControlListener(mediaInput, 'change', (e) => {
             this.handleMediaUpload(cell, e);
         });
-        
+
         if (removeBtn) {
             this.addControlListener(removeBtn, 'click', () => {
                 this.removeMedia(cell, mediaGroup);
@@ -168,6 +171,12 @@ class ImageContentController extends ContentController {
         if (changeBtn) {
             this.addControlListener(changeBtn, 'click', () => {
                 mediaInput.click();
+            });
+        }
+
+        if (browseBtn) {
+            this.addControlListener(browseBtn, 'click', async () => {
+                await this.handleBrowseCellMedia(cell, mediaGroup);
             });
         }
 
@@ -509,7 +518,136 @@ class ImageContentController extends ContentController {
         };
         reader.readAsDataURL(file);
     }
-    
+
+    /**
+     * Handle browsing Media Manager for cell media
+     * Opens modal for selecting pre-uploaded files from Wix Media Manager
+     * @param {ContentCell} cell - Cell object
+     * @param {HTMLElement} mediaGroup - Media control group element
+     * @private
+     */
+    async handleBrowseCellMedia(cell, mediaGroup) {
+        try {
+            console.log('📁 Opening Media Manager browser for cell media...');
+
+            // Check if Wix API is available and initialized
+            if (!this.app.wixAPI || !this.app.wixAPI.initialized) {
+                alert('Media Manager is not available. Please ensure Wix integration is properly configured.');
+                console.error('❌ Wix API not initialized');
+                return;
+            }
+
+            // Create and show media picker modal
+            const picker = new MediaPickerModal(this.app.wixAPI);
+            const selectedFile = await picker.show();
+
+            // Handle selected file
+            console.log(`✅ File selected from Media Manager: ${selectedFile.displayName}`);
+            console.log(`   → URL: ${selectedFile.fileUrl}`);
+            console.log(`   → Type: ${selectedFile.mimeType}`);
+
+            // Determine media type
+            const mimeType = selectedFile.mimeType;
+            let mediaType = 'other';
+
+            if (mimeType.startsWith('image/')) {
+                mediaType = selectedFile.displayName.toLowerCase().endsWith('.gif') ? 'gif' : 'image';
+            } else if (mimeType.startsWith('video/')) {
+                mediaType = 'video';
+            }
+
+            if (mediaType === 'image' || mediaType === 'gif') {
+                // Load image from CDN URL
+                const img = new Image();
+                img.crossOrigin = 'anonymous'; // Enable CORS for CDN images
+                img.onload = () => {
+                    this.updateContent(cell, {
+                        media: img,
+                        mediaType: mediaType,
+                        mediaUrl: selectedFile.fileUrl, // Store CDN URL
+                        fileName: selectedFile.displayName,
+                        scale: 1,
+                        rotation: 0
+                    });
+
+                    console.log('✅ Cell image set from Media Manager');
+
+                    // Recreate controls to show file display
+                    if (this.app.uiManager && this.app.uiManager.showSelectedCellControls) {
+                        const selectedCell = this.app.selectedCell;
+                        if (selectedCell) {
+                            this.app.uiManager.showSelectedCellControls(selectedCell.cell, selectedCell.row, selectedCell.col);
+                        }
+                    }
+                };
+                img.onerror = (error) => {
+                    console.error('❌ Failed to load image from Media Manager:', error);
+                    alert('Failed to load image from Media Manager. Please try again.');
+                };
+                img.src = selectedFile.fileUrl;
+
+            } else if (mediaType === 'video') {
+                // Load video from CDN URL
+                const video = document.createElement('video');
+                video.src = selectedFile.fileUrl;
+                video.preload = 'metadata';
+                video.crossOrigin = 'anonymous';
+                video.autoplay = true;
+                video.loop = cell.content.loop !== false;
+                video.muted = true;
+                video.controls = false;
+
+                console.log('Setting up cell video from Media Manager with autoplay:', video.autoplay, 'loop:', video.loop);
+
+                video.addEventListener('loadedmetadata', () => {
+                    console.log('Cell video metadata loaded:', video.videoWidth, 'x', video.videoHeight);
+
+                    this.updateContent(cell, {
+                        media: video,
+                        mediaType: mediaType,
+                        mediaUrl: selectedFile.fileUrl, // Store CDN URL
+                        fileName: selectedFile.displayName,
+                        scale: 1,
+                        rotation: 0,
+                        autoplay: true,
+                        loop: cell.content.loop !== false
+                    });
+
+                    // Recreate controls to show video controls and file display
+                    if (this.app.uiManager && this.app.uiManager.showSelectedCellControls) {
+                        const selectedCell = this.app.selectedCell;
+                        if (selectedCell) {
+                            this.app.uiManager.showSelectedCellControls(selectedCell.cell, selectedCell.row, selectedCell.col);
+                        }
+                    }
+
+                    // Force a render to show the video
+                    this.app.render();
+
+                    // Start animation loop for video frame updates
+                    this.app._startAnimationLoop();
+
+                    // Ensure video playback is correct
+                    this.ensureVideoPlayback(cell);
+                });
+
+                video.addEventListener('error', (event) => {
+                    console.error('❌ Error loading cell video from Media Manager:', video.error, event);
+                    alert('Error loading video. Please try a different file.');
+                });
+
+                video.load();
+            }
+
+        } catch (error) {
+            // User cancelled or error occurred
+            if (error.message !== 'User cancelled') {
+                console.error('❌ Media Manager browse error:', error);
+                alert('Failed to browse Media Manager. Please try again.');
+            }
+        }
+    }
+
     /**
      * Handle Lottie JSON file upload
      * @param {ContentCell} cell - Cell object

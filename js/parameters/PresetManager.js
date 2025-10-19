@@ -747,19 +747,32 @@ class PresetManager {
 
             // 2. Upload background image if exists
             if (state.background.imageElement) {
-                console.log('📤 SAVE: Uploading background image...');
-                console.log('   → Image element type:', state.background.imageElement.constructor.name);
-                console.log('   → Image dimensions:', state.background.imageElement.width, 'x', state.background.imageElement.height);
+                const imgSrc = state.background.imageElement.src;
 
-                state.background.imageURL = await this.wixAPI.uploadMedia(
-                    state.background.imageElement,
-                    `bg-${presetName}-${Date.now()}.png`,
-                    'image/png'
-                );
+                // 🧪 TEST: Check if this is a CDN URL - if so, save it directly!
+                if (imgSrc && imgSrc.startsWith('https://static.wixstatic.com/media/')) {
+                    console.log('🎯 SAVE: Detected CDN URL - saving directly (no upload needed)');
+                    console.log('   → CDN URL:', imgSrc);
+                    console.log('   → URL length:', imgSrc.length, 'bytes (vs ~266KB for data URL)');
 
-                console.log('   ✅ Media uploaded, URL length:', state.background.imageURL.length, 'characters');
-                console.log('   → Preview:', state.background.imageURL.substring(0, 50) + '...');
-                delete state.background.imageElement; // Remove temp reference
+                    state.background.imageURL = imgSrc;
+                    delete state.background.imageElement; // Remove temp reference
+                } else {
+                    // Original upload logic
+                    console.log('📤 SAVE: Uploading background image...');
+                    console.log('   → Image element type:', state.background.imageElement.constructor.name);
+                    console.log('   → Image dimensions:', state.background.imageElement.width, 'x', state.background.imageElement.height);
+
+                    state.background.imageURL = await this.wixAPI.uploadMedia(
+                        state.background.imageElement,
+                        `bg-${presetName}-${Date.now()}.png`,
+                        'image/png'
+                    );
+
+                    console.log('   ✅ Media uploaded, URL length:', state.background.imageURL.length, 'characters');
+                    console.log('   → Preview:', state.background.imageURL.substring(0, 50) + '...');
+                    delete state.background.imageElement; // Remove temp reference
+                }
             } else {
                 console.log('ℹ️ SAVE: No background image to upload');
             }

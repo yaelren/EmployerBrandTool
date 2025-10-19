@@ -1,6 +1,7 @@
 {
   "name": "chatooly-employer-brand-tool",
   "version": "1.0.0",
+  "type": "module",
   "description": "Text-driven layout tool with automatic spot detection for employer branding",
   "main": "index.html",
   "scripts": {
@@ -23,7 +24,8 @@
   "author": "Yael Renous - Studio Video",
   "license": "MIT",
   "devDependencies": {
-    "@playwright/test": "^1.40.0"
+    "@playwright/test": "^1.40.0",
+    "vercel": "^48.4.0"
   },
   "engines": {
     "node": ">=16.0.0"
@@ -39,6 +41,11 @@
   "dependencies": {
     "@wix/data": "^1.0.306",
     "@wix/media": "^1.0.195",
-    "@wix/sdk": "^1.17.1"
+    "@wix/sdk": "^1.17.1",
+    "cors": "^2.8.5",
+    "dotenv": "^17.2.3",
+    "express": "^5.1.0",
+    "formidable": "^3.5.1",
+    "node-fetch": "^2.7.0"
   }
 }

@@ -12,6 +12,7 @@ export class WixPresetAPI {
     constructor() {
         this.clientId = null;
         this.apiKey = null;  // Optional API key for Media Manager
+        this.siteId = null;  // Required for Media Manager API calls
         this.accessToken = null;
         this.initialized = false;
         this.collectionName = 'presets';
@@ -19,19 +20,26 @@ export class WixPresetAPI {
     }
 
     /**
-     * Initialize Wix API with OAuth client ID and optional API key
+     * Initialize Wix API with OAuth client ID, optional API key, and site ID
      * @param {string} clientId - Wix OAuth Client ID
      * @param {string|null} apiKey - Optional Wix API Key for Media Manager
+     * @param {string|null} siteId - Wix Site ID (required for Media Manager)
      */
-    async initialize(clientId, apiKey = null) {
+    async initialize(clientId, apiKey = null, siteId = null) {
         try {
             console.log('🔄 Initializing Wix REST API...');
             this.clientId = clientId;
             this.apiKey = apiKey;
+            this.siteId = siteId;
 
             if (apiKey) {
                 console.log('🔑 API Key provided - Media Manager uploads will use admin authentication');
                 console.log('   ⚠️ API key exposed in browser - use only for personal/demo projects');
+            }
+
+            if (siteId) {
+                console.log('🆔 Site ID provided - Media Manager API calls enabled');
+                console.log(`   → Site ID: ${siteId}`);
             }
 
             // Try loading existing tokens first
@@ -378,7 +386,7 @@ export class WixPresetAPI {
         } catch (error) {
             console.error(`❌ Wix ${mediaType} upload failed:`, error);
 
-            // Fallback only works for images and GIFs (not videos - too large)
+            // Fallback to data URL for images only (backwards compatibility)
             if (mediaType === 'image' && !(mediaElement instanceof Blob)) {
                 try {
                     console.log(`⚠️ Falling back to data URL for ${mediaType}...`);
@@ -766,6 +774,84 @@ export class WixPresetAPI {
         } catch (error) {
             console.error('❌ Failed to delete preset:', error);
             throw new Error(`Failed to delete preset: ${error.message}`);
+        }
+    }
+
+    /**
+     * List files from Wix Media Manager
+     * @param {string} folderId - Optional folder ID to filter by
+     * @returns {Promise<Array>} - Array of file objects with structure:
+     *   {
+     *     id: string,
+     *     fileUrl: string,           // CDN URL
+     *     displayName: string,
+     *     mimeType: string,          // e.g., "image/png", "video/mp4"
+     *     sizeInBytes: number,
+     *     createdDate: string,
+     *     labels: string[]
+     *   }
+     */
+    async listMediaFiles(folderId = null) {
+        this.ensureInitialized();
+
+        try {
+            console.log('📋 Fetching files from Wix Media Manager...');
+
+            // Check if API key is available (required for Media Manager access)
+            if (!this.apiKey) {
+                throw new Error('Media Manager access requires an API Key. OAuth tokens do not have permission to list files.');
+            }
+
+            // Build endpoint with optional folder filter
+            const endpoint = `${this.baseURL}/site-media/v1/files`;
+            const url = folderId ? `${endpoint}?parentFolderId=${folderId}` : endpoint;
+
+            console.log(`   → Endpoint: ${url}`);
+            console.log(`   → Using IST token for authentication`);
+
+            // Use API key for Media Manager (same format as upload)
+            const authHeader = this.apiKey.startsWith('IST.')
+                ? `Bearer ${this.apiKey}`
+                : this.apiKey.startsWith('JWS.')
+                    ? this.apiKey
+                    : `Bearer ${this.apiKey}`;
+
+            const headers = {
+                'Authorization': authHeader,
+                'Content-Type': 'application/json'
+            };
+
+            // Add site ID if available (IST tokens may need this)
+            if (this.siteId) {
+                headers['wix-site-id'] = this.siteId;
+                console.log(`   → Site ID: ${this.siteId}`);
+            }
+
+            const response = await fetch(url, {
+                method: 'GET',
+                headers: headers
+            });
+
+            console.log(`   → Response status: ${response.status}`);
+
+            if (!response.ok) {
+                const errorText = await response.text();
+                throw new Error(`Failed to list media files: ${response.status} - ${errorText}`);
+            }
+
+            const data = await response.json();
+            const files = data.files || [];
+
+            console.log(`✅ Found ${files.length} files in Media Manager`);
+            if (files.length > 0) {
+                console.log(`   → First file: ${files[0].displayName} (${files[0].mimeType})`);
+            }
+
+            return files;
+
+        } catch (error) {
+            console.error('❌ Failed to list media files:', error);
+            throw new Error(`Failed to list media files: ${error.message}`);
         }
     }
 }

@@ -79,14 +79,19 @@ Authorization: Bearer {OAuth_access_token}
 
 ### Authentication
 
-**Good News:** List Files API works with OAuth visitor tokens! ✅
+**Important:** List Files API requires API Key (IST Token)! 🔑
 
-Unlike upload endpoint, the **list/read** endpoint should work with our existing authentication:
+Like the upload endpoint, the **list/read** endpoint requires admin authentication:
 ```javascript
 headers: {
-    'Authorization': `Bearer ${this.accessToken}`
+    'Authorization': `Bearer ${this.apiKey}` // IST token, not OAuth token
 }
 ```
+
+**Why OAuth tokens don't work:**
+- OAuth visitor tokens lack Media Manager read permissions
+- IST (Instance) tokens have full Media Manager access
+- Must use the same API key as for uploads
 
 ---
 

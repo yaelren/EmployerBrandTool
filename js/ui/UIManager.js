@@ -36,6 +36,7 @@ class UIManager {
             textColor: 'textColor',
             backgroundColor: 'backgroundColor',
             backgroundMedia: 'backgroundMedia',
+            browseBackgroundMedia: 'browseBackgroundMedia',
             clearBackgroundMedia: 'clearBackgroundMedia',
             backgroundVideoControls: 'backgroundVideoControls',
             backgroundVideoAutoplay: 'backgroundVideoAutoplay',
@@ -469,6 +470,13 @@ class UIManager {
         if (this.elements.backgroundMedia) {
             this.elements.backgroundMedia.addEventListener('change', (e) => {
                 this.handleBackgroundMediaUpload(e);
+            });
+        }
+
+        // Browse Media Manager for background media
+        if (this.elements.browseBackgroundMedia) {
+            this.elements.browseBackgroundMedia.addEventListener('click', async () => {
+                await this.handleBrowseMediaManager();
             });
         }
 
@@ -2102,6 +2110,97 @@ class UIManager {
             }
         };
         reader.readAsDataURL(file);
+    }
+
+    /**
+     * Handle browsing Media Manager for background media
+     * Opens modal for selecting pre-uploaded files from Wix Media Manager
+     */
+    async handleBrowseMediaManager() {
+        try {
+            console.log('📁 Opening Media Manager browser...');
+
+            // Check if Wix API is available and initialized
+            if (!this.app.wixAPI || !this.app.wixAPI.initialized) {
+                alert('Media Manager is not available. Please ensure Wix integration is properly configured.');
+                console.error('❌ Wix API not initialized');
+                return;
+            }
+
+            // Create and show media picker modal
+            const picker = new MediaPickerModal(this.app.wixAPI);
+            const selectedFile = await picker.show();
+
+            // Handle selected file
+            console.log(`✅ File selected from Media Manager: ${selectedFile.displayName}`);
+            console.log(`   → URL: ${selectedFile.fileUrl}`);
+            console.log(`   → Type: ${selectedFile.mimeType}`);
+
+            // Determine media type
+            const mediaType = selectedFile.mimeType.startsWith('image/') ? 'image' : 'video';
+
+            if (mediaType === 'image') {
+                // Load image from CDN URL
+                const img = new Image();
+                img.crossOrigin = 'anonymous'; // Enable CORS for CDN images
+                img.onload = () => {
+                    this.app.canvasManager.setBackgroundImage(img);
+                    this.elements.clearBackgroundMedia.style.display = 'inline-block';
+                    this.elements.backgroundVideoControls.style.display = 'none';
+                    this.app.render();
+                    console.log('✅ Background image set from Media Manager');
+                };
+                img.onerror = (error) => {
+                    console.error('❌ Failed to load image from Media Manager:', error);
+                    alert('Failed to load image from Media Manager. Please try again.');
+                };
+                img.src = selectedFile.fileUrl;
+
+            } else if (mediaType === 'video') {
+                // Load video from CDN URL
+                const video = document.createElement('video');
+                video.src = selectedFile.fileUrl;
+                video.preload = 'metadata';
+                video.crossOrigin = 'anonymous';
+                video.autoplay = true;
+                video.loop = this.elements.backgroundVideoLoop.checked;
+                video.muted = true; // Always muted for autoplay compatibility
+                video.controls = false;
+
+                console.log('Setting up background video from Media Manager with autoplay:', video.autoplay, 'loop:', video.loop);
+
+                video.addEventListener('loadedmetadata', () => {
+                    console.log('Background video metadata loaded:', video.videoWidth, 'x', video.videoHeight);
+                    this.app.setBackgroundVideo(video);
+                    this.elements.clearBackgroundMedia.style.display = 'inline-block';
+                    this.elements.backgroundVideoControls.style.display = 'flex';
+
+                    // Try to start playback if autoplay is enabled
+                    if (this.elements.backgroundVideoAutoplay.checked) {
+                        console.log('Attempting to start background video playback...');
+                        video.play().then(() => {
+                            console.log('Background video started playing');
+                        }).catch(error => {
+                            console.warn('Background video autoplay failed:', error);
+                        });
+                    }
+                });
+
+                video.addEventListener('error', (event) => {
+                    console.error('❌ Error loading background video from Media Manager:', video.error, event);
+                    alert('Error loading background video. Please try a different file.');
+                });
+
+                video.load();
+            }
+
+        } catch (error) {
+            // User cancelled or error occurred
+            if (error.message !== 'User cancelled') {
+                console.error('❌ Media Manager browse error:', error);
+                alert('Failed to browse Media Manager. Please try again.');
+            }
+        }
     }
 
     /**
