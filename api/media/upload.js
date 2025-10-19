@@ -117,12 +117,21 @@ export default async function handler(req, res) {
 
         // Determine MIME type - preserve original for Lottie/JSON files
         let mimeType = uploadedFile.mimetype;
-        if (fileData.mediaType === 'IMAGE' && !mimeType.startsWith('image/')) {
-            mimeType = 'image/jpeg';
-        } else if (fileData.mediaType === 'VIDEO' && !mimeType.startsWith('video/')) {
-            mimeType = 'video/mp4';
+
+        // Check if it's a Lottie/JSON file by extension or MIME type
+        const isLottie = uploadedFile.originalFilename?.endsWith('.json') ||
+                         uploadedFile.originalFilename?.endsWith('.lottie') ||
+                         uploadedFile.mimetype === 'application/json';
+
+        // Only normalize MIME type for actual images/videos, not JSON files
+        if (!isLottie) {
+            if (fileData.mediaType === 'IMAGE') {
+                mimeType = 'image/jpeg';
+            } else if (fileData.mediaType === 'VIDEO') {
+                mimeType = 'video/mp4';
+            }
         }
-        // For JSON/Lottie files, keep original mimeType (application/json)
+        // For Lottie/JSON files, keep original mimeType (application/json)
 
         // Normalize the response to match MediaPickerModal expectations
         return res.status(200).json({
