@@ -77,6 +77,9 @@ class MediaPickerModal {
         }
 
         try {
+            // Show upload loader
+            this.showUploadLoader(file.name);
+
             console.log('📤 Uploading to Media Manager via backend...');
             const formData = new FormData();
             formData.append('file', file);
@@ -99,6 +102,9 @@ class MediaPickerModal {
         } catch (error) {
             console.error('❌ Upload failed:', error);
             throw error;
+        } finally {
+            // Hide upload loader
+            this.hideUploadLoader();
         }
     }
 
@@ -390,6 +396,35 @@ class MediaPickerModal {
     }
 
     /**
+     * Show upload loader
+     */
+    showUploadLoader(fileName) {
+        // Remove existing loader if any
+        this.hideUploadLoader();
+
+        const loader = document.createElement('div');
+        loader.className = 'upload-loader-overlay';
+        loader.innerHTML = `
+            <div class="upload-loader-content">
+                <div class="upload-spinner"></div>
+                <div class="upload-loader-text">Uploading to Media Manager...</div>
+                <div class="upload-loader-subtext">${fileName}</div>
+            </div>
+        `;
+        document.body.appendChild(loader);
+    }
+
+    /**
+     * Hide upload loader
+     */
+    hideUploadLoader() {
+        const loader = document.querySelector('.upload-loader-overlay');
+        if (loader) {
+            loader.remove();
+        }
+    }
+
+    /**
      * Close modal
      */
     close() {
@@ -397,5 +432,7 @@ class MediaPickerModal {
         if (modal) {
             modal.remove();
         }
+        // Also hide loader if still showing
+        this.hideUploadLoader();
     }
 }
