@@ -32,8 +32,8 @@ yarn-error.log*
 .env
 .env.local
 
-# Wix Configuration (contains sensitive Client ID)
-js/config/wix-config.js
+# Wix Configuration - wix-config.js is now safe to commit (contains only public IDs)
+# Sensitive API keys are stored in backend environment variables only
 
 # Template development files
 template-dev/
