@@ -2029,6 +2029,17 @@ class UIManager {
             console.log(`   → URL: ${selectedFile.fileUrl}`);
             console.log(`   → Type: ${selectedFile.mimeType}`);
 
+            // Check if it's a Lottie file
+            const isLottie = selectedFile.mimeType === 'application/json' ||
+                             selectedFile.displayName?.endsWith('.json') ||
+                             selectedFile.displayName?.endsWith('.lottie');
+
+            if (isLottie) {
+                alert('❌ Lottie animations are not yet supported as background media.\n\nPlease use Lottie files in cell content instead.');
+                console.warn('⚠️ Lottie files not supported for background media');
+                return;
+            }
+
             // Determine media type
             const mediaType = selectedFile.mimeType.startsWith('image/') ? 'image' : 'video';
 

@@ -392,6 +392,17 @@ class ImageContentController extends ContentController {
             console.log(`   → URL: ${selectedFile.fileUrl}`);
             console.log(`   → Type: ${selectedFile.mimeType}`);
 
+            // Check if it's a Lottie file
+            const isLottie = selectedFile.mimeType === 'application/json' ||
+                             selectedFile.displayName?.endsWith('.json') ||
+                             selectedFile.displayName?.endsWith('.lottie');
+
+            if (isLottie) {
+                alert('❌ Lottie animations are not yet supported in cells.\n\nLottie rendering support is coming soon!');
+                console.warn('⚠️ Lottie files not yet supported for cell content');
+                return;
+            }
+
             // Determine media type
             const mimeType = selectedFile.mimeType;
             let mediaType = 'other';
