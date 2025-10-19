@@ -115,6 +115,15 @@ export default async function handler(req, res) {
         console.log('✅ Upload complete!');
         console.log('   → File URL:', fileData.url);
 
+        // Determine MIME type - preserve original for Lottie/JSON files
+        let mimeType = uploadedFile.mimetype;
+        if (fileData.mediaType === 'IMAGE' && !mimeType.startsWith('image/')) {
+            mimeType = 'image/jpeg';
+        } else if (fileData.mediaType === 'VIDEO' && !mimeType.startsWith('video/')) {
+            mimeType = 'video/mp4';
+        }
+        // For JSON/Lottie files, keep original mimeType (application/json)
+
         // Normalize the response to match MediaPickerModal expectations
         return res.status(200).json({
             success: true,
@@ -123,7 +132,7 @@ export default async function handler(req, res) {
                 fileName: fileData.displayName || uploadedFile.originalFilename,
                 displayName: fileData.displayName || uploadedFile.originalFilename,
                 fileUrl: fileData.url,
-                mimeType: fileData.mediaType === 'IMAGE' ? 'image/jpeg' : 'video/mp4',
+                mimeType: mimeType,
                 sizeInBytes: parseInt(fileData.sizeInBytes) || uploadedFile.size,
                 width: fileData.media?.image?.image?.width || 0,
                 height: fileData.media?.image?.image?.height || 0

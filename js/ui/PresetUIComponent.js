@@ -33,7 +33,7 @@ class PresetUIComponent {
             <div class="preset-controls preset-cloud-controls">
                 <!-- Save Section -->
                 <div class="preset-section preset-save-section">
-                    <h3>💾 Save New Preset</h3>
+                    <h3>Save New Preset</h3>
                     <p class="preset-description">Save your current design locally or to the cloud</p>
                     <div class="preset-save-controls">
                         <input
@@ -43,11 +43,11 @@ class PresetUIComponent {
                             placeholder="Enter preset name..."
                             maxlength="50">
                         <div class="preset-save-buttons">
-                            <button type="button" class="preset-save-local-btn chatooly-btn chatooly-btn-secondary">
-                                📁 Save Locally
+                            <button type="button" class="preset-save-local-btn">
+                                Save Locally
                             </button>
-                            <button type="button" class="preset-save-cloud-btn chatooly-btn chatooly-btn-primary">
-                                ☁️ Save to Cloud
+                            <button type="button" class="preset-save-cloud-btn">
+                                Save to Cloud
                             </button>
                         </div>
                     </div>
@@ -55,7 +55,7 @@ class PresetUIComponent {
 
                 <!-- Load Local File Section -->
                 <div class="preset-section preset-load-local-section">
-                    <h3>📂 Load Local Preset</h3>
+                    <h3>Load Local Preset</h3>
                     <p class="preset-description">Upload a preset file from your computer</p>
                     <div class="preset-load-file-controls">
                         <input
@@ -63,8 +63,8 @@ class PresetUIComponent {
                             id="presetFileInput"
                             accept=".json"
                             style="display: none;">
-                        <button type="button" class="preset-load-file-btn chatooly-btn chatooly-btn-secondary">
-                            📂 Choose File
+                        <button type="button" class="preset-load-file-btn">
+                            Choose File
                         </button>
                         <span id="selectedFileName" class="selected-file-name"></span>
                     </div>
@@ -72,36 +72,24 @@ class PresetUIComponent {
 
                 <!-- Load Section -->
                 <div class="preset-section preset-load-section">
-                    <h3>📥 Load Preset</h3>
+                    <h3>Load Preset</h3>
                     <p class="preset-description">Select a preset from your cloud library</p>
                     <div class="preset-load-controls">
                         <select id="presetDropdown" class="preset-dropdown">
                             <option value="">-- Select Preset --</option>
                         </select>
                         <div class="preset-action-buttons">
-                            <button type="button" class="preset-load-cloud-btn chatooly-btn chatooly-btn-primary">
-                                📥 Load
+                            <button type="button" class="preset-load-cloud-btn">
+                                Load
                             </button>
-                            <button type="button" class="preset-delete-btn chatooly-btn chatooly-btn-danger">
-                                🗑️ Delete
+                            <button type="button" class="preset-delete-btn">
+                                Delete
                             </button>
-                            <button type="button" class="preset-refresh-btn chatooly-btn chatooly-btn-secondary">
-                                🔄 Refresh
+                            <button type="button" class="preset-refresh-btn">
+                                Refresh
                             </button>
                         </div>
                     </div>
-                </div>
-
-                <!-- Info Section -->
-                <div class="preset-info preset-cloud-info">
-                    <h4>ℹ️ About Cloud Presets</h4>
-                    <ul class="preset-features">
-                        <li>✅ Automatically saved to Wix cloud</li>
-                        <li>✅ All images uploaded to Wix CDN</li>
-                        <li>✅ Access from any device</li>
-                        <li>✅ No file downloads needed</li>
-                        <li>⚠️ Videos cannot be saved (Phase I limitation)</li>
-                    </ul>
                 </div>
             </div>
         `;

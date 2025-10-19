@@ -163,7 +163,7 @@ class MediaPickerModal {
             </div>
 
             <!-- Hidden file input -->
-            <input type="file" class="media-picker-file-input" accept="image/*,video/*" style="display: none;">
+            <input type="file" class="media-picker-file-input" accept="image/*,video/*,.json,.lottie,application/json" style="display: none;">
         `;
         return modal;
     }
@@ -197,15 +197,28 @@ class MediaPickerModal {
      */
     renderFileItem(file) {
         const isVideo = file.mimeType?.startsWith('video/');
+        const isLottie = file.mimeType === 'application/json' ||
+                         file.fileName?.endsWith('.json') ||
+                         file.fileName?.endsWith('.lottie');
         const thumbnailUrl = file.fileUrl;
         const sizeKB = (file.sizeInBytes / 1024).toFixed(1);
 
+        let mediaContent;
+        if (isLottie) {
+            mediaContent = `
+                <div class="media-picker-lottie-container" data-lottie-url="${thumbnailUrl}">
+                    <div class="lottie-icon">🎬</div>
+                    <div class="lottie-label">Lottie</div>
+                </div>`;
+        } else if (isVideo) {
+            mediaContent = `<video src="${thumbnailUrl}" class="media-picker-thumbnail"></video>`;
+        } else {
+            mediaContent = `<img src="${thumbnailUrl}" alt="${file.displayName}" class="media-picker-thumbnail" crossorigin="anonymous">`;
+        }
+
         return `
             <div class="media-picker-item" data-file-id="${file.id}">
-                ${isVideo ?
-                    `<video src="${thumbnailUrl}" class="media-picker-thumbnail"></video>` :
-                    `<img src="${thumbnailUrl}" alt="${file.displayName}" class="media-picker-thumbnail" crossorigin="anonymous">`
-                }
+                ${mediaContent}
                 <div class="media-picker-item-info">
                     <div class="media-picker-item-name">${file.displayName || file.fileName}</div>
                     <div class="media-picker-item-size">${sizeKB} KB</div>
