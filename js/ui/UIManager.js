@@ -466,13 +466,6 @@ class UIManager {
             });
         }
 
-        // Background media upload (image or video)
-        if (this.elements.backgroundMedia) {
-            this.elements.backgroundMedia.addEventListener('change', (e) => {
-                this.handleBackgroundMediaUpload(e);
-            });
-        }
-
         // Browse Media Manager for background media
         if (this.elements.browseBackgroundMedia) {
             this.elements.browseBackgroundMedia.addEventListener('click', async () => {
@@ -1789,7 +1782,6 @@ class UIManager {
         const backgroundOpacity = document.getElementById('backgroundOpacity');
         const backgroundOpacityValue = document.getElementById('backgroundOpacityValue');
         const transparentBackground = document.getElementById('transparentBackground');
-        const backgroundMedia = document.getElementById('backgroundMedia');
         const clearBackgroundMedia = document.getElementById('clearBackgroundMedia');
         const backgroundVideoAutoplay = document.getElementById('backgroundVideoAutoplay');
         const backgroundVideoLoop = document.getElementById('backgroundVideoLoop');
@@ -1834,17 +1826,6 @@ class UIManager {
                 this.updateBackgroundColor();
             };
             transparentBackground.addEventListener('change', this.handleTransparentBackgroundChange);
-        }
-
-        // Background media upload
-        if (backgroundMedia) {
-            console.log('Background media element found in Grid tab');
-            const handler = (e) => {
-                console.log('Background media upload triggered');
-                this.handleBackgroundMediaUpload(e);
-            };
-            backgroundMedia.removeEventListener('change', handler);
-            backgroundMedia.addEventListener('change', handler);
         }
 
         // Clear background media
@@ -2025,94 +2006,6 @@ class UIManager {
     }
 
     /**
-     * Handle background media upload (image or video)
-     * @param {Event} event - File input change event
-     */
-    handleBackgroundMediaUpload(event) {
-        const file = event.target.files[0];
-        if (!file) return;
-
-        const reader = new FileReader();
-        reader.onload = (e) => {
-            const fileType = file.type;
-            const fileName = file.name.toLowerCase();
-
-            // Determine media type
-            let mediaType = 'other';
-            if (fileType.startsWith('image/')) {
-                mediaType = 'image';
-            } else if (fileType.startsWith('video/')) {
-                mediaType = 'video';
-            }
-
-            if (mediaType === 'image') {
-                // Handle images
-                const img = new Image();
-                img.onload = () => {
-                    this.app.canvasManager.setBackgroundImage(img);
-                    this.elements.clearBackgroundMedia.style.display = 'inline-block';
-                    this.elements.backgroundVideoControls.style.display = 'none';
-                    this.app.render();
-                };
-                img.src = e.target.result;
-            } else if (mediaType === 'video') {
-                // Handle videos
-                const video = document.createElement('video');
-                video.src = e.target.result;
-                video.preload = 'metadata';
-                video.crossOrigin = 'anonymous';
-                video.autoplay = true; // Always enable autoplay attribute
-                video.loop = this.elements.backgroundVideoLoop.checked;
-                video.muted = true; // Always muted for autoplay compatibility
-                video.controls = false;
-                
-                console.log('Setting up background video with autoplay:', video.autoplay, 'loop:', video.loop);
-                
-                video.addEventListener('loadedmetadata', () => {
-                    console.log('Background video metadata loaded:', video.videoWidth, 'x', video.videoHeight);
-                    this.app.setBackgroundVideo(video);
-                    this.elements.clearBackgroundMedia.style.display = 'inline-block';
-                    this.elements.backgroundVideoControls.style.display = 'flex';
-                    this.app.render();
-                    
-                    // Start playing if autoplay is enabled
-                    if (this.elements.backgroundVideoAutoplay.checked) {
-                        console.log('Attempting to start background video playback...');
-                        video.play().then(() => {
-                            console.log('Background video started playing successfully');
-                        }).catch(error => {
-                            console.warn('Background video autoplay failed:', error);
-                        });
-                    }
-                });
-
-                video.addEventListener('canplay', () => {
-                    // Ensure video starts playing if autoplay is enabled
-                    if (this.elements.backgroundVideoAutoplay.checked && video.paused) {
-                        console.log('Attempting to start background video playback from canplay event...');
-                        video.play().then(() => {
-                            console.log('Background video started playing from canplay event');
-                        }).catch(error => {
-                            console.warn('Background video autoplay failed from canplay event:', error);
-                        });
-                    }
-                });
-
-                video.addEventListener('error', (event) => {
-                    console.error('Error loading background video:', video.error, event);
-                    alert('Error loading background video file. Please try a different format.');
-                });
-                
-                video.load();
-            } else {
-                console.warn('Unsupported file type:', fileType);
-                alert('Unsupported file type. Please select an image or video file.');
-            }
-        };
-        reader.readAsDataURL(file);
-    }
-
-    /**
      * Handle browsing Media Manager for background media
      * Opens modal for selecting pre-uploaded files from Wix Media Manager
      */
@@ -2208,7 +2101,6 @@ class UIManager {
      */
     clearBackgroundMedia() {
         this.app.canvasManager.clearBackgroundMedia();
-        this.elements.backgroundMedia.value = '';
         this.elements.clearBackgroundMedia.style.display = 'none';
         this.elements.backgroundVideoControls.style.display = 'none';
         this.app.render();

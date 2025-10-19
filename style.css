@@ -27,8 +27,25 @@
     gap: 8px;
 }
 
-.background-media-controls input[type="file"] {
-    flex: 1;
+/* Browse Media Manager button styling - matches preset buttons */
+/* Using !important to override CDN styles */
+.browse-media-btn,
+button.browse-media-btn {
+    padding: 6px 12px !important;
+    font-size: 11px !important;
+    font-weight: 400 !important;
+    border-radius: 3px !important;
+    background: var(--chatooly-color-surface, #1a1a1a) !important;
+    color: var(--chatooly-color-text, #e5e5e5) !important;
+    border: 1px solid var(--chatooly-color-border, #3a3a3a) !important;
+    cursor: pointer !important;
+    transition: all 0.2s ease !important;
+}
+
+.browse-media-btn:hover,
+button.browse-media-btn:hover {
+    background: var(--chatooly-color-surface-elevated, #2a2a2a) !important;
+    border-color: rgba(255, 255, 255, 0.2) !important;
 }
 
 /* Custom styles for Employer Brand Tool POC */
@@ -269,39 +286,7 @@
     margin-top: 8px;
 }
 
-.spot-media-input {
-    max-width: 120px;
-}
-
-.spot-media-input::-webkit-file-upload-button {
-    padding: 6px 12px;
-    background: var(--chatooly-color-surface, #1a1a1a);
-    border: 1px solid var(--chatooly-color-border, #3a3a3a);
-    border-radius: 4px;
-    color: var(--chatooly-color-text, #e5e5e5);
-    font-size: 12px;
-    cursor: pointer;
-    transition: all 0.2s;
-}
-
-.spot-media-input::-webkit-file-upload-button:hover {
-    background: var(--chatooly-color-surface-elevated, #2a2a2a);
-}
-
-.spot-media-input::file-selector-button {
-    padding: 6px 12px;
-    background: var(--chatooly-color-surface, #1a1a1a);
-    border: 1px solid var(--chatooly-color-border, #3a3a3a);
-    border-radius: 4px;
-    color: var(--chatooly-color-text, #e5e5e5);
-    font-size: 12px;
-    cursor: pointer;
-    transition: all 0.2s;
-}
-
-.spot-media-input::file-selector-button:hover {
-    background: var(--chatooly-color-surface-elevated, #2a2a2a);
-}
+/* Old file input styles removed - now using .browse-media-btn */
 
 .uploaded-file-inline {
     display: flex;
@@ -3110,55 +3095,56 @@ select option {
 /* ========== PRESETS TAB STYLES ========== */
 
 .preset-controls {
-    padding: 20px 0;
+    padding: 0;
 }
 
 .preset-section {
-    margin-bottom: 30px;
-    padding: 20px;
-    background: var(--chatooly-color-surface-elevated, #2a2a2a);
-    border-radius: 8px;
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    margin-bottom: 12px;
+    padding: 8px 0;
+    background: transparent;
+    border-radius: 0;
+    border: none;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
 }
 
 .preset-section h3 {
-    margin: 0 0 10px 0;
+    margin: 0 0 6px 0;
     color: var(--chatooly-color-text, #e5e5e5);
-    font-size: 18px;
-    font-weight: 600;
+    font-size: 12px;
+    font-weight: 500;
 }
 
 .preset-description {
-    margin: 0 0 15px 0;
+    margin: 0 0 8px 0;
     color: var(--chatooly-color-text-secondary, #999);
-    font-size: 14px;
-    line-height: 1.4;
+    font-size: 11px;
+    line-height: 1.3;
 }
 
 .preset-save-btn,
 .preset-load-btn {
     width: 100%;
-    padding: 12px 16px;
-    font-size: 16px;
-    font-weight: 600;
-    border-radius: 6px;
-    border: none;
+    padding: 6px 12px;
+    font-size: 11px;
+    font-weight: 400;
+    border-radius: 3px;
     cursor: pointer;
     transition: all 0.2s ease;
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 8px;
+    gap: 4px;
 }
 
 .preset-save-btn {
-    background: var(--chatooly-color-primary, #007bff);
-    color: white;
+    background: var(--chatooly-color-surface, #1a1a1a);
+    color: var(--chatooly-color-text, #e5e5e5);
+    border: 1px solid var(--chatooly-color-border, #3a3a3a);
 }
 
 .preset-save-btn:hover {
-    background: var(--chatooly-color-primary-hover, #0056b3);
-    transform: translateY(-1px);
+    background: var(--chatooly-color-surface-elevated, #2a2a2a);
+    border-color: rgba(255, 255, 255, 0.2);
 }
 
 .preset-load-btn {
@@ -3169,32 +3155,109 @@ select option {
 
 .preset-load-btn:hover {
     background: var(--chatooly-color-surface-elevated, #2a2a2a);
-    border-color: var(--chatooly-color-primary, #007bff);
+    border-color: rgba(255, 255, 255, 0.2);
 }
 
 .preset-load-controls {
     display: flex;
     flex-direction: column;
-    gap: 10px;
+    gap: 6px;
 }
 
 .preset-file-input {
     display: none;
 }
 
-.preset-info {
-    margin-top: 30px;
-    padding: 20px;
+/* Preset Input Fields */
+.preset-name-input {
+    width: 100%;
+    padding: 6px 8px;
+    font-size: 11px;
     background: var(--chatooly-color-surface, #1a1a1a);
-    border-radius: 8px;
-    border: 1px solid rgba(255, 255, 255, 0.05);
+    border: 1px solid var(--chatooly-color-border, #3a3a3a);
+    border-radius: 3px;
+    color: var(--chatooly-color-text, #e5e5e5);
+    margin-bottom: 6px;
+}
+
+.preset-name-input:focus {
+    outline: none;
+    border-color: rgba(255, 255, 255, 0.3);
+}
+
+.preset-dropdown {
+    width: 100%;
+    padding: 6px 8px;
+    font-size: 11px;
+    background: var(--chatooly-color-surface, #1a1a1a);
+    border: 1px solid var(--chatooly-color-border, #3a3a3a);
+    border-radius: 3px;
+    color: var(--chatooly-color-text, #e5e5e5);
+    margin-bottom: 6px;
+}
+
+.preset-dropdown:focus {
+    outline: none;
+    border-color: rgba(255, 255, 255, 0.3);
+}
+
+/* Button Containers */
+.preset-save-buttons,
+.preset-action-buttons,
+.preset-load-file-controls {
+    display: flex;
+    gap: 6px;
+}
+
+/* Individual Button Styles */
+.preset-save-local-btn,
+.preset-save-cloud-btn,
+.preset-load-file-btn,
+.preset-load-cloud-btn,
+.preset-delete-btn,
+.preset-refresh-btn {
+    flex: 1;
+    padding: 6px 12px;
+    font-size: 11px;
+    font-weight: 400;
+    border-radius: 3px;
+    background: var(--chatooly-color-surface, #1a1a1a);
+    color: var(--chatooly-color-text, #e5e5e5);
+    border: 1px solid var(--chatooly-color-border, #3a3a3a);
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.preset-save-local-btn:hover,
+.preset-save-cloud-btn:hover,
+.preset-load-file-btn:hover,
+.preset-load-cloud-btn:hover,
+.preset-delete-btn:hover,
+.preset-refresh-btn:hover {
+    background: var(--chatooly-color-surface-elevated, #2a2a2a);
+    border-color: rgba(255, 255, 255, 0.2);
+}
+
+.selected-file-name {
+    font-size: 10px;
+    color: var(--chatooly-color-text-secondary, #999);
+    margin-left: 6px;
+}
+
+.preset-info {
+    margin-top: 12px;
+    padding: 8px 0;
+    background: transparent;
+    border-radius: 0;
+    border: none;
+    border-top: 1px solid rgba(255, 255, 255, 0.05);
 }
 
 .preset-info h4 {
-    margin: 0 0 15px 0;
+    margin: 8px 0 6px 0;
     color: var(--chatooly-color-text, #e5e5e5);
-    font-size: 16px;
-    font-weight: 600;
+    font-size: 11px;
+    font-weight: 500;
 }
 
 .preset-features {
@@ -3204,11 +3267,11 @@ select option {
 }
 
 .preset-features li {
-    padding: 8px 0;
+    padding: 4px 0;
     color: var(--chatooly-color-text-secondary, #999);
-    font-size: 14px;
-    line-height: 1.4;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    font-size: 10px;
+    line-height: 1.3;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.03);
 }
 
 .preset-features li:last-child {
@@ -3222,7 +3285,7 @@ select option {
     left: 0;
     width: 100%;
     height: 100%;
-    background: rgba(0, 0, 0, 0.8);
+    background: rgba(0, 0, 0, 0.7);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -3233,18 +3296,18 @@ select option {
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 15px;
-    padding: 30px;
-    background: var(--chatooly-color-surface-elevated, #2a2a2a);
-    border-radius: 12px;
+    gap: 10px;
+    padding: 20px;
+    background: var(--chatooly-color-surface, #1a1a1a);
+    border-radius: 4px;
     border: 1px solid var(--chatooly-color-border, #3a3a3a);
 }
 
 .preset-spinner {
-    width: 40px;
-    height: 40px;
-    border: 3px solid rgba(255, 255, 255, 0.1);
-    border-top: 3px solid var(--chatooly-color-primary, #007bff);
+    width: 30px;
+    height: 30px;
+    border: 2px solid rgba(255, 255, 255, 0.1);
+    border-top: 2px solid rgba(255, 255, 255, 0.5);
     border-radius: 50%;
     animation: preset-spin 1s linear infinite;
 }
@@ -3256,18 +3319,18 @@ select option {
 
 .preset-loading-text {
     color: var(--chatooly-color-text, #e5e5e5);
-    font-size: 16px;
-    font-weight: 500;
+    font-size: 11px;
+    font-weight: 400;
 }
 
 /* Success/Error Messages */
 .preset-message {
     position: fixed;
-    top: 20px;
-    right: 20px;
-    max-width: 400px;
+    top: 15px;
+    right: 15px;
+    max-width: 300px;
     z-index: 10001;
-    animation: preset-slide-in 0.3s ease-out;
+    animation: preset-slide-in 0.2s ease-out;
 }
 
 @keyframes preset-slide-in {
@@ -3284,50 +3347,50 @@ select option {
 .preset-message-content {
     display: flex;
     align-items: center;
-    gap: 12px;
-    padding: 16px 20px;
-    border-radius: 8px;
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+    gap: 8px;
+    padding: 8px 12px;
+    border-radius: 3px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
     border: 1px solid;
 }
 
 .preset-message-success {
-    background: #1a4d1a;
-    border-color: #2d7a2d;
-    color: #90ee90;
+    background: var(--chatooly-color-surface, #1a1a1a);
+    border-color: rgba(255, 255, 255, 0.2);
+    color: var(--chatooly-color-text, #e5e5e5);
 }
 
 .preset-message-error {
-    background: #4d1a1a;
-    border-color: #7a2d2d;
-    color: #ff6b6b;
+    background: var(--chatooly-color-surface, #1a1a1a);
+    border-color: rgba(255, 100, 100, 0.3);
+    color: var(--chatooly-color-text, #e5e5e5);
 }
 
 .preset-message-icon {
-    font-size: 18px;
+    font-size: 12px;
     flex-shrink: 0;
 }
 
 .preset-message-text {
     flex: 1;
-    font-size: 14px;
-    font-weight: 500;
-    line-height: 1.4;
+    font-size: 11px;
+    font-weight: 400;
+    line-height: 1.3;
 }
 
 .preset-message-close {
     background: none;
     border: none;
     color: inherit;
-    font-size: 20px;
+    font-size: 14px;
     cursor: pointer;
     padding: 0;
-    width: 24px;
-    height: 24px;
+    width: 18px;
+    height: 18px;
     display: flex;
     align-items: center;
     justify-content: center;
-    border-radius: 4px;
+    border-radius: 2px;
     transition: background-color 0.2s ease;
 }
 
@@ -3343,14 +3406,14 @@ select option {
         left: 10px;
         max-width: none;
     }
-    
+
     .preset-section {
-        padding: 15px;
+        padding: 8px 0;
     }
-    
+
     .preset-loading-content {
-        padding: 20px;
-        margin: 0 20px;
+        padding: 15px;
+        margin: 0 15px;
     }
 }
 

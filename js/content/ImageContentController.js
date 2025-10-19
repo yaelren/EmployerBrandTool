@@ -127,19 +127,16 @@ class ImageContentController extends ContentController {
         });
         
         mediaGroup.innerHTML = `
-            <label>Media (Image, Video, GIF, MP4, Lottie JSON)</label>
+            <label>Media (Image, Video from Media Manager)</label>
             <div class="media-upload-row">
                 ${!hasFile ? `
-                    <input type="file" class="spot-media-input" accept="image/*,video/*,.gif,.mp4,.webm,.mov,.json,application/json">
-                    <button type="button" class="browse-cell-media-btn browse-media-btn">📁 Browse</button>
+                    <button type="button" class="browse-cell-media-btn browse-media-btn">Browse</button>
                 ` : `
                     <div class="uploaded-file-inline">
                         <span class="file-name">${fileName}</span>
                         <button type="button" class="remove-file-btn" title="Remove file">×</button>
-                        <button type="button" class="change-file-btn" title="Change file">Change</button>
+                        <button type="button" class="change-file-btn browse-cell-media-btn" title="Change file">Change</button>
                     </div>
-                    <input type="file" class="spot-media-input" accept="image/*,video/*,.gif,.mp4,.webm,.mov,.json,application/json" style="display: none;">
-                    <button type="button" class="browse-cell-media-btn browse-media-btn" style="display: none;">📁 Browse</button>
                 `}
             </div>
             ${hasFile && (cell.content.mediaType === 'video' || cell.content.mediaType === 'lottie') ? `
@@ -152,15 +149,9 @@ class ImageContentController extends ContentController {
             ` : ''}
         `;
 
-        const mediaInput = mediaGroup.querySelector('.spot-media-input');
         const removeBtn = mediaGroup.querySelector('.remove-file-btn');
-        const changeBtn = mediaGroup.querySelector('.change-file-btn');
-        const browseBtn = mediaGroup.querySelector('.browse-cell-media-btn');
+        const browseBtns = mediaGroup.querySelectorAll('.browse-cell-media-btn');
         const loopToggle = mediaGroup.querySelector('.media-loop');
-
-        this.addControlListener(mediaInput, 'change', (e) => {
-            this.handleMediaUpload(cell, e);
-        });
 
         if (removeBtn) {
             this.addControlListener(removeBtn, 'click', () => {
@@ -168,17 +159,12 @@ class ImageContentController extends ContentController {
             });
         }
 
-        if (changeBtn) {
-            this.addControlListener(changeBtn, 'click', () => {
-                mediaInput.click();
-            });
-        }
-
-        if (browseBtn) {
+        // All browse buttons (both "Browse Media Manager" and "Change") open the Media Manager
+        browseBtns.forEach(browseBtn => {
             this.addControlListener(browseBtn, 'click', async () => {
                 await this.handleBrowseCellMedia(cell, mediaGroup);
             });
-        }
+        });
 
         if (loopToggle) {
             this.addControlListener(loopToggle, 'change', () => {
@@ -380,146 +366,6 @@ class ImageContentController extends ContentController {
     }
     
     /**
-     * Handle media file upload (images, videos, GIFs)
-     * @param {ContentCell} cell - Cell object
-     * @param {Event} event - File input change event
-     * @private
-     */
-    handleMediaUpload(cell, event) {
-        const file = event.target.files[0];
-        if (!file) {
-            console.warn('Please select a file');
-            return;
-        }
-
-        // Store the file name for display
-        this.currentFileName = file.name;
-
-        // Check if this is a Lottie JSON file
-        const fileName = file.name.toLowerCase();
-        const isJSON = fileName.endsWith('.json') || file.type === 'application/json';
-
-        if (isJSON) {
-            // Handle Lottie JSON file
-            const reader = new FileReader();
-            reader.onload = (e) => {
-                this.handleLottieUpload(cell, e.target.result, file.name);
-            };
-            reader.readAsText(file);
-            return;
-        }
-
-        const reader = new FileReader();
-        reader.onload = (e) => {
-            const fileType = file.type;
-            const fileName = file.name.toLowerCase();
-
-            // Determine media type
-            let mediaType = 'other';
-            if (fileType.startsWith('image/')) {
-                mediaType = fileName.endsWith('.gif') ? 'gif' : 'image';
-            } else if (fileType.startsWith('video/')) {
-                mediaType = 'video';
-            }
-
-            if (mediaType === 'image' || mediaType === 'gif') {
-                // Handle images and GIFs
-                const img = new Image();
-                img.onload = () => {
-                    this.updateContent(cell, {
-                        media: img,
-                        mediaType: mediaType,
-                        mediaUrl: e.target.result,
-                        fileName: file.name, // Store original file name
-                        scale: 1,
-                        rotation: 0
-                    });
-                    
-                    console.log('Image uploaded, updating content:', {
-                        media: img,
-                        mediaType: mediaType,
-                        mediaUrl: e.target.result,
-                        fileName: file.name
-                    });
-
-                    // Recreate controls to show scale/rotation and file display
-                    if (this.app.uiManager && this.app.uiManager.showSelectedCellControls) {
-                        const selectedCell = this.app.selectedCell;
-                        if (selectedCell) {
-                            this.app.uiManager.showSelectedCellControls(selectedCell.cell, selectedCell.row, selectedCell.col);
-                        }
-                    }
-                };
-                img.src = e.target.result;
-            } else if (mediaType === 'video') {
-                // Handle videos
-                const video = document.createElement('video');
-                video.src = e.target.result;
-                video.preload = 'metadata';
-                video.crossOrigin = 'anonymous'; // Allow canvas drawing
-                
-                // Set video properties immediately
-                video.autoplay = true; // Always autoplay
-                video.loop = cell.content.loop !== false; // Default to true
-                video.muted = true; // Always muted for autoplay compatibility
-                video.controls = false; // Never show controls
-                
-                video.addEventListener('loadedmetadata', () => {
-                    console.log('Video metadata loaded:', video.videoWidth, 'x', video.videoHeight);
-                    
-                    this.updateContent(cell, {
-                        media: video,
-                        mediaType: mediaType,
-                        mediaUrl: e.target.result,
-                        fileName: file.name, // Store original file name
-                        scale: 1,
-                        rotation: 0,
-                        autoplay: true, // Always autoplay
-                        loop: cell.content.loop !== false // Default to true
-                    });
-
-                    // Recreate controls to show video controls and file display
-                    if (this.app.uiManager && this.app.uiManager.showSelectedCellControls) {
-                        const selectedCell = this.app.selectedCell;
-                        if (selectedCell) {
-                            this.app.uiManager.showSelectedCellControls(selectedCell.cell, selectedCell.row, selectedCell.col);
-                        }
-                    }
-                    
-                    // Force a render to show the video
-                    this.app.render();
-                    
-                    // Start animation loop for video frame updates
-                    this.app._startAnimationLoop();
-                    
-                    // Ensure video playback is correct
-                    this.ensureVideoPlayback(cell);
-                });
-
-                video.addEventListener('canplay', () => {
-                    console.log('Video can play');
-                    // Ensure we have a frame to draw
-                    if (video.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA) {
-                        this.app.render();
-                    }
-                });
-
-                video.addEventListener('error', (event) => {
-                    console.error('Error loading video:', video.error, event);
-                    alert('Error loading video file. Please try a different format.');
-                });
-                
-                // Also try to load the video immediately
-                video.load();
-            } else {
-                console.warn('Unsupported file type:', fileType);
-                alert('Unsupported file type. Please select an image, video, or GIF file.');
-            }
-        };
-        reader.readAsDataURL(file);
-    }
-
-    /**
      * Handle browsing Media Manager for cell media
      * Opens modal for selecting pre-uploaded files from Wix Media Manager
      * @param {ContentCell} cell - Cell object
@@ -649,98 +495,6 @@ class ImageContentController extends ContentController {
     }
 
     /**
-     * Handle Lottie JSON file upload
-     * @param {ContentCell} cell - Cell object
-     * @param {string} jsonData - Lottie JSON data as string
-     * @param {string} fileName - Original file name
-     * @private
-     */
-    handleLottieUpload(cell, jsonData, fileName) {
-        try {
-            // Parse JSON to validate it
-            const animationData = JSON.parse(jsonData);
-            
-            // Check if lottie library is available
-            if (typeof lottie === 'undefined') {
-                console.error('Lottie library not loaded');
-                alert('Lottie library not loaded. Please refresh the page.');
-                return;
-            }
-            
-            // Get animation dimensions
-            const width = animationData.w || 512;
-            const height = animationData.h || 512;
-            
-            // Create a hidden container div for Lottie canvas
-            const container = document.createElement('div');
-            container.style.position = 'absolute';
-            container.style.left = '-9999px';
-            container.style.width = width + 'px';
-            container.style.height = height + 'px';
-            container.style.pointerEvents = 'none';
-            document.body.appendChild(container);
-            
-            // Create Lottie animation instance with canvas renderer
-            const lottieAnimation = lottie.loadAnimation({
-                container: container,
-                renderer: 'canvas',
-                loop: true,
-                autoplay: true,
-                animationData: animationData,
-                rendererSettings: {
-                    preserveAspectRatio: 'xMidYMid meet',
-                    clearCanvas: true,
-                    progressiveLoad: false
-                }
-            });
-            
-            // Get the canvas that Lottie created
-            const canvas = container.querySelector('canvas');
-            
-            if (!canvas) {
-                console.error('Lottie did not create a canvas element');
-                document.body.removeChild(container);
-                alert('Failed to initialize Lottie animation.');
-                return;
-            }
-            
-            // Store canvas, animation instance, and container for cleanup
-            this.updateContent(cell, {
-                media: canvas,
-                mediaType: 'lottie',
-                mediaUrl: jsonData, // Store JSON data
-                fileName: fileName,
-                lottieAnimation: lottieAnimation, // Store animation instance for control
-                lottieContainer: container, // Store container for cleanup
-                scale: 1,
-                rotation: 0
-            });
-            
-            console.log('Lottie animation loaded:', {
-                fileName: fileName,
-                width: width,
-                height: height,
-                canvas: canvas
-            });
-            
-            // Recreate controls to show file display
-            if (this.app.uiManager && this.app.uiManager.showSelectedCellControls) {
-                const selectedCell = this.app.selectedCell;
-                if (selectedCell) {
-                    this.app.uiManager.showSelectedCellControls(selectedCell.cell, selectedCell.row, selectedCell.col);
-                }
-            }
-            
-            // Start animation loop to continuously render Lottie frames
-            this.app._startAnimationLoop();
-            
-        } catch (error) {
-            console.error('Error loading Lottie animation:', error);
-            alert('Invalid Lottie JSON file. Please make sure the file is a valid Lottie animation.');
-        }
-    }
-    
-    /**
      * Extract file name from data URL or file path
      * @param {string} url - Data URL or file path
      * @returns {string} File name
@@ -800,13 +554,7 @@ class ImageContentController extends ContentController {
             autoplay: true,
             loop: true
         });
-        
-        // Clear the file input
-        const fileInput = mediaGroup.querySelector('.spot-media-input');
-        if (fileInput) {
-            fileInput.value = '';
-        }
-        
+
         // Refresh the content controls to hide file display
         if (this.app.uiManager && this.app.uiManager.showSelectedCellControls) {
             const selectedCell = this.app.selectedCell;

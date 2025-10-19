@@ -788,39 +788,67 @@ class PresetManager {
 
                     // Upload cell images
                     if (cellData.content && cellData.content.imageElement) {
-                        cellImageCount++;
-                        console.log(`📤 SAVE: Uploading cell image ${i + 1}...`);
-                        console.log('   → Cell index:', i);
-                        console.log('   → Image dimensions:', cellData.content.imageElement.width, 'x', cellData.content.imageElement.height);
+                        const imgSrc = cellData.content.imageElement.src;
 
-                        cellData.content.imageURL = await this.wixAPI.uploadMedia(
-                            cellData.content.imageElement,
-                            `cell-${presetName}-${i}-${Date.now()}.png`,
-                            'image/png'
-                        );
+                        // Check if this is already a CDN URL - if so, save it directly!
+                        if (imgSrc && imgSrc.startsWith('https://static.wixstatic.com/media/')) {
+                            console.log(`🎯 SAVE: Cell ${i + 1} - Detected CDN URL - saving directly (no upload needed)`);
+                            console.log('   → CDN URL:', imgSrc);
+                            console.log('   → URL length:', imgSrc.length, 'bytes');
 
-                        console.log('   ✅ Cell image uploaded, URL length:', cellData.content.imageURL.length, 'characters');
-                        delete cellData.content.imageElement; // Remove temp reference
-                        delete cellData.content.mediaType;
+                            cellData.content.imageURL = imgSrc;
+                            delete cellData.content.imageElement; // Remove temp reference
+                            delete cellData.content.mediaType;
+                        } else {
+                            // Upload to Media Manager
+                            cellImageCount++;
+                            console.log(`📤 SAVE: Uploading cell image ${i + 1}...`);
+                            console.log('   → Cell index:', i);
+                            console.log('   → Image dimensions:', cellData.content.imageElement.width, 'x', cellData.content.imageElement.height);
+
+                            cellData.content.imageURL = await this.wixAPI.uploadMedia(
+                                cellData.content.imageElement,
+                                `cell-${presetName}-${i}-${Date.now()}.png`,
+                                'image/png'
+                            );
+
+                            console.log('   ✅ Cell image uploaded, URL length:', cellData.content.imageURL.length, 'characters');
+                            delete cellData.content.imageElement; // Remove temp reference
+                            delete cellData.content.mediaType;
+                        }
                     }
 
-                    // Upload cell videos (requires API key)
+                    // Upload cell videos
                     if (cellData.content && cellData.content.videoElement) {
-                        cellVideoCount++;
-                        console.log(`📤 SAVE: Uploading cell video ${i + 1}...`);
-                        console.log('   → Cell index:', i);
-                        console.log('   → Video dimensions:', cellData.content.videoElement.videoWidth, 'x', cellData.content.videoElement.videoHeight);
-                        console.log('   → Video duration:', cellData.content.videoElement.duration, 'seconds');
+                        const videoSrc = cellData.content.videoElement.src;
 
-                        cellData.content.videoURL = await this.wixAPI.uploadMedia(
-                            cellData.content.videoElement,
-                            `cell-${presetName}-${i}-${Date.now()}.webm`,
-                            'video/webm'
-                        );
+                        // Check if this is already a CDN URL - if so, save it directly!
+                        if (videoSrc && videoSrc.startsWith('https://static.wixstatic.com/media/')) {
+                            console.log(`🎯 SAVE: Cell ${i + 1} - Detected CDN video URL - saving directly (no upload needed)`);
+                            console.log('   → CDN URL:', videoSrc);
+                            console.log('   → URL length:', videoSrc.length, 'bytes');
 
-                        console.log('   ✅ Cell video uploaded, URL length:', cellData.content.videoURL.length, 'characters');
-                        delete cellData.content.videoElement; // Remove temp reference
-                        delete cellData.content.mediaType;
+                            cellData.content.videoURL = videoSrc;
+                            delete cellData.content.videoElement; // Remove temp reference
+                            delete cellData.content.mediaType;
+                        } else {
+                            // Upload to Media Manager
+                            cellVideoCount++;
+                            console.log(`📤 SAVE: Uploading cell video ${i + 1}...`);
+                            console.log('   → Cell index:', i);
+                            console.log('   → Video dimensions:', cellData.content.videoElement.videoWidth, 'x', cellData.content.videoElement.videoHeight);
+                            console.log('   → Video duration:', cellData.content.videoElement.duration, 'seconds');
+
+                            cellData.content.videoURL = await this.wixAPI.uploadMedia(
+                                cellData.content.videoElement,
+                                `cell-${presetName}-${i}-${Date.now()}.webm`,
+                                'video/webm'
+                            );
+
+                            console.log('   ✅ Cell video uploaded, URL length:', cellData.content.videoURL.length, 'characters');
+                            delete cellData.content.videoElement; // Remove temp reference
+                            delete cellData.content.mediaType;
+                        }
                     }
                 }
                 console.log(`✅ SAVE: Uploaded ${cellImageCount} image(s) and ${cellVideoCount} video(s)`);
