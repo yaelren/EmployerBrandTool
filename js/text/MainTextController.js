@@ -92,96 +92,11 @@ class MainTextController {
      */
     setText(text) {
         this.rawText = text;
-        
-        // Manual mode only - no auto-sizing
-        this.optimizeFontSizeNoWrap();
-        
+
         this.parseLines();
         this.measureLines();
         this.calculateFrame();
         this.positionLines();
-    }
-    
-    /**
-     * Optimize font size to fill canvas with wrapping
-     * @private
-     */
-    optimizeFontSizeForCanvas() {
-        if (!this.rawText) return;
-        
-        let testFontSize = this.config.maxFontSize;
-        const step = 2;
-        const availableHeight = this.config.canvasHeight - this.config.paddingTop - this.config.paddingBottom;
-        
-        while (testFontSize >= this.config.minFontSize) {
-            // Test with this font size
-            let fontStyle = '';
-            if (this.config.textStyles) {
-                if (this.config.textStyles.italic) fontStyle += 'italic ';
-                if (this.config.textStyles.bold) fontStyle += 'bold ';
-            }
-            this.measureCtx.font = `${fontStyle}${testFontSize}px ${this.config.fontFamily}`;
-            const wrappedLines = this.wrapTextWithFontSize(this.rawText, testFontSize);
-            // Calculate total height: font size for each line + spacing between lines
-            const totalHeight = wrappedLines.length * testFontSize + (wrappedLines.length - 1) * this.config.lineSpacing;
-            
-            // Check if any line exceeds available width
-            const availableWidth = this.config.canvasWidth - this.config.paddingLeft - this.config.paddingRight;
-            let widthExceeded = false;
-            let maxLineWidth = 0;
-            
-            for (const line of wrappedLines) {
-                if (line.trim()) {
-                    const metrics = this.measureCtx.measureText(line);
-                    maxLineWidth = Math.max(maxLineWidth, metrics.width);
-                    if (metrics.width > availableWidth) {
-                        widthExceeded = true;
-                        break;
-                    }
-                }
-            }
-            
-            if (totalHeight <= availableHeight && !widthExceeded) {
-                this.config.fontSize = testFontSize;
-                return; // Found optimal size
-            }
-            
-            testFontSize -= step;
-        }
-        
-        this.config.fontSize = this.config.minFontSize;
-    }
-    
-    /**
-     * Optimize font size when wrapping is disabled
-     * @private
-     */
-    optimizeFontSizeNoWrap() {
-        if (!this.rawText) return;
-        
-        const lines = this.rawText.split('\n');
-        let testFontSize = this.config.fontSize;
-        const availableWidth = this.config.canvasWidth - this.config.paddingLeft - this.config.paddingRight;
-        
-        let fontStyle = '';
-        if (this.config.textStyles) {
-            if (this.config.textStyles.italic) fontStyle += 'italic ';
-            if (this.config.textStyles.bold) fontStyle += 'bold ';
-        }
-        this.measureCtx.font = `${fontStyle}${testFontSize}px ${this.config.fontFamily}`;
-        
-        // Find the longest line
-        let maxWidth = 0;
-        for (const line of lines) {
-            const metrics = this.measureCtx.measureText(line);
-            maxWidth = Math.max(maxWidth, metrics.width);
-        }
-        
-        // Only reduce font size if text doesn't fit width (allow height overflow in manual mode)
-        if (maxWidth > availableWidth) {
-            const widthRatio = availableWidth / maxWidth;
-            this.config.fontSize = Math.max(this.config.minFontSize, Math.floor(testFontSize * widthRatio));
-        }
     }
     
     /**

@@ -1435,12 +1435,12 @@ class EmployerBrandToolPOC {
      * Load a preset from JSON data
      * @param {Object} presetData - Preset JSON data
      */
-    loadPreset(presetData) {
+    async loadPreset(presetData) {
         if (!this.presetManager) {
             console.error('PresetManager not initialized');
             return;
         }
-        this.presetManager.deserializeState(presetData);
+        await this.presetManager.deserializeState(presetData);
     }
 
     /**

@@ -222,7 +222,7 @@ class PresetManager {
      * Deserialize state from JSON and restore application
      * @param {Object} stateData - Serialized state object
      */
-    deserializeState(stateData) {
+    async deserializeState(stateData) {
         try {
             console.log('📦 LOAD: Deserializing preset...');
             console.log('   → Preset name:', stateData.presetName);
@@ -240,25 +240,59 @@ class PresetManager {
             // Restore in order (all synchronous, no delays)
             console.log('🔄 LOAD: Restoring canvas state...');
             this.restoreCanvasState(stateData.canvas);       // Canvas size FIRST
+            console.log('   ✅ Canvas restored:', this.app.canvasManager.canvas.width, 'x', this.app.canvasManager.canvas.height);
 
             console.log('🔄 LOAD: Restoring background state...');
             this.restoreBackgroundState(stateData.background);
+            console.log('   ✅ Background restored');
 
             console.log('🔄 LOAD: Restoring main text state...');
+            console.log('   → Font:', stateData.mainText.fontFamily);
+            console.log('   → Font size:', stateData.mainText.fontSize);
+            console.log('   → Text length:', stateData.mainText.content.length, 'characters');
             this.restoreMainTextState(stateData.mainText);   // Now syncs textEngine properly
+
+            // Check textBounds after setText
+            const textBoundsAfterRestore = this.app.textEngine?.textBounds || [];
+            console.log('   ✅ Text restored, textBounds count:', textBoundsAfterRestore.length);
+            if (textBoundsAfterRestore.length > 0) {
+                const b = textBoundsAfterRestore[0];
+                console.log('   → First line bounds: x=' + b.x.toFixed(2) + ' y=' + b.y.toFixed(2) +
+                           ' w=' + b.width.toFixed(2) + ' h=' + b.height.toFixed(2));
+            }
 
             console.log('🔄 LOAD: Restoring grid state...');
             this.restoreGridState(stateData.grid);           // Grid deserialize
+            console.log('   ✅ Grid state deserialized');
 
             console.log('🔄 LOAD: Restoring layer state...');
             this.restoreLayerState(stateData.layers);
+            console.log('   ✅ Layers restored');
 
             // Update UI elements to match restored state (no renders triggered)
+            console.log('🔄 LOAD: Updating UI elements...');
             this.updateUIElements(stateData);
+            console.log('   ✅ UI updated');
 
             // Apply saved alignments (like onTextChanged does)
+            console.log('🔄 LOAD: Applying saved alignments...');
+            console.log('   → BEFORE applySavedAlignments:');
+            console.log('      mainTextComponent.fontSize:', this.app.mainTextComponent.fontSize);
+            console.log('      textEngine.config.fontSize:', this.app.textEngine.config.fontSize);
             if (this.app.applySavedAlignments) {
                 this.app.applySavedAlignments();
+            }
+            console.log('   → AFTER applySavedAlignments:');
+            console.log('      mainTextComponent.fontSize:', this.app.mainTextComponent.fontSize);
+            console.log('      textEngine.config.fontSize:', this.app.textEngine.config.fontSize);
+
+            // Check textBounds after alignment
+            const textBoundsAfterAlignment = this.app.textEngine?.textBounds || [];
+            console.log('   ✅ Alignments applied, textBounds count:', textBoundsAfterAlignment.length);
+            if (textBoundsAfterAlignment.length > 0) {
+                const b = textBoundsAfterAlignment[0];
+                console.log('   → First line after alignment: x=' + b.x.toFixed(2) + ' y=' + b.y.toFixed(2) +
+                           ' w=' + b.width.toFixed(2) + ' h=' + b.height.toFixed(2));
             }
 
             // Update line alignment controls
@@ -266,19 +300,74 @@ class PresetManager {
                 this.app.uiManager.updateLineAlignmentControls();
             }
 
+            // CRITICAL FIX: Force complete text recalculation after alignments
+            // applySavedAlignments() modifies positions but doesn't recalculate dimensions
+            // This matches what happens when user changes font size (triggers onTextChanged)
+            console.log('🔄 LOAD: Forcing complete text recalculation...');
+            if (this.app.textEngine) {
+                this.app.textEngine.setText(stateData.mainText.content);
+            }
+
+            // Check textBounds after forced recalculation
+            const textBoundsAfterRecalc = this.app.textEngine?.textBounds || [];
+            console.log('   ✅ Text recalculated, textBounds count:', textBoundsAfterRecalc.length);
+            if (textBoundsAfterRecalc.length > 0) {
+                const b = textBoundsAfterRecalc[0];
+                console.log('   → First line after recalc: x=' + b.x.toFixed(2) + ' y=' + b.y.toFixed(2) +
+                           ' w=' + b.width.toFixed(2) + ' h=' + b.height.toFixed(2));
+            }
+
+            // CRITICAL: Wait for fonts to load before building grid
+            // This ensures text measurements are accurate
+            console.log('⏳ LOAD: Waiting for fonts to load...');
+            console.log('   → Current fonts status:', document.fonts.status);
+            console.log('   → Number of fonts:', document.fonts.size);
+            await document.fonts.ready;
+            console.log('✅ LOAD: Fonts loaded');
+            console.log('   → Fonts status after ready:', document.fonts.status);
+
+            // Check textBounds after font ready
+            const textBoundsAfterFonts = this.app.textEngine?.textBounds || [];
+            console.log('   → TextBounds count after fonts:', textBoundsAfterFonts.length);
+            if (textBoundsAfterFonts.length > 0) {
+                const b = textBoundsAfterFonts[0];
+                console.log('   → First line after fonts: x=' + b.x.toFixed(2) + ' y=' + b.y.toFixed(2) +
+                           ' w=' + b.width.toFixed(2) + ' h=' + b.height.toFixed(2));
+            }
+
             // Rebuild grid from scratch (uses fresh textEngine data)
+            console.log('🔄 LOAD: Building grid from textEngine...');
             if (this.app.grid) {
                 this.app.grid.buildFromExisting();
+                const allCells = this.app.grid.getAllCells();
+                console.log('   ✅ Grid built, cells:', allCells.length);
+                console.log('   → Grid dimensions:', this.app.grid.rows, 'rows x', this.app.grid.cols, 'cols');
+
+                // Log first main text cell bounds for comparison
+                const firstTextCell = allCells.find(cell => cell.type === 'main-text');
+                if (firstTextCell) {
+                    const cb = firstTextCell.bounds;
+                    console.log('   → First text CELL bounds: x=' + cb.x.toFixed(2) + ' y=' + cb.y.toFixed(2) +
+                               ' w=' + cb.width.toFixed(2) + ' h=' + cb.height.toFixed(2));
+                }
 
                 // Sync spots array with grid
                 this.app.spots = this.app.grid.getContentCells();
+                console.log('   → Content cells:', this.app.spots.length);
                 if (this.app.uiManager && this.app.uiManager.updateSpotsUI) {
                     this.app.uiManager.updateSpotsUI();
                 }
             }
 
             // Single synchronous render (no setTimeout, no redundant calls)
+            console.log('🎨 LOAD: Rendering canvas...');
+            console.log('   → MainTextComponent font:', this.app.mainTextComponent.fontFamily);
+            console.log('   → MainTextComponent fontSize:', this.app.mainTextComponent.fontSize);
+            console.log('   → MainTextComponent text:', this.app.mainTextComponent.text);
+            console.log('   → TextEngine config fontSize:', this.app.textEngine.config.fontSize);
+            console.log('   → TextEngine config fontFamily:', this.app.textEngine.config.fontFamily);
             this.app.render();
+            console.log('   ✅ Canvas rendered');
 
             console.log('✅ Preset loaded successfully');
 
@@ -421,8 +510,8 @@ class PresetManager {
                 bg.setBackgroundImage(img);
                 console.log('   ✅ Background image loaded and set!');
                 console.log('   → Image size:', img.width, 'x', img.height);
-                console.log('   → Triggering canvas render...');
-                this.app.render(); // CRITICAL: Trigger render so image appears!
+                // NOTE: Render is called at the end of deserializeState, no need for extra render here
+                // this.app.render(); // REMOVED: Causes canvas dimension issues
             };
             img.onerror = (e) => {
                 console.error('   ❌ LOAD: Failed to load background image!');
@@ -452,10 +541,12 @@ class PresetManager {
      * @private
      */
     restoreMainTextState(mainTextData) {
+        console.log('   🔍 RESTORE: Starting main text restoration...');
         const ui = this.app.uiManager.elements;
         const mainText = this.app.mainTextComponent;
 
         // 1. Update UI elements (for visibility)
+        console.log('   → Step 1: Updating UI elements');
         ui.mainText.value = mainTextData.content;
         if (ui.fontFamily) {
             ui.fontFamily.value = mainTextData.fontFamily;
@@ -477,6 +568,7 @@ class PresetManager {
         }
 
         // 2. Update mainTextComponent (visual properties)
+        console.log('   → Step 2: Updating mainTextComponent properties');
         mainText.text = mainTextData.content;
         mainText.fontFamily = mainTextData.fontFamily;
         mainText.fontSize = mainTextData.fontSize;
@@ -492,6 +584,10 @@ class PresetManager {
 
         // 3. Sync to textEngine (CRITICAL - SAME AS onTextChanged)
         // This is the missing piece that causes margins/alignment bugs!
+        console.log('   → Step 3: Syncing to textEngine config');
+        console.log('      BEFORE updateConfig, textEngine.config.fontSize:', this.app.textEngine.config.fontSize);
+        console.log('      Calling updateConfig with fontSize:', mainTextData.fontSize);
+
         this.app.textEngine.updateConfig({
             fontSize: mainTextData.fontSize,
             fontFamily: mainTextData.fontFamily,
@@ -511,14 +607,20 @@ class PresetManager {
             }
         });
 
+        console.log('      AFTER updateConfig, textEngine.config.fontSize:', this.app.textEngine.config.fontSize);
+
         // 4. Set text and recalculate bounds (CRITICAL)
         // Without this, textEngine.textBounds stays empty and grid can't render
+        console.log('   → Step 4: Calling textEngine.setText() - THIS MEASURES TEXT');
         this.app.textEngine.setText(mainTextData.content);
+        console.log('   → After setText, textBounds length:', this.app.textEngine.textBounds.length);
 
         // 5. Restore line alignments
+        console.log('   → Step 5: Restoring line alignments');
         this.app.savedLineAlignments = { ...mainTextData.lineAlignments };
 
         // 6. Apply line alignments to textEngine
+        console.log('   → Step 6: Applying line alignments to textEngine');
         if (mainTextData.lineAlignments) {
             Object.entries(mainTextData.lineAlignments).forEach(([index, alignment]) => {
                 this.app.textEngine.setLineAlignment(parseInt(index), alignment);
@@ -526,13 +628,16 @@ class PresetManager {
         }
 
         // 7. Set background fill preference
+        console.log('   → Step 7: Setting background fill preference');
         this.app.mainTextFillWithBackgroundColor = mainTextData.fillWithBackgroundColor;
         if (ui.mainTextFillWithBackgroundColor) {
             ui.mainTextFillWithBackgroundColor.checked = mainTextData.fillWithBackgroundColor;
         }
 
         // 8. Update UI button states
+        console.log('   → Step 8: Updating UI button states');
         this.updateTextStyleButtons();
+        console.log('   ✅ RESTORE: Main text restoration complete');
     }
 
     /**
@@ -629,8 +734,9 @@ class PresetManager {
                 console.log(`   ✅ Cell image loaded and set! (${cell.id})`);
                 console.log('   → Image size:', img.width, 'x', img.height);
                 console.log('   → cell.content.media set to:', cell.content.media.constructor.name);
-                console.log('   → Triggering canvas render...');
-                this.app.render();
+                // NOTE: Images load async but we render at end of deserializeState
+                // Extra renders here can cause canvas dimension calculation issues
+                // this.app.render(); // REMOVED: Causes negative canvas dimensions
             }
         };
         img.onerror = (e) => {
@@ -665,14 +771,15 @@ class PresetManager {
                 console.log('   → Video size:', video.videoWidth, 'x', video.videoHeight);
                 console.log('   → Video duration:', video.duration, 'seconds');
                 console.log('   → cell.content.media set to:', cell.content.media.constructor.name);
-                console.log('   → Triggering canvas render...');
 
                 // Start playing
                 video.play().catch(err => {
                     console.warn(`   ⚠️ Autoplay prevented for ${cell.id}:`, err.message);
                 });
 
-                this.app.render();
+                // NOTE: Videos load async but we render at end of deserializeState
+                // Extra renders here can cause canvas dimension calculation issues
+                // this.app.render(); // REMOVED: Causes negative canvas dimensions
             }
         });
 
@@ -884,7 +991,7 @@ class PresetManager {
             const preset = await this.wixAPI.loadPreset(presetId);
 
             // 2. Deserialize the settings (URLs load automatically in browser)
-            this.deserializeState(preset.settings);
+            await this.deserializeState(preset.settings);
 
             console.log(`✅ Preset loaded from cloud: "${preset.name}"`);
             return preset;

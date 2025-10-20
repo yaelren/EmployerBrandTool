@@ -429,7 +429,7 @@ class PresetUIComponent {
             const stateData = JSON.parse(text);
 
             // Deserialize state
-            this.presetManager.deserializeState(stateData);
+            await this.presetManager.deserializeState(stateData);
 
             this.showSuccess(`✅ Preset "${stateData.presetName || file.name}" loaded successfully!`);
 
