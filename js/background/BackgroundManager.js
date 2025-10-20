@@ -10,6 +10,8 @@ class BackgroundManager {
         this.backgroundImageDataURL = null;
         this.backgroundVideo = null;
         this.backgroundVideoDataURL = null;
+        this.backgroundGif = null; // Canvas for GIF animation
+        this.backgroundGifUrl = null; // URL for GIF
         this.backgroundFitMode = 'fill-canvas'; // 'stretch-canvas' | 'fit-canvas' | 'fill-canvas' | 'stretch-padding' | 'fit-padding' | 'fill-padding'
         this.padding = { top: 0, bottom: 0, left: 0, right: 0 };
     }
@@ -52,6 +54,43 @@ class BackgroundManager {
         }
     }
     
+    /**
+     * Set the background GIF using gifler library
+     * @param {string} gifUrl - URL of the GIF file
+     * @param {Function} onLoadCallback - Callback when GIF is loaded
+     */
+    setBackgroundGif(gifUrl, onLoadCallback = null) {
+        if (typeof gifler === 'undefined') {
+            console.error('❌ gifler library not loaded');
+            return;
+        }
+
+        // Clear any existing GIF
+        this.clearBackgroundGif();
+
+        // Create a canvas for the GIF
+        this.backgroundGif = document.createElement('canvas');
+        this.backgroundGifUrl = gifUrl;
+
+        try {
+            gifler(gifUrl).frames(this.backgroundGif, (ctx, frame) => {
+                // gifler will continuously update the canvas with each frame
+                // The canvas element serves as our animated GIF source
+            }, (error) => {
+                if (error) {
+                    console.error('❌ gifler error loading background GIF:', error);
+                    this.clearBackgroundGif();
+                } else if (onLoadCallback) {
+                    // GIF loaded successfully
+                    onLoadCallback();
+                }
+            });
+        } catch (error) {
+            console.error('❌ Error setting background GIF:', error);
+            this.clearBackgroundGif();
+        }
+    }
+
     /**
      * Set the background video
      * @param {File|HTMLVideoElement} video - Video file or element
@@ -125,33 +164,50 @@ class BackgroundManager {
         this.backgroundVideo = null;
         this.backgroundVideoDataURL = null;
     }
-    
+
     /**
-     * Clear all background media (image and video)
+     * Clear the background GIF
+     */
+    clearBackgroundGif() {
+        if (this.backgroundGif) {
+            // Remove the canvas from DOM if attached
+            if (this.backgroundGif.parentNode) {
+                this.backgroundGif.parentNode.removeChild(this.backgroundGif);
+            }
+            this.backgroundGif = null;
+        }
+        this.backgroundGifUrl = null;
+    }
+
+    /**
+     * Clear all background media (image, video, and GIF)
      */
     clearBackgroundMedia() {
         this.clearBackgroundImage();
         this.clearBackgroundVideo();
+        this.clearBackgroundGif();
     }
     
     /**
-     * Render the background (color + optional image/video)
+     * Render the background (color + optional image/video/GIF)
      * @param {CanvasRenderingContext2D} ctx - Canvas context
      * @param {HTMLCanvasElement} canvas - Canvas element
      */
     renderBackground(ctx, canvas) {
         // Clear the canvas first
         ctx.clearRect(0, 0, canvas.width, canvas.height);
-        
+
         // Render background color (fills entire canvas)
         ctx.fillStyle = this.backgroundColor;
         ctx.fillRect(0, 0, canvas.width, canvas.height);
-        
-        // Render background video if present (video takes priority over image)
+
+        // Priority: Video > GIF > Static Image
         if (this.backgroundVideo) {
             this.renderBackgroundVideo(ctx, canvas);
+        } else if (this.backgroundGif) {
+            this.renderBackgroundGif(ctx, canvas);
         } else if (this.backgroundImage) {
-            // Render background image if no video
+            // Render background image if no video or GIF
             this.renderBackgroundImage(ctx, canvas);
         }
     }
@@ -187,6 +243,35 @@ class BackgroundManager {
     }
     
     /**
+     * Render background GIF with proper fit mode (using gifler canvas)
+     * @param {CanvasRenderingContext2D} ctx - Canvas context
+     * @param {HTMLCanvasElement} canvas - Canvas element
+     * @private
+     */
+    renderBackgroundGif(ctx, canvas) {
+        if (!this.backgroundGif || !this.backgroundGif.width || !this.backgroundGif.height) return;
+
+        ctx.save();
+
+        // Treat the GIF canvas as an image source
+        if (this.backgroundFitMode === 'stretch-canvas') {
+            ctx.drawImage(this.backgroundGif, 0, 0, canvas.width, canvas.height);
+        } else if (this.backgroundFitMode === 'fit-canvas') {
+            this.renderGifFitCanvas(ctx, canvas);
+        } else if (this.backgroundFitMode === 'fill-canvas') {
+            this.renderGifFillCanvas(ctx, canvas);
+        } else if (this.backgroundFitMode === 'stretch-padding') {
+            this.renderGifStretchPadding(ctx, canvas);
+        } else if (this.backgroundFitMode === 'fit-padding') {
+            this.renderGifFitPadding(ctx, canvas);
+        } else if (this.backgroundFitMode === 'fill-padding') {
+            this.renderGifFillPadding(ctx, canvas);
+        }
+
+        ctx.restore();
+    }
+
+    /**
      * Render background image with proper fit mode
      * @param {CanvasRenderingContext2D} ctx - Canvas context
      * @param {HTMLCanvasElement} canvas - Canvas element
@@ -194,9 +279,9 @@ class BackgroundManager {
      */
     renderBackgroundImage(ctx, canvas) {
         if (!this.backgroundImage) return;
-        
+
         ctx.save();
-        
+
         if (this.backgroundFitMode === 'stretch-canvas') {
             this.renderImageStretchCanvas(ctx, canvas);
         } else if (this.backgroundFitMode === 'fit-canvas') {
@@ -210,7 +295,7 @@ class BackgroundManager {
         } else if (this.backgroundFitMode === 'fill-padding') {
             this.renderImageFillPadding(ctx, canvas);
         }
-        
+
         ctx.restore();
     }
     
@@ -493,6 +578,96 @@ class BackgroundManager {
     }
     
     /**
+     * GIF rendering helpers - same logic as image/video but using GIF canvas
+     */
+    renderGifFitCanvas(ctx, canvas) {
+        const scaleX = canvas.width / this.backgroundGif.width;
+        const scaleY = canvas.height / this.backgroundGif.height;
+        const scale = Math.min(scaleX, scaleY);
+
+        const scaledWidth = this.backgroundGif.width * scale;
+        const scaledHeight = this.backgroundGif.height * scale;
+
+        const x = (canvas.width - scaledWidth) / 2;
+        const y = (canvas.height - scaledHeight) / 2;
+
+        ctx.drawImage(this.backgroundGif, x, y, scaledWidth, scaledHeight);
+    }
+
+    renderGifFillCanvas(ctx, canvas) {
+        const scaleX = canvas.width / this.backgroundGif.width;
+        const scaleY = canvas.height / this.backgroundGif.height;
+        const scale = Math.max(scaleX, scaleY);
+
+        const scaledWidth = this.backgroundGif.width * scale;
+        const scaledHeight = this.backgroundGif.height * scale;
+
+        const x = (canvas.width - scaledWidth) / 2;
+        const y = (canvas.height - scaledHeight) / 2;
+
+        ctx.drawImage(this.backgroundGif, x, y, scaledWidth, scaledHeight);
+    }
+
+    renderGifStretchPadding(ctx, canvas) {
+        const availableWidth = canvas.width - this.padding.left - this.padding.right;
+        const availableHeight = canvas.height - this.padding.top - this.padding.bottom;
+
+        if (availableWidth <= 0 || availableHeight <= 0) return;
+
+        ctx.drawImage(
+            this.backgroundGif,
+            this.padding.left,
+            this.padding.top,
+            availableWidth,
+            availableHeight
+        );
+    }
+
+    renderGifFitPadding(ctx, canvas) {
+        const availableWidth = canvas.width - this.padding.left - this.padding.right;
+        const availableHeight = canvas.height - this.padding.top - this.padding.bottom;
+
+        if (availableWidth <= 0 || availableHeight <= 0) return;
+
+        const scaleX = availableWidth / this.backgroundGif.width;
+        const scaleY = availableHeight / this.backgroundGif.height;
+        const scale = Math.min(scaleX, scaleY);
+
+        const scaledWidth = this.backgroundGif.width * scale;
+        const scaledHeight = this.backgroundGif.height * scale;
+
+        const x = this.padding.left + (availableWidth - scaledWidth) / 2;
+        const y = this.padding.top + (availableHeight - scaledHeight) / 2;
+
+        ctx.drawImage(this.backgroundGif, x, y, scaledWidth, scaledHeight);
+    }
+
+    renderGifFillPadding(ctx, canvas) {
+        const availableWidth = canvas.width - this.padding.left - this.padding.right;
+        const availableHeight = canvas.height - this.padding.top - this.padding.bottom;
+
+        if (availableWidth <= 0 || availableHeight <= 0) return;
+
+        const scaleX = availableWidth / this.backgroundGif.width;
+        const scaleY = availableHeight / this.backgroundGif.height;
+        const scale = Math.max(scaleX, scaleY);
+
+        const scaledWidth = this.backgroundGif.width * scale;
+        const scaledHeight = this.backgroundGif.height * scale;
+
+        const sourceX = (scaledWidth - availableWidth) / 2 / scale;
+        const sourceY = (scaledHeight - availableHeight) / 2 / scale;
+        const sourceWidth = availableWidth / scale;
+        const sourceHeight = availableHeight / scale;
+
+        ctx.drawImage(
+            this.backgroundGif,
+            sourceX, sourceY, sourceWidth, sourceHeight,
+            this.padding.left, this.padding.top, availableWidth, availableHeight
+        );
+    }
+
+    /**
      * Get current background information
      * @returns {Object} Background info object
      */
@@ -501,6 +676,7 @@ class BackgroundManager {
             backgroundColor: this.backgroundColor,
             hasImage: !!this.backgroundImage,
             hasVideo: !!this.backgroundVideo,
+            hasGif: !!this.backgroundGif,
             fitMode: this.backgroundFitMode,
             padding: { ...this.padding }
         };

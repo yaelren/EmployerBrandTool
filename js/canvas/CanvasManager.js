@@ -73,14 +73,27 @@ class CanvasManager {
     }
     
     /**
+     * Set background GIF using gifler library
+     * @param {string} gifUrl - URL of the GIF file
+     * @param {Function} onLoadCallback - Callback when GIF is loaded
+     */
+    setBackgroundGif(gifUrl, onLoadCallback = null) {
+        this.backgroundManager.setBackgroundGif(gifUrl, onLoadCallback);
+        // Clear other media when setting GIF
+        this.backgroundManager.clearBackgroundImage();
+        this.backgroundManager.clearBackgroundVideo();
+    }
+
+    /**
      * Set background video
      * @param {File|HTMLVideoElement} video - Video file or element
      * @param {Function} onLoadCallback - Callback when video is loaded
      */
     setBackgroundVideo(video, onLoadCallback = null) {
         this.backgroundManager.setBackgroundVideo(video, onLoadCallback);
-        // Clear image when setting video
+        // Clear other media when setting video
         this.backgroundManager.clearBackgroundImage();
+        this.backgroundManager.clearBackgroundGif();
     }
     
     /**

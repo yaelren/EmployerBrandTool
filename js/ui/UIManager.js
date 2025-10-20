@@ -2040,11 +2040,30 @@ class UIManager {
                 return;
             }
 
-            // Determine media type
-            const mediaType = selectedFile.mimeType.startsWith('image/') ? 'image' : 'video';
+            // Determine media type - check for GIF first
+            const isGif = selectedFile.mimeType === 'image/gif' ||
+                          selectedFile.displayName?.toLowerCase().endsWith('.gif');
+            const mediaType = isGif ? 'gif' :
+                            (selectedFile.mimeType.startsWith('image/') ? 'image' : 'video');
 
-            if (mediaType === 'image') {
-                // Load image from CDN URL
+            if (mediaType === 'gif') {
+                // Handle animated GIF using gifler library
+                if (typeof gifler === 'undefined') {
+                    alert('GIF support not available. Gifler library not loaded.');
+                    console.error('❌ gifler library not loaded');
+                    return;
+                }
+
+                console.log('🎬 Loading animated GIF as background...');
+                this.app.canvasManager.setBackgroundGif(selectedFile.fileUrl, () => {
+                    this.elements.clearBackgroundMedia.style.display = 'inline-block';
+                    this.elements.backgroundVideoControls.style.display = 'none';
+                    this.app.render();
+                    console.log('✅ Background GIF animation set from Media Manager');
+                });
+
+            } else if (mediaType === 'image') {
+                // Load static image from CDN URL
                 const img = new Image();
                 img.crossOrigin = 'anonymous'; // Enable CORS for CDN images
                 img.onload = () => {
