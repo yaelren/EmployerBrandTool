@@ -2251,15 +2251,21 @@ select option {
 .compact-row {
     display: flex !important;
     align-items: center !important;
-    gap: 6px !important; /* Further reduced from 8px */
+    gap: 4px !important; /* Further reduced for tighter spacing */
     flex-wrap: wrap !important;
     margin-bottom: 3px !important; /* Further reduced from 6px */
+}
+
+/* Prevent wrapping on rows with styling buttons */
+.compact-row:has(.main-text-styling) {
+    flex-wrap: nowrap !important;
+    gap: 2px !important;
 }
 
 .compact-control {
     display: flex !important;
     align-items: center !important;
-    gap: 4px !important;
+    gap: 2px !important;
     min-width: 0 !important;
     flex: 1 !important;
 }
@@ -2272,6 +2278,7 @@ select option {
     min-width: fit-content !important;
     margin: 0 !important;
     padding: 0 !important;
+    margin-right: 4px !important;
 }
 
 .compact-control input[type="number"] {
@@ -2323,12 +2330,14 @@ select option {
     display: flex !important;
     gap: 2px !important;
     align-items: center !important;
+    flex-wrap: nowrap !important;
+    flex-shrink: 0 !important;
 }
 
 .compact-control .main-style-btn {
-    width: 24px !important;
-    height: 24px !important;
-    font-size: 11px !important;
+    width: 22px !important;
+    height: 22px !important;
+    font-size: 10px !important;
     font-weight: bold !important;
     border: 1px solid #444 !important;
     border-radius: 3px !important;
@@ -2338,6 +2347,7 @@ select option {
     transition: all 0.2s ease !important;
     margin: 0 !important;
     padding: 0 !important;
+    flex-shrink: 0 !important;
 }
 
 .compact-control .main-style-btn:hover {
@@ -2353,14 +2363,14 @@ select option {
 
 /* Highlight color picker in styling section */
 .compact-control .main-text-styling input[type="color"] {
-    width: 24px !important;
-    height: 24px !important;
+    width: 22px !important;
+    height: 22px !important;
     border: 1px solid #444 !important;
     border-radius: 3px !important;
     cursor: pointer !important;
     background: none !important;
     margin: 0 !important;
-    margin-left: 2px !important;
+    flex-shrink: 0 !important;
 }
 
 .compact-control .main-text-styling input[type="color"]::-webkit-color-swatch-wrapper {
@@ -2370,6 +2380,18 @@ select option {
 .compact-control .main-text-styling input[type="color"]::-webkit-color-swatch {
     border: none !important;
     border-radius: 2px !important;
+}
+
+/* Specific styling for the styling row - make it more compact */
+.compact-row .compact-control:has(.main-text-styling) {
+    gap: 6px !important;
+    max-width: 100% !important;
+}
+
+.compact-row .compact-control:has(.main-text-styling) label {
+    font-size: 10px !important;
+    min-width: 45px !important;
+    flex-shrink: 0 !important;
 }
 
 /* Override chatooly-control-group for compact rows */
