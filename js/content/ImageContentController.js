@@ -417,6 +417,21 @@ class ImageContentController extends ContentController {
                 // Load image from CDN URL
                 const img = new Image();
                 img.crossOrigin = 'anonymous'; // Enable CORS for CDN images
+
+                // For GIFs, add to DOM (hidden) so browser animates them
+                // Note: Must be in viewport for browser to animate, so use opacity instead of positioning
+                if (mediaType === 'gif') {
+                    img.style.position = 'fixed';
+                    img.style.top = '0';
+                    img.style.left = '0';
+                    img.style.width = '1px';
+                    img.style.height = '1px';
+                    img.style.opacity = '0';
+                    img.style.pointerEvents = 'none';
+                    img.style.zIndex = '-1000';
+                    document.body.appendChild(img);
+                }
+
                 img.onload = () => {
                     this.updateContent(cell, {
                         media: img,
@@ -436,6 +451,14 @@ class ImageContentController extends ContentController {
                             this.app.uiManager.showSelectedCellControls(selectedCell.cell, selectedCell.row, selectedCell.col);
                         }
                     }
+
+                    // Start animation loop for GIFs (they need continuous redrawing to animate)
+                    if (mediaType === 'gif') {
+                        this.app._startAnimationLoop();
+                    }
+
+                    // Force a render to show the image immediately
+                    this.app.render();
                 };
                 img.onerror = (error) => {
                     console.error('❌ Failed to load image from Media Manager:', error);
@@ -541,7 +564,7 @@ class ImageContentController extends ContentController {
                 console.warn('Error destroying Lottie animation:', error);
             }
         }
-        
+
         // Clean up Lottie container if present
         if (cell.content?.lottieContainer && cell.content.lottieContainer.parentNode) {
             try {
@@ -549,6 +572,16 @@ class ImageContentController extends ContentController {
                 console.log('Lottie container removed');
             } catch (error) {
                 console.warn('Error removing Lottie container:', error);
+            }
+        }
+
+        // Clean up hidden GIF element if present
+        if (cell.content?.mediaType === 'gif' && cell.content?.media instanceof HTMLImageElement && cell.content.media.parentNode) {
+            try {
+                document.body.removeChild(cell.content.media);
+                console.log('Hidden GIF element removed from DOM');
+            } catch (error) {
+                console.warn('Error removing hidden GIF element:', error);
             }
         }
         

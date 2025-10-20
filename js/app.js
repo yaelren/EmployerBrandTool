@@ -1021,6 +1021,20 @@ class EmployerBrandToolPOC {
                     cell.content && cell.content.media instanceof HTMLVideoElement
                 );
 
+            // Check if any GIFs need frame updates (GIFs are HTMLImageElements but need continuous redrawing)
+            const hasGIFs = this.grid &&
+                this.grid.getAllCells().some(cell => {
+                    const isGif = cell.content && cell.content.mediaType === 'gif' && cell.content.media instanceof HTMLImageElement;
+                    if (isGif && Math.random() < 0.01) { // Log occasionally
+                        console.log('🎬 GIF detected in animation loop:', {
+                            mediaType: cell.content.mediaType,
+                            hasMedia: !!cell.content.media,
+                            isImage: cell.content.media instanceof HTMLImageElement
+                        });
+                    }
+                    return isGif;
+                });
+
             // Check if any Lottie animations need frame updates
             const hasLottieAnimations = this.grid &&
                 this.grid.getAllCells().some(cell =>
@@ -1030,7 +1044,7 @@ class EmployerBrandToolPOC {
             // Check if background video needs frame updates
             const hasBackgroundVideo = this.canvasManager.backgroundManager.backgroundVideo instanceof HTMLVideoElement;
 
-            if (hasPlayingAnimations || hasVideos || hasLottieAnimations || hasBackgroundVideo) {
+            if (hasPlayingAnimations || hasVideos || hasGIFs || hasLottieAnimations || hasBackgroundVideo) {
                 // Re-render canvas
                 this.render();
 
