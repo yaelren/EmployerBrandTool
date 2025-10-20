@@ -68,28 +68,45 @@ class BackgroundManager {
         // Clear any existing GIF
         this.clearBackgroundGif();
 
-        // Create a canvas for the GIF
-        this.backgroundGif = document.createElement('canvas');
         this.backgroundGifUrl = gifUrl;
 
-        try {
-            let firstFrameRendered = false;
-            gifler(gifUrl).frames(this.backgroundGif, (ctx, frame) => {
-                // CRITICAL: Must draw the frame buffer to canvas!
-                ctx.drawImage(frame.buffer, frame.x, frame.y);
+        // First, load the GIF as an image to get its dimensions
+        const img = new Image();
+        img.crossOrigin = 'anonymous';
 
-                // On first frame, trigger callback
-                if (!firstFrameRendered) {
-                    firstFrameRendered = true;
-                    if (onLoadCallback) {
-                        onLoadCallback();
+        img.onload = () => {
+            // Create a canvas with the GIF's natural dimensions
+            this.backgroundGif = document.createElement('canvas');
+            this.backgroundGif.width = img.naturalWidth;
+            this.backgroundGif.height = img.naturalHeight;
+
+            try {
+                let firstFrameRendered = false;
+                gifler(gifUrl).frames(this.backgroundGif, (ctx, frame) => {
+                    // CRITICAL: Must draw the frame buffer to canvas!
+                    ctx.drawImage(frame.buffer, frame.x, frame.y);
+
+                    // On first frame, trigger callback
+                    if (!firstFrameRendered) {
+                        firstFrameRendered = true;
+                        console.log(`✅ Background GIF loaded: ${this.backgroundGif.width}x${this.backgroundGif.height}`);
+                        if (onLoadCallback) {
+                            onLoadCallback();
+                        }
                     }
-                }
-            });
-        } catch (error) {
-            console.error('❌ Error setting background GIF:', error);
+                });
+            } catch (error) {
+                console.error('❌ Error setting background GIF with gifler:', error);
+                this.clearBackgroundGif();
+            }
+        };
+
+        img.onerror = (error) => {
+            console.error('❌ Failed to load GIF image for dimensions:', error);
             this.clearBackgroundGif();
-        }
+        };
+
+        img.src = gifUrl;
     }
 
     /**
