@@ -73,16 +73,17 @@ class BackgroundManager {
         this.backgroundGifUrl = gifUrl;
 
         try {
+            let firstFrameRendered = false;
             gifler(gifUrl).frames(this.backgroundGif, (ctx, frame) => {
-                // gifler will continuously update the canvas with each frame
-                // The canvas element serves as our animated GIF source
-            }, (error) => {
-                if (error) {
-                    console.error('❌ gifler error loading background GIF:', error);
-                    this.clearBackgroundGif();
-                } else if (onLoadCallback) {
-                    // GIF loaded successfully
-                    onLoadCallback();
+                // CRITICAL: Must draw the frame buffer to canvas!
+                ctx.drawImage(frame.buffer, frame.x, frame.y);
+
+                // On first frame, trigger callback
+                if (!firstFrameRendered) {
+                    firstFrameRendered = true;
+                    if (onLoadCallback) {
+                        onLoadCallback();
+                    }
                 }
             });
         } catch (error) {
