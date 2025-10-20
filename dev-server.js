@@ -50,22 +50,44 @@ app.get('/api/media/list', async (req, res) => {
         }
 
         const data = await response.json();
+
+        // Filter for images, videos, and document files (for Lottie), and normalize the response
         const mediaFiles = (data.files || [])
             .filter(file => {
                 const isImage = file.mediaType === 'IMAGE';
                 const isVideo = file.mediaType === 'VIDEO';
-                return isImage || isVideo;
+                const isDocument = file.mediaType === 'DOCUMENT';
+                // Include documents if they're JSON/Lottie files
+                const isLottie = isDocument && (
+                    file.displayName?.endsWith('.json') ||
+                    file.displayName?.endsWith('.lottie')
+                );
+                return isImage || isVideo || isLottie;
             })
-            .map(file => ({
-                id: file.id,
-                fileName: file.displayName || file.id,
-                displayName: file.displayName || file.id,
-                fileUrl: file.url,
-                mimeType: file.mediaType === 'IMAGE' ? 'image/jpeg' : 'video/mp4',
-                sizeInBytes: parseInt(file.sizeInBytes) || 0,
-                width: file.media?.image?.image?.width || 0,
-                height: file.media?.image?.image?.height || 0
-            }));
+            .map(file => {
+                // Determine MIME type
+                let mimeType;
+                if (file.mediaType === 'IMAGE') {
+                    mimeType = 'image/jpeg';
+                } else if (file.mediaType === 'VIDEO') {
+                    mimeType = 'video/mp4';
+                } else if (file.displayName?.endsWith('.json') || file.displayName?.endsWith('.lottie')) {
+                    mimeType = 'application/json';
+                } else {
+                    mimeType = 'application/octet-stream';
+                }
+
+                return {
+                    id: file.id,
+                    fileName: file.displayName || file.id,
+                    displayName: file.displayName || file.id,
+                    fileUrl: file.url,
+                    mimeType: mimeType,
+                    sizeInBytes: parseInt(file.sizeInBytes) || 0,
+                    width: file.media?.image?.image?.width || 0,
+                    height: file.media?.image?.image?.height || 0
+                };
+            });
 
         console.log(`✅ Found ${mediaFiles.length} media files`);
 
