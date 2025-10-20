@@ -2059,6 +2059,9 @@ class UIManager {
                     this.elements.clearBackgroundMedia.style.display = 'inline-block';
                     this.elements.backgroundVideoControls.style.display = 'none';
                     this.app.render();
+
+                    // Start animation loop for GIF frame updates
+                    this.app._startAnimationLoop();
                     console.log('✅ Background GIF animation set from Media Manager');
                 });
 

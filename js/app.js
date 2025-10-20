@@ -1037,7 +1037,10 @@ class EmployerBrandToolPOC {
             // Check if background video needs frame updates
             const hasBackgroundVideo = this.canvasManager.backgroundManager.backgroundVideo instanceof HTMLVideoElement;
 
-            if (hasPlayingAnimations || hasVideos || hasGIFs || hasLottieAnimations || hasBackgroundVideo) {
+            // Check if background GIF needs frame updates
+            const hasBackgroundGif = this.canvasManager.backgroundManager.backgroundGif instanceof HTMLCanvasElement;
+
+            if (hasPlayingAnimations || hasVideos || hasGIFs || hasLottieAnimations || hasBackgroundVideo || hasBackgroundGif) {
                 // Re-render canvas
                 this.render();
 
