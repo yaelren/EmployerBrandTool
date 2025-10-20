@@ -69,10 +69,19 @@ export default async function handler(req, res) {
                 return isImage || isVideo || isLottie;
             })
             .map(file => {
-                // Determine MIME type
+                // Determine MIME type based on file type and extension
                 let mimeType;
                 if (file.mediaType === 'IMAGE') {
-                    mimeType = 'image/jpeg';
+                    // Check if it's a GIF by filename
+                    if (file.displayName?.toLowerCase().endsWith('.gif')) {
+                        mimeType = 'image/gif';
+                    } else if (file.displayName?.toLowerCase().endsWith('.png')) {
+                        mimeType = 'image/png';
+                    } else if (file.displayName?.toLowerCase().endsWith('.webp')) {
+                        mimeType = 'image/webp';
+                    } else {
+                        mimeType = 'image/jpeg';
+                    }
                 } else if (file.mediaType === 'VIDEO') {
                     mimeType = 'video/mp4';
                 } else if (file.displayName?.endsWith('.json') || file.displayName?.endsWith('.lottie')) {
