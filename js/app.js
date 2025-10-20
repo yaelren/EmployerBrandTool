@@ -1021,18 +1021,11 @@ class EmployerBrandToolPOC {
                     cell.content && cell.content.media instanceof HTMLVideoElement
                 );
 
-            // Check if any GIFs need frame updates (GIFs are HTMLImageElements but need continuous redrawing)
+            // Check if any GIFs need frame updates (GIFs can be HTMLImageElements or Canvas elements from gifler)
             const hasGIFs = this.grid &&
                 this.grid.getAllCells().some(cell => {
-                    const isGif = cell.content && cell.content.mediaType === 'gif' && cell.content.media instanceof HTMLImageElement;
-                    if (isGif && Math.random() < 0.01) { // Log occasionally
-                        console.log('🎬 GIF detected in animation loop:', {
-                            mediaType: cell.content.mediaType,
-                            hasMedia: !!cell.content.media,
-                            isImage: cell.content.media instanceof HTMLImageElement
-                        });
-                    }
-                    return isGif;
+                    return cell.content && cell.content.mediaType === 'gif' &&
+                        (cell.content.media instanceof HTMLImageElement || cell.content.media instanceof HTMLCanvasElement);
                 });
 
             // Check if any Lottie animations need frame updates

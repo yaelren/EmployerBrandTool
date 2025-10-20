@@ -172,8 +172,21 @@ class CellRenderer {
         // Get media dimensions
         let mediaWidth, mediaHeight;
         if (media instanceof HTMLImageElement) {
-            mediaWidth = media.width;
-            mediaHeight = media.height;
+            // Use naturalWidth/naturalHeight for actual image dimensions (not styled size)
+            mediaWidth = media.naturalWidth || media.width;
+            mediaHeight = media.naturalHeight || media.height;
+
+            // Debug GIF rendering
+            if (cell.content.mediaType === 'gif' && Math.random() < 0.02) {
+                console.log('🎨 CellRenderer drawing GIF:', {
+                    naturalWidth: media.naturalWidth,
+                    naturalHeight: media.naturalHeight,
+                    styledWidth: media.width,
+                    styledHeight: media.height,
+                    usingWidth: mediaWidth,
+                    usingHeight: mediaHeight
+                });
+            }
         } else if (media instanceof HTMLVideoElement) {
             mediaWidth = media.videoWidth;
             mediaHeight = media.videoHeight;
@@ -279,7 +292,19 @@ class CellRenderer {
 
         // Draw the media
         if (media instanceof HTMLImageElement) {
-            ctx.drawImage(media, 0, 0, drawWidth, drawHeight);
+            // For GIFs, force canvas to use latest frame by ensuring image is from DOM
+            if (cell.content.mediaType === 'gif') {
+                // The image element must be in DOM and visible for animation to work
+                // Find the actual DOM element (should be the visible one in bottom-right)
+                const domImage = media.parentNode ? media : document.querySelector(`img[src="${media.src}"]`);
+                if (domImage) {
+                    ctx.drawImage(domImage, 0, 0, drawWidth, drawHeight);
+                } else {
+                    ctx.drawImage(media, 0, 0, drawWidth, drawHeight);
+                }
+            } else {
+                ctx.drawImage(media, 0, 0, drawWidth, drawHeight);
+            }
         } else if (media instanceof HTMLVideoElement) {
             // For videos, we need to handle the current frame
             try {

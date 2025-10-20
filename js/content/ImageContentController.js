@@ -388,9 +388,6 @@ class ImageContentController extends ContentController {
             const selectedFile = await picker.show();
 
             // Handle selected file
-            console.log(`✅ File selected from Media Manager: ${selectedFile.displayName}`);
-            console.log(`   → URL: ${selectedFile.fileUrl}`);
-            console.log(`   → Type: ${selectedFile.mimeType}`);
 
             // Check if it's a Lottie file
             const isLottie = selectedFile.mimeType === 'application/json' ||
@@ -413,52 +410,112 @@ class ImageContentController extends ContentController {
                 mediaType = 'video';
             }
 
+
             if (mediaType === 'image' || mediaType === 'gif') {
                 // Load image from CDN URL
                 const img = new Image();
                 img.crossOrigin = 'anonymous'; // Enable CORS for CDN images
 
-                // For GIFs, add to DOM (hidden) so browser animates them
-                // Note: Must be in viewport for browser to animate, so use opacity instead of positioning
-                if (mediaType === 'gif') {
-                    img.style.position = 'fixed';
-                    img.style.top = '0';
-                    img.style.left = '0';
-                    img.style.width = '1px';
-                    img.style.height = '1px';
-                    img.style.opacity = '0';
-                    img.style.pointerEvents = 'none';
-                    img.style.zIndex = '-1000';
-                    document.body.appendChild(img);
-                }
-
                 img.onload = () => {
-                    this.updateContent(cell, {
-                        media: img,
-                        mediaType: mediaType,
-                        mediaUrl: selectedFile.fileUrl, // Store CDN URL
-                        fileName: selectedFile.displayName,
-                        scale: 1,
-                        rotation: 0
-                    });
+                    // For GIFs, use gifler library to decode frames to canvas
+                    if (mediaType === 'gif' && typeof gifler !== 'undefined') {
 
-                    console.log('✅ Cell image set from Media Manager');
+                        // Create a canvas for the GIF animation
+                        const gifCanvas = document.createElement('canvas');
+                        gifCanvas.width = img.naturalWidth;
+                        gifCanvas.height = img.naturalHeight;
 
-                    // Recreate controls to show file display
-                    if (this.app.uiManager && this.app.uiManager.showSelectedCellControls) {
-                        const selectedCell = this.app.selectedCell;
-                        if (selectedCell) {
-                            this.app.uiManager.showSelectedCellControls(selectedCell.cell, selectedCell.row, selectedCell.col);
+                        // Use gifler to animate the GIF on this canvas
+                        try {
+                            let firstFrameRendered = false;
+                            gifler(selectedFile.fileUrl).frames(gifCanvas, (ctx, frame) => {
+                                // CRITICAL: Must draw the frame buffer to canvas!
+                                ctx.drawImage(frame.buffer, frame.x, frame.y);
+
+                                // On first frame, update content and start animation
+                                if (!firstFrameRendered) {
+                                    firstFrameRendered = true;
+
+                                    // Store the canvas as the media
+                                    this.updateContent(cell, {
+                                        media: gifCanvas,
+                                        mediaType: mediaType,
+                                        mediaUrl: selectedFile.fileUrl,
+                                        fileName: selectedFile.displayName,
+                                        scale: 1,
+                                        rotation: 0
+                                    });
+
+                                    // Recreate controls to show file display
+                                    if (this.app.uiManager && this.app.uiManager.showSelectedCellControls) {
+                                        const selectedCell = this.app.selectedCell;
+                                        if (selectedCell) {
+                                            this.app.uiManager.showSelectedCellControls(selectedCell.cell, selectedCell.row, selectedCell.col);
+                                        }
+                                    }
+
+                                    // Start animation loop
+                                    this.app._startAnimationLoop();
+
+                                    // Force a render
+                                    this.app.render();
+                                }
+                            }, true); // true = loop
+                        } catch (error) {
+                            console.error('❌ gifler error:', error);
+                            alert('Failed to load GIF animation. CORS issue or gifler error.');
+                            return;
                         }
-                    }
 
-                    // Start animation loop for GIFs (they need continuous redrawing to animate)
-                    if (mediaType === 'gif') {
-                        this.app._startAnimationLoop();
-                    }
+                        // No need for DOM image element
+                        // gifler handles everything on the canvas
+                    } else if (mediaType === 'gif') {
+                        // Fallback: gifler not available, use DOM method
+                        console.log('⚠️ gifler not loaded, using DOM fallback for GIF');
+                        img.style.position = 'fixed';
+                        img.style.bottom = '10px';
+                        img.style.right = '10px';
+                        img.style.maxWidth = '100px';
+                        img.style.maxHeight = '100px';
+                        img.style.pointerEvents = 'none';
+                        img.style.zIndex = '10000';
+                        img.style.border = '2px solid red';
+                        img.style.opacity = '0.8';
+                        document.body.appendChild(img);
 
-                    // Force a render to show the image immediately
-                    this.app.render();
+                        this.updateContent(cell, {
+                            media: img,
+                            mediaType: mediaType,
+                            mediaUrl: selectedFile.fileUrl,
+                            fileName: selectedFile.displayName,
+                            scale: 1,
+                            rotation: 0
+                        });
+                    } else {
+                        // Regular image (not GIF)
+                        this.updateContent(cell, {
+                            media: img,
+                            mediaType: mediaType,
+                            mediaUrl: selectedFile.fileUrl,
+                            fileName: selectedFile.displayName,
+                            scale: 1,
+                            rotation: 0
+                        });
+
+                        console.log('✅ Cell image set from Media Manager');
+
+                        // Recreate controls to show file display
+                        if (this.app.uiManager && this.app.uiManager.showSelectedCellControls) {
+                            const selectedCell = this.app.selectedCell;
+                            if (selectedCell) {
+                                this.app.uiManager.showSelectedCellControls(selectedCell.cell, selectedCell.row, selectedCell.col);
+                            }
+                        }
+
+                        // Force a render to show the image immediately
+                        this.app.render();
+                        console.log('✅ Image loaded and rendered, mediaType:', mediaType);
+                    }
                 };
                 img.onerror = (error) => {
                     console.error('❌ Failed to load image from Media Manager:', error);
