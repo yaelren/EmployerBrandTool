@@ -100,11 +100,6 @@ class SavePageModal {
 
                     <!-- Page Settings -->
                     <div class="save-page-settings">
-                        <div class="page-name-input">
-                            <label>Page Name:</label>
-                            <input type="text" id="page-name-input" placeholder="e.g., Hero Banner, About Us..." value="Page 1" />
-                        </div>
-
                         <div class="page-position-input">
                             <label>Page Position:</label>
                             <select id="page-position-select">
@@ -114,6 +109,11 @@ class SavePageModal {
                                 <option value="4">Page 4</option>
                                 <option value="5">Page 5</option>
                             </select>
+                        </div>
+
+                        <div class="page-name-input">
+                            <label>Page Name:</label>
+                            <input type="text" id="page-name-input" placeholder="e.g., Hero Banner, About Us..." value="Page 1" />
                         </div>
                     </div>
                 </div>
@@ -145,6 +145,19 @@ class SavePageModal {
         radioButtons.forEach(radio => {
             radio.addEventListener('change', (e) => this.handlePresetTypeChange(e.target.value));
         });
+
+        // Page position select - auto-update page name
+        const pagePositionSelect = this.modal.querySelector('#page-position-select');
+        if (pagePositionSelect) {
+            pagePositionSelect.addEventListener('change', (e) => {
+                const pageNumber = e.target.value;
+                const pageNameInput = this.modal.querySelector('#page-name-input');
+                // Only update if user hasn't customized the name
+                if (pageNameInput && pageNameInput.value.match(/^Page \d+$/)) {
+                    pageNameInput.value = `Page ${pageNumber}`;
+                }
+            });
+        }
 
         // Close on overlay click
         this.modal.addEventListener('click', (e) => {
