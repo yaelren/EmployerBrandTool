@@ -163,23 +163,21 @@ class PresetManager {
         const processedData = { ...cellData };
         const content = { ...cellData.content };
 
-        // Handle media content - store temp reference for cloud upload
+        // Handle media content - keep mediaUrl from ContentCell
         if (cellData.contentType === 'media' && cellData.content.media) {
             if (cellData.content.media instanceof HTMLImageElement) {
                 console.log(`📸 SAVE: Processing cell ${cellData.id} with image`);
                 console.log('   → Image dimensions:', cellData.content.media.width, 'x', cellData.content.media.height);
-                content.imageElement = cellData.content.media; // Temp ref for upload
-                content.imageURL = null; // Will be set during cloud upload
+                console.log('   → mediaUrl:', cellData.content.mediaUrl);
                 content.mediaType = 'image';
-                content.media = null; // Remove actual element
+                content.media = null; // Remove actual element (mediaUrl is preserved)
             } else if (cellData.content.media instanceof HTMLVideoElement) {
                 console.log(`🎥 SAVE: Processing cell ${cellData.id} with video`);
                 console.log('   → Video dimensions:', cellData.content.media.videoWidth, 'x', cellData.content.media.videoHeight);
                 console.log('   → Video duration:', cellData.content.media.duration, 'seconds');
-                content.videoElement = cellData.content.media; // Temp ref for upload
-                content.videoURL = null; // Will be set during cloud upload
+                console.log('   → mediaUrl:', cellData.content.mediaUrl);
                 content.mediaType = 'video';
-                content.media = null; // Remove actual element
+                content.media = null; // Remove actual element (mediaUrl is preserved)
             }
         }
 
@@ -704,11 +702,12 @@ class PresetManager {
 
         allCells.forEach(cell => {
             if (cell && cell.type === 'content' && cell.content) {
-                // Restore images
-                if (cell.content.imageURL) {
-                    this.restoreImageFromURL(cell, cell.content.imageURL);
+                // Restore images - check both mediaUrl (new format) and imageURL (legacy)
+                if (cell.content.mediaUrl || cell.content.imageURL) {
+                    const url = cell.content.mediaUrl || cell.content.imageURL;
+                    this.restoreImageFromURL(cell, url);
                 }
-                // Restore videos
+                // Restore videos - check both mediaUrl (new format) and videoURL (legacy)
                 if (cell.content.videoURL) {
                     this.restoreVideoFromURL(cell, cell.content.videoURL);
                 }
