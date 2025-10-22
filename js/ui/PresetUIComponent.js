@@ -31,6 +31,17 @@ class PresetUIComponent {
 
         container.innerHTML = `
             <div class="preset-controls preset-cloud-controls">
+                <!-- Multi-Page Save Section -->
+                <div class="preset-section preset-multipage-save-section">
+                    <h3>Multi-Page Presets</h3>
+                    <p class="preset-description">Save this canvas as a page in a multi-page preset</p>
+                    <div class="preset-multipage-controls">
+                        <button type="button" class="preset-save-page-btn">
+                            📄 Save Page to Preset
+                        </button>
+                    </div>
+                </div>
+
                 <!-- Save Section -->
                 <div class="preset-section preset-save-section">
                     <h3>Save New Preset</h3>
@@ -104,6 +115,12 @@ class PresetUIComponent {
      * Setup event listeners for preset controls
      */
     setupEventListeners() {
+        // Save page to preset button (multi-page workflow)
+        const savePageBtn = document.querySelector('.preset-save-page-btn');
+        if (savePageBtn) {
+            savePageBtn.addEventListener('click', () => this.handleSavePageToPreset());
+        }
+
         // Save locally button
         const saveLocalBtn = document.querySelector('.preset-save-local-btn');
         if (saveLocalBtn) {
@@ -555,5 +572,27 @@ class PresetUIComponent {
 
         // Auto-scroll to message
         messageEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+
+    /**
+     * Handle save page to preset button click (multi-page workflow)
+     * Opens the SavePageModal to configure editable fields and save
+     */
+    handleSavePageToPreset() {
+        if (!this.app.savePageModal) {
+            this.showError('Multi-page system not initialized');
+            console.error('SavePageModal not found on app object');
+            return;
+        }
+
+        // Show the save page modal
+        this.app.savePageModal.show();
+    }
+
+    /**
+     * Load presets for dropdown (called after saving pages)
+     */
+    async loadPresets() {
+        await this.populatePresetDropdown();
     }
 }

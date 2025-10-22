@@ -1,0 +1,447 @@
+/**
+ * Save Page Modal Styles
+ * Dark theme matching Chatooly design system
+ */
+
+.save-page-modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.7);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10000;
+    padding: 20px;
+}
+
+.save-page-modal {
+    background: #1a1a1a;
+    border-radius: 12px;
+    width: 90%;
+    max-width: 900px;
+    max-height: 90vh;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+}
+
+/* Header */
+.save-page-modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 20px 24px;
+    border-bottom: 1px solid #333;
+}
+
+.save-page-modal-header h2 {
+    margin: 0;
+    color: #fff;
+    font-size: 20px;
+    font-weight: 600;
+}
+
+.save-page-modal-close {
+    background: none;
+    border: none;
+    color: #888;
+    font-size: 32px;
+    cursor: pointer;
+    line-height: 1;
+    padding: 0;
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 4px;
+    transition: all 0.2s;
+}
+
+.save-page-modal-close:hover {
+    background: #333;
+    color: #fff;
+}
+
+/* Body */
+.save-page-modal-body {
+    padding: 24px;
+    overflow-y: auto;
+    flex: 1;
+}
+
+.save-page-instructions {
+    background: #252525;
+    border-left: 3px solid #4CAF50;
+    padding: 12px 16px;
+    border-radius: 6px;
+    margin-bottom: 20px;
+}
+
+.save-page-instructions p {
+    margin: 0;
+    color: #ccc;
+    font-size: 14px;
+    line-height: 1.5;
+}
+
+/* Canvas Elements List Section */
+.save-page-elements-list {
+    margin-bottom: 24px;
+}
+
+.save-page-elements-list h3 {
+    color: #fff;
+    font-size: 16px;
+    font-weight: 600;
+    margin: 0 0 8px 0;
+}
+
+.elements-hint {
+    color: #888;
+    font-size: 13px;
+    margin: 0 0 12px 0;
+}
+
+#save-page-elements-container {
+    background: #252525;
+    border-radius: 8px;
+    padding: 16px;
+    max-height: 300px;
+    overflow-y: auto;
+}
+
+/* Element Checkbox Items */
+.element-checkbox-item {
+    background: #2a2a2a;
+    border: 1px solid #333;
+    border-radius: 6px;
+    padding: 12px;
+    margin-bottom: 8px;
+    transition: all 0.2s;
+}
+
+.element-checkbox-item:last-child {
+    margin-bottom: 0;
+}
+
+.element-checkbox-item:hover {
+    background: #333;
+    border-color: #4CAF50;
+}
+
+.element-checkbox-label {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    cursor: pointer;
+    margin: 0;
+}
+
+.element-checkbox {
+    width: 20px;
+    height: 20px;
+    cursor: pointer;
+    accent-color: #4CAF50;
+    flex-shrink: 0;
+}
+
+.element-label-text {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.element-label-text strong {
+    color: #fff;
+    font-size: 14px;
+    font-weight: 600;
+}
+
+.element-content {
+    color: #aaa;
+    font-size: 13px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    display: block;
+}
+
+/* Editable Fields Section */
+.save-page-editable-fields {
+    margin-bottom: 24px;
+}
+
+.save-page-editable-fields h3 {
+    color: #fff;
+    font-size: 16px;
+    font-weight: 600;
+    margin: 0 0 12px 0;
+}
+
+#save-page-fields-list {
+    background: #252525;
+    border-radius: 8px;
+    padding: 16px;
+}
+
+.no-fields-message {
+    color: #666;
+    font-size: 14px;
+    text-align: center;
+    margin: 0;
+    padding: 20px;
+}
+
+.editable-field-item {
+    background: #2a2a2a;
+    border: 1px solid #333;
+    border-radius: 6px;
+    padding: 12px;
+    margin-bottom: 12px;
+}
+
+.editable-field-item:last-child {
+    margin-bottom: 0;
+}
+
+.field-label {
+    color: #4CAF50;
+    font-size: 13px;
+    font-weight: 600;
+    margin-bottom: 8px;
+}
+
+.field-inputs {
+    display: flex;
+    gap: 8px;
+}
+
+.field-name-input,
+.field-label-input {
+    flex: 1;
+    background: #1a1a1a;
+    border: 1px solid #333;
+    border-radius: 4px;
+    padding: 8px 12px;
+    color: #fff;
+    font-size: 13px;
+    font-family: inherit;
+    transition: all 0.2s;
+}
+
+.field-name-input:focus,
+.field-label-input:focus {
+    outline: none;
+    border-color: #4CAF50;
+    background: #252525;
+}
+
+.field-name-input::placeholder,
+.field-label-input::placeholder {
+    color: #555;
+}
+
+/* Preset Selection Section */
+.save-page-preset-selection {
+    margin-bottom: 24px;
+}
+
+.save-page-preset-selection h3 {
+    color: #fff;
+    font-size: 16px;
+    font-weight: 600;
+    margin: 0 0 12px 0;
+}
+
+.preset-radio-group {
+    display: flex;
+    gap: 16px;
+    margin-bottom: 16px;
+}
+
+.preset-radio-group label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: #ccc;
+    font-size: 14px;
+    cursor: pointer;
+}
+
+.preset-radio-group input[type="radio"] {
+    cursor: pointer;
+    accent-color: #4CAF50;
+}
+
+#new-preset-name-container,
+#existing-preset-container {
+    background: #252525;
+    border-radius: 6px;
+    padding: 12px;
+}
+
+#new-preset-name-container label,
+#existing-preset-container label {
+    display: block;
+    color: #aaa;
+    font-size: 13px;
+    margin-bottom: 6px;
+}
+
+#new-preset-name,
+#existing-preset-select {
+    width: 100%;
+    background: #1a1a1a;
+    border: 1px solid #333;
+    border-radius: 4px;
+    padding: 10px 12px;
+    color: #fff;
+    font-size: 14px;
+    font-family: inherit;
+    transition: all 0.2s;
+}
+
+#new-preset-name:focus,
+#existing-preset-select:focus {
+    outline: none;
+    border-color: #4CAF50;
+    background: #252525;
+}
+
+#existing-preset-select {
+    cursor: pointer;
+}
+
+/* Page Settings Section */
+.save-page-settings {
+    display: grid;
+    grid-template-columns: 2fr 1fr;
+    gap: 16px;
+}
+
+.page-name-input,
+.page-position-input {
+    background: #252525;
+    border-radius: 6px;
+    padding: 12px;
+}
+
+.page-name-input label,
+.page-position-input label {
+    display: block;
+    color: #aaa;
+    font-size: 13px;
+    margin-bottom: 6px;
+}
+
+#page-name-input,
+#page-position-select {
+    width: 100%;
+    background: #1a1a1a;
+    border: 1px solid #333;
+    border-radius: 4px;
+    padding: 10px 12px;
+    color: #fff;
+    font-size: 14px;
+    font-family: inherit;
+    transition: all 0.2s;
+}
+
+#page-name-input:focus,
+#page-position-select:focus {
+    outline: none;
+    border-color: #4CAF50;
+    background: #252525;
+}
+
+#page-position-select {
+    cursor: pointer;
+}
+
+/* Footer */
+.save-page-modal-footer {
+    padding: 16px 24px;
+    border-top: 1px solid #333;
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+}
+
+.save-page-modal-cancel,
+.save-page-modal-save {
+    padding: 10px 24px;
+    border-radius: 6px;
+    border: none;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.save-page-modal-cancel {
+    background: #333;
+    color: #ccc;
+}
+
+.save-page-modal-cancel:hover {
+    background: #444;
+    color: #fff;
+}
+
+.save-page-modal-save {
+    background: #4CAF50;
+    color: #fff;
+}
+
+.save-page-modal-save:hover {
+    background: #45a049;
+}
+
+/* Scrollbar Styling */
+#save-page-canvas-overlay::-webkit-scrollbar,
+.save-page-modal-body::-webkit-scrollbar {
+    width: 8px;
+}
+
+#save-page-canvas-overlay::-webkit-scrollbar-track,
+.save-page-modal-body::-webkit-scrollbar-track {
+    background: #1a1a1a;
+}
+
+#save-page-canvas-overlay::-webkit-scrollbar-thumb,
+.save-page-modal-body::-webkit-scrollbar-thumb {
+    background: #444;
+    border-radius: 4px;
+}
+
+#save-page-canvas-overlay::-webkit-scrollbar-thumb:hover,
+.save-page-modal-body::-webkit-scrollbar-thumb:hover {
+    background: #555;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .save-page-modal {
+        width: 95%;
+        max-height: 95vh;
+    }
+
+    .save-page-settings {
+        grid-template-columns: 1fr;
+    }
+
+    .field-inputs {
+        flex-direction: column;
+    }
+
+    .preset-radio-group {
+        flex-direction: column;
+        gap: 8px;
+    }
+}
