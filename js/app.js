@@ -85,6 +85,7 @@ class EmployerBrandToolPOC {
             // Initialize Multi-Page Preset System
             this.presetPageManager = new PresetPageManager(this);
             this.savePageModal = new SavePageModal(this);
+            this.loadPageModal = new LoadPageModal(this);
 
             // Initialize Wix Cloud Backend for Presets
             await this.initializeWixCloud();
