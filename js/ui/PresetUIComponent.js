@@ -34,10 +34,13 @@ class PresetUIComponent {
                 <!-- Multi-Page Save Section -->
                 <div class="preset-section preset-multipage-save-section">
                     <h3>Multi-Page Presets</h3>
-                    <p class="preset-description">Save this canvas as a page in a multi-page preset</p>
+                    <p class="preset-description">Save and load pages in multi-page presets</p>
                     <div class="preset-multipage-controls">
                         <button type="button" class="preset-save-page-btn">
                             📄 Save Page to Preset
+                        </button>
+                        <button type="button" class="preset-load-page-btn">
+                            📂 Load Page from Preset
                         </button>
                     </div>
                 </div>
@@ -119,6 +122,12 @@ class PresetUIComponent {
         const savePageBtn = document.querySelector('.preset-save-page-btn');
         if (savePageBtn) {
             savePageBtn.addEventListener('click', () => this.handleSavePageToPreset());
+        }
+
+        // Load page from preset button (multi-page workflow)
+        const loadPageBtn = document.querySelector('.preset-load-page-btn');
+        if (loadPageBtn) {
+            loadPageBtn.addEventListener('click', () => this.handleLoadPageFromPreset());
         }
 
         // Save locally button
@@ -587,6 +596,21 @@ class PresetUIComponent {
 
         // Show the save page modal
         this.app.savePageModal.show();
+    }
+
+    /**
+     * Handle load page from preset button click (multi-page workflow)
+     * Opens the LoadPageModal to browse and load saved pages
+     */
+    handleLoadPageFromPreset() {
+        if (!this.app.loadPageModal) {
+            this.showError('Multi-page system not initialized');
+            console.error('LoadPageModal not found on app object');
+            return;
+        }
+
+        // Show the load page modal
+        this.app.loadPageModal.show();
     }
 
     /**

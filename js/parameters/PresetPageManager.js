@@ -243,9 +243,9 @@ class PresetPageManager {
      * @param {Object} pageData - Page data to apply
      */
     async applyPageToCanvas(pageData) {
-        // Use existing PresetManager.applyPreset logic
+        // Use existing PresetManager.deserializeState logic
         // This will restore the complete canvas state
-        await this.presetManager.applyPreset({
+        await this.presetManager.deserializeState({
             canvas: pageData.canvas,
             background: pageData.background,
             mainText: pageData.mainText,
