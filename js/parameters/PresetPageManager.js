@@ -245,7 +245,9 @@ class PresetPageManager {
     async applyPageToCanvas(pageData) {
         // Use existing PresetManager.deserializeState logic
         // This will restore the complete canvas state
+        // Note: deserializeState expects 'presetName' field for validation
         await this.presetManager.deserializeState({
+            presetName: pageData.pageName || 'Loaded Page', // Add presetName for validation
             canvas: pageData.canvas,
             background: pageData.background,
             mainText: pageData.mainText,
