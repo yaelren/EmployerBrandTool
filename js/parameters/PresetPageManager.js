@@ -28,69 +28,26 @@ class PresetPageManager {
      */
     captureCurrentPage(pageNumber = 1, pageName = 'Untitled Page') {
         // Get current canvas state using existing PresetManager logic
+        // This preserves ALL properties that make presets work correctly
         const canvasState = this.presetManager.serializeState('temp');
 
-        // Build complete page structure matching Wix CMS schema
+        // Build complete page structure by adding multi-page metadata to existing state
+        // IMPORTANT: Use canvasState directly to preserve all properties
         const pageData = {
             pageName: pageName,
             pageNumber: pageNumber,
+
+            // Preserve complete canvas state from PresetManager.serializeState()
+            // This includes all properties needed for correct deserialization
+            canvas: canvasState.canvas,
+            background: canvasState.background,
+            mainText: canvasState.mainText,
+            grid: canvasState.grid,
+            layers: canvasState.layers,
+
+            // Export settings
             exportFormat: this.presetManager.exportFormat || 'png',
             exportDuration: this.presetManager.exportDuration || null,
-
-            // Canvas dimensions and grid
-            canvas: {
-                width: canvasState.canvas?.width || 1080,
-                height: canvasState.canvas?.height || 1080,
-                padding: canvasState.canvas?.padding || {
-                    left: 20,
-                    right: 20,
-                    top: 20,
-                    bottom: 20
-                },
-                grid: {
-                    rows: canvasState.grid?.rows || 3,
-                    cols: canvasState.grid?.cols || 3
-                }
-            },
-
-            // Background settings
-            background: {
-                color: canvasState.background?.color || '#ffffff',
-                imageURL: canvasState.background?.imageURL || null,
-                gifURL: canvasState.background?.gifURL || null,
-                fillMode: canvasState.background?.fillMode || 'cover',
-                fitMode: canvasState.background?.fitMode || 'cover',
-                videoSettings: canvasState.background?.videoSettings || {
-                    autoplay: true,
-                    loop: true
-                }
-            },
-
-            // Main text settings
-            mainText: {
-                content: canvasState.mainText?.content || '',
-                fontSize: canvasState.mainText?.fontSize || 60,
-                fontFamily: canvasState.mainText?.fontFamily || 'Inter',
-                textTransform: canvasState.mainText?.textTransform || 'none',
-                fontWeight: canvasState.mainText?.fontWeight || 'normal',
-                textAlign: canvasState.mainText?.textAlign || 'center',
-                color: canvasState.mainText?.color || '#000000'
-            },
-
-            // Grid configuration
-            grid: {
-                rows: canvasState.grid?.rows || 3,
-                cols: canvasState.grid?.cols || 3,
-                spotSpacing: canvasState.grid?.spotSpacing || 10,
-                minSpotSize: canvasState.grid?.minSpotSize || 50,
-                snapshot: canvasState.grid?.snapshot || { layout: { cells: [] } }
-            },
-
-            // Layers (text cells and content cells)
-            layers: {
-                textCells: canvasState.layers?.textCells || [],
-                contentCells: canvasState.layers?.contentCells || []
-            },
 
             // Editable fields configuration (initially all locked)
             editableFields: {
