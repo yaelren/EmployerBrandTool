@@ -112,6 +112,14 @@ class LoadPageModal {
         this.isVisible = false;
         this.selectedPresetId = null;
         this.availablePages = [];
+
+        // Reset UI state - hide pages section and clear selection
+        this.modal.querySelector('#load-page-pages-section').style.display = 'none';
+        this.modal.querySelector('#preset-info-text').textContent = '';
+        const dropdown = this.modal.querySelector('#load-page-preset-select');
+        if (dropdown) {
+            dropdown.value = '';
+        }
     }
 
     /**
