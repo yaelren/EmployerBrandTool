@@ -11,7 +11,7 @@ import fetch from 'node-fetch';
 import 'dotenv/config';
 
 const app = express();
-const PORT = 3000;
+const PORT = 3001; // Backend API on 3001, frontend on 3000 or 5502
 
 // Enable CORS for local development
 app.use(cors());

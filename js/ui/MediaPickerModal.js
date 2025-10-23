@@ -20,9 +20,9 @@ class MediaPickerModal {
         // API endpoints - auto-detect environment
         const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
 
-        // Use separate Vercel API server on port 3000 for local dev
+        // Use separate backend API server on port 3001 for local dev
         if (isLocalhost) {
-            this.apiBase = 'http://localhost:3000/api';
+            this.apiBase = 'http://localhost:3001/api';
         } else {
             // Production - use relative API
             this.apiBase = '/api';
