@@ -704,9 +704,10 @@ class PresetManager {
 
         allCells.forEach(cell => {
             if (cell && cell.type === 'content' && cell.content) {
-                // Restore images
-                if (cell.content.imageURL) {
-                    this.restoreImageFromURL(cell, cell.content.imageURL);
+                // Restore images - support both imageURL and mediaUrl for compatibility
+                const imageURL = cell.content.imageURL || cell.content.mediaUrl;
+                if (imageURL) {
+                    this.restoreImageFromURL(cell, imageURL);
                 }
                 // Restore videos
                 if (cell.content.videoURL) {
