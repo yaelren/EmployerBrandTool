@@ -118,9 +118,10 @@ class Shuffler {
         // Preload spot images
         spotImagePaths.forEach(path => {
             const img = new Image();
+            img.crossOrigin = 'anonymous'; // Enable CORS for external images
             img.onload = () => {
                 this.spotImages.push(img);
-                
+
             };
             img.onerror = () => {
                 console.warn(`❌ Failed to load spot image: ${path}`);
@@ -131,6 +132,7 @@ class Shuffler {
         // Preload background images
         backgroundImagePaths.forEach(path => {
             const img = new Image();
+            img.crossOrigin = 'anonymous'; // Enable CORS for external images
             img.onload = () => {
                 this.backgroundImages.push(img);
             };

@@ -506,6 +506,7 @@ class PresetManager {
             console.log('   → URL length:', backgroundData.imageURL.length, 'characters');
 
             const img = new Image();
+            img.crossOrigin = 'anonymous'; // Enable CORS for CDN images
             img.onload = () => {
                 bg.setBackgroundImage(img);
                 console.log('   ✅ Background image loaded and set!');
@@ -729,6 +730,7 @@ class PresetManager {
         console.log('   → URL length:', imageURL.length, 'characters');
 
         const img = new Image();
+        img.crossOrigin = 'anonymous'; // Enable CORS for CDN images
         img.onload = () => {
             if (cell.content) {
                 cell.content.media = img; // CellRenderer looks for .media not .image

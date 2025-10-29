@@ -452,7 +452,7 @@ class EmployerBrandToolPOC {
     imageToDataURL(image) {
         try {
             const canvas = document.createElement('canvas');
-            const ctx = canvas.getContext('2d');
+            const ctx = canvas.getContext('2d', { willReadFrequently: true });
             canvas.width = image.width || image.naturalWidth;
             canvas.height = image.height || image.naturalHeight;
             ctx.drawImage(image, 0, 0);
@@ -568,8 +568,9 @@ class EmployerBrandToolPOC {
             console.warn('No image data URL found for spot restoration');
             return;
         }
-        
+
         const img = new Image();
+        img.crossOrigin = 'anonymous'; // Enable CORS for external images
         img.onload = () => {
             // Create the content object with restored image
             spot.content = {

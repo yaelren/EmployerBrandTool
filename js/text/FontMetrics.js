@@ -92,7 +92,7 @@ return /******/ (function(modules) { // webpackBootstrap
 
 	var initialize = function initialize() {
 	  canvas = document.createElement('canvas');
-	  context = canvas.getContext('2d');
+	  context = canvas.getContext('2d', { willReadFrequently: true });
 	  initialized = true;
 	};
 
