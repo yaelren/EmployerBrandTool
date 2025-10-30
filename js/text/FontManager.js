@@ -22,65 +22,38 @@ class FontManager {
     }
 
     /**
-     * Load custom fonts from Wix Media Manager backend
+     * Load custom fonts from Wix Data Collections
      */
     async loadCustomFontsFromStorage() {
         try {
-            // Auto-detect environment for API URL
-            const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
-            const listApiUrl = isLocalhost
-                ? 'http://localhost:3001/api/media/list'
-                : '/api/media/list';
-
-            console.log(`📡 Fetching custom fonts from Wix Media Manager...`);
-
-            const response = await fetch(listApiUrl);
-            if (!response.ok) {
-                throw new Error(`Failed to fetch fonts: ${response.status}`);
+            // Check if WixAPI is available
+            if (!window.wixAPI) {
+                console.warn('⚠️ WixAPI not initialized - skipping font loading');
+                return;
             }
 
-            const data = await response.json();
+            console.log(`📡 Fetching custom fonts from Wix Data Collections...`);
 
-            // Filter for font files only
-            const fontFiles = (data.files || []).filter(file => {
-                const fileName = file.fileName?.toLowerCase() || '';
-                return fileName.endsWith('.woff') ||
-                       fileName.endsWith('.woff2') ||
-                       fileName.endsWith('.ttf') ||
-                       fileName.endsWith('.otf');
-            });
+            // Load fonts from Wix Data Collections
+            const fonts = await window.wixAPI.loadCustomFonts();
 
-            console.log(`📦 Found ${fontFiles.length} custom font(s) in Media Manager`);
+            console.log(`📦 Found ${fonts.length} custom font(s) in Wix Data`);
 
             // Load all fonts from CDN in parallel
-            const loadPromises = fontFiles.map(async (file) => {
+            const loadPromises = fonts.map(async (fontData) => {
                 try {
-                    // Extract font name from filename (remove extension)
-                    const fontName = file.fileName.replace(/\.(woff2?|ttf|otf)$/i, '');
-                    const fontFamily = `"${fontName}", Arial, sans-serif`;
-
-                    const fontData = {
-                        name: fontName,
-                        family: fontFamily,
-                        fileName: file.fileName,
-                        cdnUrl: file.fileUrl,
-                        mimeType: file.mimeType,
-                        size: file.sizeInBytes,
-                        uploadedAt: Date.now()
-                    };
-
-                    this.customFonts.set(fontName, fontData);
+                    this.customFonts.set(fontData.name, fontData);
                     await this.loadFont(fontData);
-                    console.log(`   ✅ Loaded "${fontName}" from CDN`);
+                    console.log(`   ✅ Loaded "${fontData.name}" from CDN`);
                 } catch (error) {
-                    console.warn(`   ⚠️ Failed to load font "${file.fileName}":`, error);
+                    console.warn(`   ⚠️ Failed to load font "${fontData.name}":`, error);
                 }
             });
 
             await Promise.all(loadPromises);
             console.log(`✅ All custom fonts loaded and available in dropdown`);
         } catch (error) {
-            console.warn('Failed to load custom fonts from Media Manager:', error);
+            console.warn('Failed to load custom fonts from Wix Data:', error);
         }
     }
 
@@ -150,8 +123,19 @@ class FontManager {
                 mimeType: result.file.mimeType
             };
 
-            // Store metadata in memory (already persisted to Wix Media Manager)
+            // Store metadata in memory
             this.customFonts.set(fontData.name, fontData);
+
+            // Save font metadata to Wix Data Collections for persistence
+            if (window.wixAPI) {
+                try {
+                    await window.wixAPI.saveCustomFont(fontData);
+                    console.log(`💾 Font metadata saved to Wix Data Collections`);
+                } catch (error) {
+                    console.warn('⚠️ Failed to save font to Wix Data:', error);
+                    // Continue anyway - font is already uploaded to CDN
+                }
+            }
 
             // Load font from CDN
             await this.loadFont(fontData);
@@ -285,7 +269,7 @@ class FontManager {
      * @param {string} name - Font name
      * @returns {boolean} Success status
      */
-    removeCustomFont(name) {
+    async removeCustomFont(name) {
         if (this.customFonts.has(name)) {
             // Remove CSS
             const style = document.querySelector(`style[data-font="${name}"]`);
@@ -293,8 +277,19 @@ class FontManager {
                 style.remove();
             }
 
-            // Remove from memory (still exists in Wix Media Manager)
+            // Remove from memory
             this.customFonts.delete(name);
+
+            // Remove from Wix Data Collections
+            if (window.wixAPI) {
+                try {
+                    await window.wixAPI.deleteCustomFont(name);
+                    console.log(`🗑️ Font "${name}" removed from Wix Data Collections`);
+                } catch (error) {
+                    console.warn('⚠️ Failed to delete font from Wix Data:', error);
+                }
+            }
+
             return true;
         }
         return false;

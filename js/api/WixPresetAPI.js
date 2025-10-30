@@ -854,4 +854,152 @@ export class WixPresetAPI {
             throw new Error(`Failed to list media files: ${error.message}`);
         }
     }
+
+    // ============================================
+    // CUSTOM FONTS MANAGEMENT
+    // ============================================
+
+    /**
+     * Save a custom font to Wix Data Collections
+     * @param {Object} fontData - Font metadata object
+     * @returns {Promise<string>} - Font record ID
+     */
+    async saveCustomFont(fontData) {
+        try {
+            console.log(`💾 Saving custom font to Wix Data: ${fontData.name}`);
+
+            const fontRecord = {
+                name: fontData.name,
+                family: fontData.family,
+                fileName: fontData.fileName,
+                cdnUrl: fontData.cdnUrl,
+                mimeType: fontData.mimeType,
+                size: fontData.size || 0,
+                uploadedAt: new Date().toISOString()
+            };
+
+            const response = await fetch(`${this.baseURL}/wix-data/v2/collections/CustomFonts/data`, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${this.accessToken}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ dataItem: fontRecord })
+            });
+
+            if (!response.ok) {
+                const errorText = await response.text();
+                throw new Error(`Failed to save font: ${response.status} - ${errorText}`);
+            }
+
+            const data = await response.json();
+            console.log(`✅ Font saved with ID: ${data.dataItem._id}`);
+            return data.dataItem._id;
+
+        } catch (error) {
+            console.error('❌ Failed to save custom font:', error);
+            throw new Error(`Failed to save custom font: ${error.message}`);
+        }
+    }
+
+    /**
+     * Load all custom fonts from Wix Data Collections
+     * @returns {Promise<Array>} - Array of font metadata objects
+     */
+    async loadCustomFonts() {
+        try {
+            console.log(`📥 Loading custom fonts from Wix Data Collections...`);
+
+            const response = await fetch(`${this.baseURL}/wix-data/v2/collections/CustomFonts/data/query`, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${this.accessToken}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    query: {},
+                    sort: [{ fieldName: 'uploadedAt', order: 'DESC' }]
+                })
+            });
+
+            if (!response.ok) {
+                const errorText = await response.text();
+                throw new Error(`Failed to load fonts: ${response.status} - ${errorText}`);
+            }
+
+            const data = await response.json();
+            const fonts = data.dataItems || [];
+
+            console.log(`✅ Loaded ${fonts.length} custom font(s) from Wix Data`);
+            return fonts.map(item => ({
+                name: item.name,
+                family: item.family,
+                fileName: item.fileName,
+                cdnUrl: item.cdnUrl,
+                mimeType: item.mimeType,
+                size: item.size,
+                uploadedAt: item.uploadedAt
+            }));
+
+        } catch (error) {
+            console.error('❌ Failed to load custom fonts:', error);
+            // Return empty array on error so app doesn't break
+            return [];
+        }
+    }
+
+    /**
+     * Delete a custom font from Wix Data Collections
+     * @param {string} fontName - Name of the font to delete
+     * @returns {Promise<boolean>} - Success status
+     */
+    async deleteCustomFont(fontName) {
+        try {
+            console.log(`🗑️ Deleting custom font from Wix Data: ${fontName}`);
+
+            // First, query to find the font by name
+            const queryResponse = await fetch(`${this.baseURL}/wix-data/v2/collections/CustomFonts/data/query`, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${this.accessToken}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    query: { filter: { name: { $eq: fontName } } }
+                })
+            });
+
+            if (!queryResponse.ok) {
+                throw new Error(`Failed to query font: ${queryResponse.status}`);
+            }
+
+            const queryData = await queryResponse.json();
+            if (!queryData.dataItems || queryData.dataItems.length === 0) {
+                console.log(`⚠️ Font "${fontName}" not found in Wix Data`);
+                return false;
+            }
+
+            const fontId = queryData.dataItems[0]._id;
+
+            // Delete the font
+            const deleteResponse = await fetch(`${this.baseURL}/wix-data/v2/collections/CustomFonts/data/${fontId}`, {
+                method: 'DELETE',
+                headers: {
+                    'Authorization': `Bearer ${this.accessToken}`,
+                    'Content-Type': 'application/json'
+                }
+            });
+
+            if (!deleteResponse.ok) {
+                throw new Error(`Failed to delete font: ${deleteResponse.status}`);
+            }
+
+            console.log(`✅ Font "${fontName}" deleted from Wix Data`);
+            return true;
+
+        } catch (error) {
+            console.error('❌ Failed to delete custom font:', error);
+            return false;
+        }
+    }
 }

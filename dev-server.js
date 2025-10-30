@@ -51,18 +51,51 @@ app.get('/api/media/list', async (req, res) => {
 
         const data = await response.json();
 
-        // Filter for images, videos, and document files (for Lottie), and normalize the response
+        // DEBUG: Log all files to see what Wix returns
+        console.log(`📋 Total files from Wix: ${data.files?.length || 0}`);
+        const allMediaTypes = [...new Set(data.files?.map(f => f.mediaType) || [])];
+        console.log(`📊 Media types present: ${allMediaTypes.join(', ')}`);
+
+        // Check for any font-like files by filename
+        const potentialFonts = data.files?.filter(f =>
+            f.displayName?.match(/\.(woff|woff2|ttf|otf)$/i) ||
+            f.fileName?.match(/\.(woff|woff2|ttf|otf)$/i)
+        ) || [];
+        console.log(`🔤 Font files found by extension: ${potentialFonts.length}`);
+        if (potentialFonts.length > 0) {
+            potentialFonts.forEach(f => {
+                console.log(`   → ${f.displayName || f.fileName} (mediaType: ${f.mediaType})`);
+            });
+        }
+
+        // Check for DOCUMENT type files
+        const documentFiles = data.files?.filter(f => f.mediaType === 'DOCUMENT') || [];
+        console.log(`📄 Total DOCUMENT type files: ${documentFiles.length}`);
+        if (documentFiles.length > 0) {
+            console.log(`   First 5 documents:`);
+            documentFiles.slice(0, 5).forEach(f => {
+                console.log(`   → ${f.displayName || f.fileName}`);
+            });
+        }
+
+        // Filter for images, videos, document files (for Lottie), and fonts
         const mediaFiles = (data.files || [])
             .filter(file => {
                 const isImage = file.mediaType === 'IMAGE';
                 const isVideo = file.mediaType === 'VIDEO';
                 const isDocument = file.mediaType === 'DOCUMENT';
-                // Include documents if they're JSON/Lottie files
+                // Include documents if they're JSON/Lottie files or fonts
                 const isLottie = isDocument && (
                     file.displayName?.endsWith('.json') ||
                     file.displayName?.endsWith('.lottie')
                 );
-                return isImage || isVideo || isLottie;
+                const isFont = isDocument && (
+                    file.displayName?.endsWith('.woff') ||
+                    file.displayName?.endsWith('.woff2') ||
+                    file.displayName?.endsWith('.ttf') ||
+                    file.displayName?.endsWith('.otf')
+                );
+                return isImage || isVideo || isLottie || isFont;
             })
             .map(file => {
                 // Determine MIME type based on file type and extension

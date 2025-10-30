@@ -55,6 +55,23 @@ export default async function handler(req, res) {
 
         const data = await response.json();
 
+        // DEBUG: Log all files to see what Wix returns
+        console.log(`📋 Total files from Wix: ${data.files?.length || 0}`);
+        const allMediaTypes = [...new Set(data.files?.map(f => f.mediaType) || [])];
+        console.log(`📊 Media types present: ${allMediaTypes.join(', ')}`);
+
+        // Check for any font-like files
+        const potentialFonts = data.files?.filter(f =>
+            f.displayName?.match(/\.(woff|woff2|ttf|otf)$/i) ||
+            f.fileName?.match(/\.(woff|woff2|ttf|otf)$/i)
+        ) || [];
+        console.log(`🔤 Potential font files found: ${potentialFonts.length}`);
+        if (potentialFonts.length > 0) {
+            potentialFonts.forEach(f => {
+                console.log(`   → ${f.displayName || f.fileName} (mediaType: ${f.mediaType})`);
+            });
+        }
+
         // Filter for images, videos, document files (for Lottie), and fonts
         const mediaFiles = (data.files || [])
             .filter(file => {
