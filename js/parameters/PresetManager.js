@@ -272,6 +272,12 @@ class PresetManager {
             if (stateData.customFonts && stateData.customFonts.length > 0) {
                 console.log('🔤 LOAD: Loading custom fonts from preset...');
                 await this.restoreCustomFontsState(stateData.customFonts);
+
+                // Refresh font dropdown to show newly loaded fonts
+                if (this.app.uiManager && this.app.uiManager.refreshFontFamilyDropdown) {
+                    this.app.uiManager.refreshFontFamilyDropdown();
+                    console.log('   ✅ Font dropdown refreshed with preset fonts');
+                }
             }
 
             // Clear existing state completely

@@ -92,13 +92,13 @@ class UIManager {
             const option = document.createElement('option');
             option.value = font.value;
             option.textContent = font.name;
-            
+
             // Mark custom fonts
             if (font.isCustom) {
                 option.textContent += ' (Custom)';
                 option.style.fontStyle = 'italic';
             }
-            
+
             fontFamilySelect.appendChild(option);
         });
 
@@ -120,6 +120,60 @@ class UIManager {
     }
 
     /**
+     * Refresh font family dropdown (preserves current selection)
+     * Call this after uploading a font or loading a preset with custom fonts
+     */
+    refreshFontFamilyDropdown() {
+        const fontFamilySelect = this.elements.fontFamily;
+        const currentSelection = fontFamilySelect.value;
+
+        // Get available fonts from TextComponent (single source of truth)
+        const fonts = this.app.textEngine.getAvailableFonts();
+
+        // Clear existing options
+        fontFamilySelect.innerHTML = '';
+
+        // Add font options
+        fonts.forEach(font => {
+            const option = document.createElement('option');
+            option.value = font.value;
+            option.textContent = font.name;
+
+            // Mark custom fonts
+            if (font.isCustom) {
+                option.textContent += ' (Custom)';
+                option.style.fontStyle = 'italic';
+            }
+
+            fontFamilySelect.appendChild(option);
+        });
+
+        // Add separator and upload option
+        const separator = document.createElement('option');
+        separator.disabled = true;
+        separator.textContent = '───────────────';
+        fontFamilySelect.appendChild(separator);
+
+        const uploadOption = document.createElement('option');
+        uploadOption.value = '__upload_font__';
+        uploadOption.textContent = '📁 Upload custom font...';
+        uploadOption.style.fontStyle = 'italic';
+        uploadOption.style.color = '#999';
+        fontFamilySelect.appendChild(uploadOption);
+
+        // Restore previous selection if it still exists
+        const optionExists = Array.from(fontFamilySelect.options).some(opt => opt.value === currentSelection);
+        if (optionExists) {
+            fontFamilySelect.value = currentSelection;
+        } else {
+            // Fallback to current mainText font or default
+            fontFamilySelect.value = this.app.mainTextComponent.fontFamily || '"Wix Madefor Display", Arial, sans-serif';
+        }
+
+        console.log('🔄 Font dropdown refreshed with custom fonts');
+    }
+
+    /**
      * Refresh font family dropdown when custom fonts change
      */
     refreshFontFamilyDropdown() {
@@ -138,6 +192,11 @@ class UIManager {
         // Initialize FontUploadComponent if not already done
         if (typeof FontUploadComponent !== 'undefined' && !this.fontUploadComponent) {
             this.fontUploadComponent = new FontUploadComponent(window.fontManager);
+
+            // Hook up callback to refresh font dropdown when fonts change
+            this.fontUploadComponent.onFontsChanged = () => {
+                this.refreshFontFamilyDropdown();
+            };
         }
     }
 
@@ -153,6 +212,11 @@ class UIManager {
         // Initialize FontUploadComponent if not already done
         if (typeof FontUploadComponent !== 'undefined' && !this.fontUploadComponent) {
             this.fontUploadComponent = new FontUploadComponent(window.fontManager);
+
+            // Hook up callback to refresh font dropdown when fonts change
+            this.fontUploadComponent.onFontsChanged = () => {
+                this.refreshFontFamilyDropdown();
+            };
         }
 
         // Create modal

@@ -11,17 +11,28 @@ class FontManager {
     }
 
     /**
-     * Load custom fonts metadata from localStorage (CDN URLs only, no base64)
+     * Load custom fonts metadata from localStorage and load fonts from CDN
      */
-    loadCustomFontsFromStorage() {
+    async loadCustomFontsFromStorage() {
         try {
             const stored = localStorage.getItem('customFonts');
             if (stored) {
                 const fonts = JSON.parse(stored);
-                fonts.forEach(fontData => {
-                    // Only store metadata, font will be loaded from CDN on demand
-                    this.customFonts.set(fontData.name, fontData);
+                console.log(`📦 Found ${fonts.length} custom font(s) in localStorage`);
+
+                // Load all fonts from CDN in parallel
+                const loadPromises = fonts.map(async (fontData) => {
+                    try {
+                        this.customFonts.set(fontData.name, fontData);
+                        await this.loadFont(fontData);
+                        console.log(`   ✅ Loaded "${fontData.name}" from CDN`);
+                    } catch (error) {
+                        console.warn(`   ⚠️ Failed to load font "${fontData.name}":`, error);
+                    }
                 });
+
+                await Promise.all(loadPromises);
+                console.log(`✅ All custom fonts loaded and available in dropdown`);
             }
         } catch (error) {
             console.warn('Failed to load custom fonts from storage:', error);
