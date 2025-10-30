@@ -33,7 +33,8 @@ class PresetManager {
                 background: this.serializeBackgroundState(),
                 mainText: this.serializeMainTextState(),
                 grid: this.serializeGridState(),
-                layers: this.serializeLayerState()
+                layers: this.serializeLayerState(),
+                customFonts: this.serializeCustomFontsState()
             };
 
             return state;
@@ -41,6 +42,39 @@ class PresetManager {
             console.error('❌ Failed to serialize state:', error);
             throw new Error('Failed to serialize canvas state: ' + error.message);
         }
+    }
+
+    /**
+     * Serialize custom fonts used in the preset
+     * @returns {Array} Array of custom font data with CDN URLs
+     * @private
+     */
+    serializeCustomFontsState() {
+        const mainText = this.app.mainTextComponent;
+        const fontManager = window.fontManager;
+
+        // Safety check - fontManager might not be initialized yet
+        if (!fontManager) {
+            console.warn('⚠️ FontManager not initialized - skipping custom fonts');
+            return [];
+        }
+
+        // Check if main text uses a custom font
+        const customFont = fontManager.getFontByFamily(mainText.fontFamily);
+
+        if (customFont && customFont.cdnUrl) {
+            console.log(`📝 Including custom font in preset: ${customFont.name}`);
+            return [{
+                name: customFont.name,
+                family: customFont.family,
+                fileName: customFont.fileName,
+                cdnUrl: customFont.cdnUrl,
+                mimeType: customFont.mimeType
+            }];
+        }
+
+        // No custom fonts used
+        return [];
     }
 
     /**
@@ -233,6 +267,12 @@ class PresetManager {
 
             // Validate the preset structure
             this.validatePresetJSON(stateData);
+
+            // Load custom fonts if present in preset
+            if (stateData.customFonts && stateData.customFonts.length > 0) {
+                console.log('🔤 LOAD: Loading custom fonts from preset...');
+                await this.restoreCustomFontsState(stateData.customFonts);
+            }
 
             // Clear existing state completely
             this.clearCurrentState();
@@ -805,6 +845,28 @@ class PresetManager {
     restoreLayerState(layerData) {
         // Layer assignments are handled during cell restoration
         // This method is here for future layer-specific settings
+    }
+
+    /**
+     * Restore custom fonts from preset
+     * @param {Array} customFonts - Array of font data with CDN URLs
+     * @returns {Promise<void>}
+     * @private
+     */
+    async restoreCustomFontsState(customFonts) {
+        const fontManager = window.fontManager;
+
+        for (const fontData of customFonts) {
+            try {
+                console.log(`   → Loading font "${fontData.name}" from CDN...`);
+                await fontManager.loadFontFromCDN(fontData);
+                console.log(`   ✅ Font "${fontData.name}" loaded successfully`);
+            } catch (error) {
+                console.warn(`   ⚠️ Failed to load font "${fontData.name}":`, error);
+                console.warn(`   → Text will fallback to system font`);
+                // Don't throw - allow preset to load with fallback font
+            }
+        }
     }
 
     /**

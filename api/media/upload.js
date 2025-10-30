@@ -28,6 +28,7 @@ export default async function handler(req, res) {
     try {
         const API_KEY = process.env.WIX_API_KEY;
         const SITE_ID = process.env.WIX_SITE_ID;
+        const FONTS_FOLDER_ID = process.env.WIX_FONTS_FOLDER_ID; // Optional
 
         if (!API_KEY || !SITE_ID) {
             console.error('Missing environment variables');
@@ -54,6 +55,12 @@ export default async function handler(req, res) {
         console.log('   → Size:', (uploadedFile.size / 1024).toFixed(2), 'KB');
         console.log('   → Type:', uploadedFile.mimetype);
 
+        // Check if this is a font file
+        const fontExtensions = ['.woff', '.woff2', '.ttf', '.otf'];
+        const isFont = fontExtensions.some(ext =>
+            uploadedFile.originalFilename?.toLowerCase().endsWith(ext)
+        );
+
         // Read file buffer
         const fileBuffer = await fs.readFile(uploadedFile.filepath);
 
@@ -70,7 +77,9 @@ export default async function handler(req, res) {
                 },
                 body: JSON.stringify({
                     mimeType: uploadedFile.mimetype,
-                    fileName: uploadedFile.originalFilename
+                    fileName: uploadedFile.originalFilename,
+                    // Add fonts to folder if folder UUID is configured
+                    ...(isFont && FONTS_FOLDER_ID && { parentFolderId: FONTS_FOLDER_ID })
                 })
             }
         );
@@ -103,7 +112,7 @@ export default async function handler(req, res) {
 
         // Step 3: Parse upload response to get file details
         const uploadResult = await uploadResponse.json();
-        console.log('   → Upload response:', uploadResult);
+        console.log('   → Upload response:', JSON.stringify(uploadResult, null, 2));
 
         // Extract file data from upload result
         const fileData = uploadResult.file;
@@ -114,8 +123,18 @@ export default async function handler(req, res) {
 
         console.log('✅ Upload complete!');
         console.log('   → File URL:', fileData.url);
+        console.log('   → File ID:', fileData.id);
+        console.log('   → Display Name:', fileData.displayName);
 
-        // Determine MIME type - preserve original for Lottie/JSON files
+        // Convert relative URL to full Wix CDN URL
+        let fullCdnUrl = fileData.url;
+        if (!fullCdnUrl.startsWith('http')) {
+            // Relative URL - prepend Wix CDN domain
+            fullCdnUrl = `https://static.wixstatic.com/${fullCdnUrl}`;
+            console.log('   → Converted to full CDN URL:', fullCdnUrl);
+        }
+
+        // Determine MIME type - preserve original for Lottie/JSON and font files
         let mimeType = uploadedFile.mimetype;
 
         // Check if it's a Lottie/JSON file by extension or MIME type
@@ -123,15 +142,15 @@ export default async function handler(req, res) {
                          uploadedFile.originalFilename?.endsWith('.lottie') ||
                          uploadedFile.mimetype === 'application/json';
 
-        // Only normalize MIME type for actual images/videos, not JSON files
-        if (!isLottie) {
+        // Only normalize MIME type for actual images/videos, not JSON or font files
+        if (!isLottie && !isFont) {
             if (fileData.mediaType === 'IMAGE') {
                 mimeType = 'image/jpeg';
             } else if (fileData.mediaType === 'VIDEO') {
                 mimeType = 'video/mp4';
             }
         }
-        // For Lottie/JSON files, keep original mimeType (application/json)
+        // For Lottie/JSON and font files, keep original mimeType
 
         // Normalize the response to match MediaPickerModal expectations
         return res.status(200).json({
@@ -140,7 +159,7 @@ export default async function handler(req, res) {
                 id: fileData.id,
                 fileName: fileData.displayName || uploadedFile.originalFilename,
                 displayName: fileData.displayName || uploadedFile.originalFilename,
-                fileUrl: fileData.url,
+                fileUrl: fullCdnUrl, // Use full CDN URL instead of relative path
                 mimeType: mimeType,
                 sizeInBytes: parseInt(fileData.sizeInBytes) || uploadedFile.size,
                 width: fileData.media?.image?.image?.width || 0,

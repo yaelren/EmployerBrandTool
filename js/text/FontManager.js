@@ -1,16 +1,17 @@
 /**
  * FontManager.js - Manages custom font uploads and loading
- * Handles font file uploads, CSS @font-face generation, and persistence
+ * Handles font file uploads to Wix Media Manager, CSS @font-face generation, and CDN-based persistence
  */
 
 class FontManager {
     constructor() {
         this.customFonts = new Map(); // Map of fontName -> fontData
+        this.mediaApiUrl = 'http://localhost:3001/api/media/upload'; // Backend API URL
         this.loadCustomFontsFromStorage();
     }
 
     /**
-     * Load custom fonts from localStorage
+     * Load custom fonts metadata from localStorage (CDN URLs only, no base64)
      */
     loadCustomFontsFromStorage() {
         try {
@@ -18,8 +19,8 @@ class FontManager {
             if (stored) {
                 const fonts = JSON.parse(stored);
                 fonts.forEach(fontData => {
+                    // Only store metadata, font will be loaded from CDN on demand
                     this.customFonts.set(fontData.name, fontData);
-                    this.loadFont(fontData);
                 });
             }
         } catch (error) {
@@ -28,7 +29,7 @@ class FontManager {
     }
 
     /**
-     * Save custom fonts to localStorage
+     * Save custom fonts metadata to localStorage (CDN URLs only)
      */
     saveCustomFontsToStorage() {
         try {
@@ -40,64 +41,80 @@ class FontManager {
     }
 
     /**
-     * Upload and process a font file
+     * Upload and process a font file - uploads to Wix Media Manager CDN
      * @param {File} file - Font file (woff, woff2, ttf, otf)
-     * @returns {Promise<Object>} Font data object
+     * @returns {Promise<Object>} Font data object with CDN URL
      */
     async uploadFont(file) {
-        return new Promise((resolve, reject) => {
-            // Validate file type
-            const validTypes = ['font/woff', 'font/woff2', 'application/font-woff', 'application/font-woff2', 'font/ttf', 'font/otf'];
-            const fileExtension = file.name.toLowerCase().split('.').pop();
-            const validExtensions = ['woff', 'woff2', 'ttf', 'otf'];
-            
-            if (!validTypes.includes(file.type) && !validExtensions.includes(fileExtension)) {
-                reject(new Error('Invalid font file type. Please upload a WOFF, WOFF2, TTF, or OTF file.'));
-                return;
+        // Validate file type
+        const validTypes = ['font/woff', 'font/woff2', 'application/font-woff', 'application/font-woff2', 'font/ttf', 'font/otf'];
+        const fileExtension = file.name.toLowerCase().split('.').pop();
+        const validExtensions = ['woff', 'woff2', 'ttf', 'otf'];
+
+        if (!validTypes.includes(file.type) && !validExtensions.includes(fileExtension)) {
+            throw new Error('Invalid font file type. Please upload a WOFF, WOFF2, TTF, or OTF file.');
+        }
+
+        // Validate file size (max 5MB)
+        if (file.size > 5 * 1024 * 1024) {
+            throw new Error('Font file is too large. Maximum size is 5MB.');
+        }
+
+        // Extract font name before upload
+        const fontName = this.extractFontName(file.name);
+
+        // Check if font name already exists
+        if (this.customFonts.has(fontName)) {
+            throw new Error(`Font "${fontName}" already exists. Please rename or delete the existing font first.`);
+        }
+
+        try {
+            // Upload to Wix Media Manager via backend API
+            console.log(`📤 Uploading font "${fontName}" to Wix Media Manager...`);
+            const formData = new FormData();
+            formData.append('file', file);
+
+            const response = await fetch(this.mediaApiUrl, {
+                method: 'POST',
+                body: formData
+            });
+
+            if (!response.ok) {
+                const error = await response.json();
+                throw new Error(error.error || 'Failed to upload font to media manager');
             }
 
-            // Validate file size (max 5MB)
-            if (file.size > 5 * 1024 * 1024) {
-                reject(new Error('Font file is too large. Maximum size is 5MB.'));
-                return;
+            const result = await response.json();
+
+            if (!result.success || !result.file || !result.file.fileUrl) {
+                throw new Error('Upload succeeded but no CDN URL returned');
             }
 
-            const reader = new FileReader();
-            reader.onload = (e) => {
-                try {
-                    const fontData = this.processFontFile(file, e.target.result);
-                    this.customFonts.set(fontData.name, fontData);
-                    this.loadFont(fontData);
-                    this.saveCustomFontsToStorage();
-                    resolve(fontData);
-                } catch (error) {
-                    reject(error);
-                }
+            // Create font data object with CDN URL
+            const fontData = {
+                name: fontName,
+                family: this.generateFontFamily(fontName),
+                fileName: file.name,
+                cdnUrl: result.file.fileUrl, // Wix CDN URL
+                uploadedAt: new Date().toISOString(),
+                size: file.size,
+                mimeType: result.file.mimeType
             };
-            reader.onerror = () => reject(new Error('Failed to read font file'));
-            reader.readAsDataURL(file);
-        });
-    }
 
-    /**
-     * Process font file and create font data object
-     * @param {File} file - Original file
-     * @param {string} dataUrl - Base64 data URL
-     * @returns {Object} Font data object
-     */
-    processFontFile(file, dataUrl) {
-        const fileName = file.name;
-        const fontName = this.extractFontName(fileName);
-        const fontFamily = this.generateFontFamily(fontName);
-        
-        return {
-            name: fontName,
-            family: fontFamily,
-            fileName: fileName,
-            dataUrl: dataUrl,
-            uploadedAt: new Date().toISOString(),
-            size: file.size
-        };
+            // Store metadata locally
+            this.customFonts.set(fontData.name, fontData);
+            this.saveCustomFontsToStorage();
+
+            // Load font from CDN
+            await this.loadFont(fontData);
+
+            console.log(`✅ Font "${fontName}" uploaded successfully to CDN`);
+            return fontData;
+
+        } catch (error) {
+            console.error('Font upload failed:', error);
+            throw error;
+        }
     }
 
     /**
@@ -130,22 +147,31 @@ class FontManager {
     }
 
     /**
-     * Load font into the page using CSS @font-face
-     * @param {Object} fontData - Font data object
+     * Load font into the page using CSS @font-face from CDN URL
+     * @param {Object} fontData - Font data object with cdnUrl
+     * @returns {Promise<void>}
      */
-    loadFont(fontData) {
+    async loadFont(fontData) {
         // Check if font is already loaded
         if (document.querySelector(`style[data-font="${fontData.name}"]`)) {
+            console.log(`Font "${fontData.name}" already loaded`);
             return;
         }
 
-        // Determine font format from data URL
+        // Use CDN URL
+        const fontUrl = fontData.cdnUrl;
+        if (!fontUrl) {
+            throw new Error(`No CDN URL for font "${fontData.name}"`);
+        }
+
+        // Determine font format from filename or MIME type
         let format = 'woff2';
-        if (fontData.dataUrl.includes('font/woff')) {
+        const fileName = fontData.fileName.toLowerCase();
+        if (fileName.endsWith('.woff')) {
             format = 'woff';
-        } else if (fontData.dataUrl.includes('font/ttf')) {
+        } else if (fileName.endsWith('.ttf')) {
             format = 'truetype';
-        } else if (fontData.dataUrl.includes('font/otf')) {
+        } else if (fileName.endsWith('.otf')) {
             format = 'opentype';
         }
 
@@ -153,7 +179,7 @@ class FontManager {
         const css = `
             @font-face {
                 font-family: "${fontData.name}";
-                src: url(${fontData.dataUrl}) format('${format}');
+                src: url(${fontUrl}) format('${format}');
                 font-display: swap;
             }
         `;
@@ -164,7 +190,30 @@ class FontManager {
         style.textContent = css;
         document.head.appendChild(style);
 
-        console.log(`Loaded custom font: ${fontData.name}`);
+        console.log(`✅ Loaded custom font from CDN: ${fontData.name}`);
+
+        // Wait for font to be ready
+        try {
+            await document.fonts.ready;
+        } catch (error) {
+            console.warn('Font loading check failed:', error);
+        }
+    }
+
+    /**
+     * Load font from CDN URL directly (used when loading presets)
+     * @param {Object} fontData - Font data object with cdnUrl, name, fileName
+     * @returns {Promise<void>}
+     */
+    async loadFontFromCDN(fontData) {
+        // Add to local registry if not already present
+        if (!this.customFonts.has(fontData.name)) {
+            this.customFonts.set(fontData.name, fontData);
+            this.saveCustomFontsToStorage();
+        }
+
+        // Load the font
+        await this.loadFont(fontData);
     }
 
     /**
@@ -268,7 +317,7 @@ class FontManager {
         const validTypes = ['font/woff', 'font/woff2', 'application/font-woff', 'application/font-woff2', 'font/ttf', 'font/otf'];
         const fileExtension = file.name.toLowerCase().split('.').pop();
         const validExtensions = ['woff', 'woff2', 'ttf', 'otf'];
-        
+
         if (!validTypes.includes(file.type) && !validExtensions.includes(fileExtension)) {
             result.valid = false;
             result.errors.push('Invalid file type. Please upload a WOFF, WOFF2, TTF, or OTF file.');
@@ -284,10 +333,24 @@ class FontManager {
         const fontName = this.extractFontName(file.name);
         if (this.customFonts.has(fontName)) {
             result.valid = false;
-            result.errors.push(`Font "${fontName}" already exists.`);
+            result.errors.push(`Font "${fontName}" already exists. Please rename or delete it first.`);
         }
 
         return result;
+    }
+
+    /**
+     * Get font data by family name (extracts name from font-family CSS value)
+     * @param {string} fontFamily - CSS font-family value like '"Custom Font", Arial, sans-serif'
+     * @returns {Object|null} Font data object or null
+     */
+    getFontByFamily(fontFamily) {
+        // Extract font name from CSS font-family value
+        const match = fontFamily.match(/"([^"]+)"/);
+        if (match && match[1]) {
+            return this.getCustomFont(match[1]);
+        }
+        return null;
     }
 }
 

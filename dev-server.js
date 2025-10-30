@@ -194,6 +194,14 @@ app.post('/api/media/upload', async (req, res) => {
 
         console.log(`✅ Upload complete: ${fileData.url}`);
 
+        // Convert relative URL to full Wix CDN URL
+        let fullCdnUrl = fileData.url;
+        if (!fullCdnUrl.startsWith('http')) {
+            // Relative URL - prepend Wix CDN domain
+            fullCdnUrl = `https://static.wixstatic.com/${fullCdnUrl}`;
+            console.log(`   → Converted to full CDN URL: ${fullCdnUrl}`);
+        }
+
         // Normalize the response to match MediaPickerModal expectations
         res.json({
             success: true,
@@ -201,7 +209,7 @@ app.post('/api/media/upload', async (req, res) => {
                 id: fileData.id,
                 fileName: fileData.displayName || uploadedFile.originalFilename,
                 displayName: fileData.displayName || uploadedFile.originalFilename,
-                fileUrl: fileData.url,
+                fileUrl: fullCdnUrl, // Use full CDN URL instead of relative path
                 mimeType: fileData.mediaType === 'IMAGE' ? 'image/jpeg' : 'video/mp4',
                 sizeInBytes: parseInt(fileData.sizeInBytes) || uploadedFile.size,
                 width: fileData.media?.image?.image?.width || 0,

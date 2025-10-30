@@ -3439,3 +3439,23 @@ select option {
     }
 }
 
+
+/* Font Upload Component - Cloud Badge */
+.cloud-badge {
+    display: inline-block;
+    margin-left: 8px;
+    font-size: 14px;
+    opacity: 0.8;
+    transition: opacity 0.2s ease;
+}
+
+.cloud-badge:hover {
+    opacity: 1;
+}
+
+.font-name {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+

@@ -259,7 +259,10 @@ class FontUploadComponent {
         this.fontListContainer.innerHTML = customFonts.map(font => `
             <div class="font-item" data-font-name="${font.name}">
                 <div class="font-info">
-                    <div class="font-name">${font.name}</div>
+                    <div class="font-name">
+                        ${font.name}
+                        ${font.cdnUrl ? '<span class="cloud-badge" title="Stored in Media Manager">☁️</span>' : ''}
+                    </div>
                     <div class="font-details">
                         <span class="font-file">${font.fileName}</span>
                         <span class="font-size">${this.fontManager.formatFileSize(font.size)}</span>
@@ -331,6 +334,7 @@ class FontUploadComponent {
                             <p><strong>File:</strong> ${font.fileName}</p>
                             <p><strong>Size:</strong> ${this.fontManager.formatFileSize(font.size)}</p>
                             <p><strong>Uploaded:</strong> ${new Date(font.uploadedAt).toLocaleDateString()}</p>
+                            <p><strong>Storage:</strong> ${font.cdnUrl ? '☁️ Media Manager (CDN)' : '💾 Local Only'}</p>
                         </div>
                     </div>
                 </div>
