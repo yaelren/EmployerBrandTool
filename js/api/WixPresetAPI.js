@@ -868,6 +868,9 @@ export class WixPresetAPI {
         try {
             console.log(`💾 Saving custom font to Wix Data: ${fontData.name}`);
 
+            // Ensure token is valid
+            await this.ensureValidToken();
+
             const fontRecord = {
                 name: fontData.name,
                 family: fontData.family,
@@ -878,13 +881,17 @@ export class WixPresetAPI {
                 uploadedAt: new Date().toISOString()
             };
 
-            const response = await fetch(`${this.baseURL}/wix-data/v2/collections/CustomFonts/data`, {
+            // Use same pattern as preset saving
+            const response = await fetch(`${this.baseURL}/wix-data/v2/items`, {
                 method: 'POST',
                 headers: {
                     'Authorization': `Bearer ${this.accessToken}`,
                     'Content-Type': 'application/json'
                 },
-                body: JSON.stringify({ dataItem: fontRecord })
+                body: JSON.stringify({
+                    dataCollectionId: 'CustomFonts',
+                    dataItem: { data: fontRecord }
+                })
             });
 
             if (!response.ok) {
@@ -893,8 +900,8 @@ export class WixPresetAPI {
             }
 
             const data = await response.json();
-            console.log(`✅ Font saved with ID: ${data.dataItem._id}`);
-            return data.dataItem._id;
+            console.log(`✅ Font saved with ID: ${data.dataItem.data._id}`);
+            return data.dataItem.data._id;
 
         } catch (error) {
             console.error('❌ Failed to save custom font:', error);
@@ -910,15 +917,21 @@ export class WixPresetAPI {
         try {
             console.log(`📥 Loading custom fonts from Wix Data Collections...`);
 
-            const response = await fetch(`${this.baseURL}/wix-data/v2/collections/CustomFonts/data/query`, {
+            // Ensure token is valid
+            await this.ensureValidToken();
+
+            // Use same pattern as preset loading
+            const response = await fetch(`${this.baseURL}/wix-data/v2/items/query`, {
                 method: 'POST',
                 headers: {
                     'Authorization': `Bearer ${this.accessToken}`,
                     'Content-Type': 'application/json'
                 },
                 body: JSON.stringify({
-                    query: {},
-                    sort: [{ fieldName: 'uploadedAt', order: 'DESC' }]
+                    dataCollectionId: 'CustomFonts',
+                    query: {
+                        sort: [{ fieldName: 'uploadedAt', order: 'DESC' }]
+                    }
                 })
             });
 
@@ -927,19 +940,22 @@ export class WixPresetAPI {
                 throw new Error(`Failed to load fonts: ${response.status} - ${errorText}`);
             }
 
-            const data = await response.json();
-            const fonts = data.dataItems || [];
+            const result = await response.json();
+            const rawItems = result.dataItems || [];
+
+            // Transform to expected format (flatten data structure like presets)
+            const fonts = rawItems.map(item => ({
+                name: item.data.name,
+                family: item.data.family,
+                fileName: item.data.fileName,
+                cdnUrl: item.data.cdnUrl,
+                mimeType: item.data.mimeType,
+                size: item.data.size,
+                uploadedAt: item.data.uploadedAt
+            }));
 
             console.log(`✅ Loaded ${fonts.length} custom font(s) from Wix Data`);
-            return fonts.map(item => ({
-                name: item.name,
-                family: item.family,
-                fileName: item.fileName,
-                cdnUrl: item.cdnUrl,
-                mimeType: item.mimeType,
-                size: item.size,
-                uploadedAt: item.uploadedAt
-            }));
+            return fonts;
 
         } catch (error) {
             console.error('❌ Failed to load custom fonts:', error);
@@ -957,15 +973,21 @@ export class WixPresetAPI {
         try {
             console.log(`🗑️ Deleting custom font from Wix Data: ${fontName}`);
 
-            // First, query to find the font by name
-            const queryResponse = await fetch(`${this.baseURL}/wix-data/v2/collections/CustomFonts/data/query`, {
+            // Ensure token is valid
+            await this.ensureValidToken();
+
+            // First, query to find the font by name using same pattern as preset loading
+            const queryResponse = await fetch(`${this.baseURL}/wix-data/v2/items/query`, {
                 method: 'POST',
                 headers: {
                     'Authorization': `Bearer ${this.accessToken}`,
                     'Content-Type': 'application/json'
                 },
                 body: JSON.stringify({
-                    query: { filter: { name: { $eq: fontName } } }
+                    dataCollectionId: 'CustomFonts',
+                    query: {
+                        filter: { name: { $eq: fontName } }
+                    }
                 })
             });
 
@@ -979,15 +1001,18 @@ export class WixPresetAPI {
                 return false;
             }
 
-            const fontId = queryData.dataItems[0]._id;
+            const fontId = queryData.dataItems[0].data._id;
 
-            // Delete the font
-            const deleteResponse = await fetch(`${this.baseURL}/wix-data/v2/collections/CustomFonts/data/${fontId}`, {
+            // Delete the font using same pattern as preset deletion
+            const deleteResponse = await fetch(`${this.baseURL}/wix-data/v2/items/${fontId}`, {
                 method: 'DELETE',
                 headers: {
                     'Authorization': `Bearer ${this.accessToken}`,
                     'Content-Type': 'application/json'
-                }
+                },
+                body: JSON.stringify({
+                    dataCollectionId: 'CustomFonts'
+                })
             });
 
             if (!deleteResponse.ok) {

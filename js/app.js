@@ -1480,6 +1480,9 @@ class EmployerBrandToolPOC {
             this.wixAPI = new WixPresetAPI();
             await this.wixAPI.initialize(WIX_CONFIG.clientId, WIX_CONFIG.apiKey, WIX_CONFIG.siteId);
 
+            // Expose WixAPI globally for FontManager to use
+            window.wixAPI = this.wixAPI;
+
             // Connect Wix API to PresetManager
             this.presetManager.setWixAPI(this.wixAPI);
 

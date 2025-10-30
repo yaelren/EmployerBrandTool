@@ -200,21 +200,6 @@ class UIManager {
         // Initialize FontUploadComponent if not already done
         if (typeof FontUploadComponent !== 'undefined' && !this.fontUploadComponent) {
             this.fontUploadComponent = new FontUploadComponent(window.fontManager);
-
-            // Hook up callback to refresh font dropdown when fonts change
-            this.fontUploadComponent.onFontsChanged = (uploadedFont) => {
-                this.refreshFontFamilyDropdown();
-
-                // Auto-select the newly uploaded font if provided
-                if (uploadedFont && uploadedFont.family) {
-                    this.elements.fontFamily.value = uploadedFont.family;
-                    // Apply the font to main text
-                    this.app.mainTextComponent.fontFamily = uploadedFont.family;
-                    this.app.textEngine.updateConfig({ fontFamily: uploadedFont.family });
-                    this.app.onTextChanged();
-                    console.log(`✅ Auto-selected uploaded font: ${uploadedFont.name}`);
-                }
-            };
         }
     }
 
@@ -230,21 +215,6 @@ class UIManager {
         // Initialize FontUploadComponent if not already done
         if (typeof FontUploadComponent !== 'undefined' && !this.fontUploadComponent) {
             this.fontUploadComponent = new FontUploadComponent(window.fontManager);
-
-            // Hook up callback to refresh font dropdown when fonts change
-            this.fontUploadComponent.onFontsChanged = (uploadedFont) => {
-                this.refreshFontFamilyDropdown();
-
-                // Auto-select the newly uploaded font if provided
-                if (uploadedFont && uploadedFont.family) {
-                    this.elements.fontFamily.value = uploadedFont.family;
-                    // Apply the font to main text
-                    this.app.mainTextComponent.fontFamily = uploadedFont.family;
-                    this.app.textEngine.updateConfig({ fontFamily: uploadedFont.family });
-                    this.app.onTextChanged();
-                    console.log(`✅ Auto-selected uploaded font: ${uploadedFont.name}`);
-                }
-            };
         }
 
         // Create modal
@@ -341,8 +311,17 @@ class UIManager {
         if (this.fontUploadComponent) {
             this.fontUploadComponent.createUploadUI(
                 body,
-                () => {
+                (uploadedFont) => {
                     this.refreshFontFamilyDropdown();
+
+                    // Auto-select the newly uploaded font
+                    if (uploadedFont && uploadedFont.family) {
+                        this.elements.fontFamily.value = uploadedFont.family;
+                        this.app.mainTextComponent.fontFamily = uploadedFont.family;
+                        this.app.textEngine.updateConfig({ fontFamily: uploadedFont.family });
+                        this.app.onTextChanged();
+                    }
+
                     // Close modal after successful upload
                     setTimeout(() => {
                         if (modal.parentNode) {
