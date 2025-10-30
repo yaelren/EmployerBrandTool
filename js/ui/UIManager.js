@@ -15,16 +15,18 @@ class UIManager {
         // Initialize UI
         this.cacheUIElements();
         this.initializeFontFamilyDropdown();
-        this.initializeFontUpload();
         this.setupEventListeners();
-        
+
         // Set default mode to manual
         this.setTextMode('manual');
-        
+
         // Initialize highlight color picker visibility
         if (this.elements.mainTextHighlightColor) {
             this.elements.mainTextHighlightColor.style.display = 'none';
         }
+
+        // Note: Font upload initialization is async and must be called separately
+        // Call await uiManager.initializeFontUpload() after construction
     }
 
     /**
@@ -185,8 +187,10 @@ class UIManager {
         // Initialize FontManager if not already done
         if (typeof FontManager !== 'undefined' && !window.fontManager) {
             window.fontManager = new FontManager();
+        }
 
-            // Load custom fonts from localStorage and wait for them to load from CDN
+        // Always load custom fonts from localStorage (even after hard refresh)
+        if (window.fontManager) {
             await window.fontManager.loadCustomFontsFromStorage();
 
             // Refresh dropdown now that fonts are loaded

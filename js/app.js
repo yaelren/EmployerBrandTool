@@ -77,6 +77,9 @@ class EmployerBrandToolPOC {
             // Initialize UI Manager FIRST (other components depend on it)
             this.uiManager = new UIManager(this);
 
+            // Initialize font upload (async - loads custom fonts from localStorage)
+            await this.uiManager.initializeFontUpload();
+
             // Initialize Preset Management System
             this.presetManager = new PresetManager(this);
             this.presetUIComponent = new PresetUIComponent(this);
