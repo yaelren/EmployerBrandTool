@@ -183,10 +183,16 @@ class UIManager {
     /**
      * Initialize font upload functionality
      */
-    initializeFontUpload() {
+    async initializeFontUpload() {
         // Initialize FontManager if not already done
         if (typeof FontManager !== 'undefined' && !window.fontManager) {
             window.fontManager = new FontManager();
+
+            // Load custom fonts from localStorage and wait for them to load from CDN
+            await window.fontManager.loadCustomFontsFromStorage();
+
+            // Refresh dropdown now that fonts are loaded
+            this.refreshFontFamilyDropdown();
         }
 
         // Initialize FontUploadComponent if not already done

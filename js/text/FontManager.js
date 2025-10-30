@@ -7,7 +7,8 @@ class FontManager {
     constructor() {
         this.customFonts = new Map(); // Map of fontName -> fontData
         this.mediaApiUrl = 'http://localhost:3001/api/media/upload'; // Backend API URL
-        this.loadCustomFontsFromStorage();
+        // Note: loadCustomFontsFromStorage() is async and must be called explicitly
+        // after construction by the caller (e.g., UIManager.initializeFontUpload())
     }
 
     /**
