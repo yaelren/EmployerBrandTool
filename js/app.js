@@ -77,16 +77,16 @@ class EmployerBrandToolPOC {
             // Initialize UI Manager FIRST (other components depend on it)
             this.uiManager = new UIManager(this);
 
-            // Initialize font upload (async - loads custom fonts from localStorage)
-            await this.uiManager.initializeFontUpload();
-
             // Initialize Preset Management System
             this.presetManager = new PresetManager(this);
             this.presetUIComponent = new PresetUIComponent(this);
             this.presetUIComponent.initialize(this.presetManager);
 
-            // Initialize Wix Cloud Backend for Presets
+            // Initialize Wix Cloud Backend for Presets (MUST happen before font loading)
             await this.initializeWixCloud();
+
+            // Initialize font upload AFTER WixAPI is ready (loads custom fonts from Wix Data)
+            await this.uiManager.initializeFontUpload();
 
             // Initialize debug controller
             this.debugController = new DebugController(this);
