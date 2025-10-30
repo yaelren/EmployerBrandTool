@@ -97,9 +97,9 @@ class TextComponent {
                 uploadedAt: font.uploadedAt,
                 size: font.size
             }));
-            
-            // Add custom fonts at the beginning
-            return [...customFontOptions, ...defaultFonts];
+
+            // Add custom fonts at the end
+            return [...defaultFonts, ...customFontOptions];
         }
 
         return defaultFonts;

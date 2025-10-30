@@ -200,8 +200,18 @@ class UIManager {
             this.fontUploadComponent = new FontUploadComponent(window.fontManager);
 
             // Hook up callback to refresh font dropdown when fonts change
-            this.fontUploadComponent.onFontsChanged = () => {
+            this.fontUploadComponent.onFontsChanged = (uploadedFont) => {
                 this.refreshFontFamilyDropdown();
+
+                // Auto-select the newly uploaded font if provided
+                if (uploadedFont && uploadedFont.family) {
+                    this.elements.fontFamily.value = uploadedFont.family;
+                    // Apply the font to main text
+                    this.app.mainTextComponent.fontFamily = uploadedFont.family;
+                    this.app.textEngine.updateConfig({ fontFamily: uploadedFont.family });
+                    this.app.onTextChanged();
+                    console.log(`✅ Auto-selected uploaded font: ${uploadedFont.name}`);
+                }
             };
         }
     }
@@ -220,8 +230,18 @@ class UIManager {
             this.fontUploadComponent = new FontUploadComponent(window.fontManager);
 
             // Hook up callback to refresh font dropdown when fonts change
-            this.fontUploadComponent.onFontsChanged = () => {
+            this.fontUploadComponent.onFontsChanged = (uploadedFont) => {
                 this.refreshFontFamilyDropdown();
+
+                // Auto-select the newly uploaded font if provided
+                if (uploadedFont && uploadedFont.family) {
+                    this.elements.fontFamily.value = uploadedFont.family;
+                    // Apply the font to main text
+                    this.app.mainTextComponent.fontFamily = uploadedFont.family;
+                    this.app.textEngine.updateConfig({ fontFamily: uploadedFont.family });
+                    this.app.onTextChanged();
+                    console.log(`✅ Auto-selected uploaded font: ${uploadedFont.name}`);
+                }
             };
         }
 

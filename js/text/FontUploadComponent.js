@@ -150,14 +150,15 @@ class FontUploadComponent {
         this.showProgress(true);
 
         try {
-            // Upload files one by one
+            // Upload files one by one and track the last uploaded font
+            let lastUploadedFont = null;
             for (const file of validFiles) {
-                await this.fontManager.uploadFont(file);
+                lastUploadedFont = await this.fontManager.uploadFont(file);
             }
 
             this.showProgress(false);
             this.updateFontList();
-            this.notifyFontsChanged();
+            this.notifyFontsChanged(lastUploadedFont); // Pass the last uploaded font
             this.showSuccess(`${validFiles.length} font(s) uploaded successfully!`);
 
         } catch (error) {
@@ -437,10 +438,11 @@ class FontUploadComponent {
 
     /**
      * Notify that fonts have changed
+     * @param {Object} uploadedFont - The newly uploaded font data (optional)
      */
-    notifyFontsChanged() {
+    notifyFontsChanged(uploadedFont = null) {
         if (this.onFontsChanged) {
-            this.onFontsChanged();
+            this.onFontsChanged(uploadedFont);
         }
     }
 
