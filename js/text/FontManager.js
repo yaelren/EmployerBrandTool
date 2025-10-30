@@ -22,45 +22,72 @@ class FontManager {
     }
 
     /**
-     * Load custom fonts metadata from localStorage and load fonts from CDN
+     * Load custom fonts from Wix Media Manager backend
      */
     async loadCustomFontsFromStorage() {
         try {
-            const stored = localStorage.getItem('customFonts');
-            if (stored) {
-                const fonts = JSON.parse(stored);
-                console.log(`📦 Found ${fonts.length} custom font(s) in localStorage`);
+            // Auto-detect environment for API URL
+            const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+            const listApiUrl = isLocalhost
+                ? 'http://localhost:3001/api/media/list'
+                : '/api/media/list';
 
-                // Load all fonts from CDN in parallel
-                const loadPromises = fonts.map(async (fontData) => {
-                    try {
-                        this.customFonts.set(fontData.name, fontData);
-                        await this.loadFont(fontData);
-                        console.log(`   ✅ Loaded "${fontData.name}" from CDN`);
-                    } catch (error) {
-                        console.warn(`   ⚠️ Failed to load font "${fontData.name}":`, error);
-                    }
-                });
+            console.log(`📡 Fetching custom fonts from Wix Media Manager...`);
 
-                await Promise.all(loadPromises);
-                console.log(`✅ All custom fonts loaded and available in dropdown`);
+            const response = await fetch(listApiUrl);
+            if (!response.ok) {
+                throw new Error(`Failed to fetch fonts: ${response.status}`);
             }
+
+            const data = await response.json();
+
+            // Filter for font files only
+            const fontFiles = (data.files || []).filter(file => {
+                const fileName = file.fileName?.toLowerCase() || '';
+                return fileName.endsWith('.woff') ||
+                       fileName.endsWith('.woff2') ||
+                       fileName.endsWith('.ttf') ||
+                       fileName.endsWith('.otf');
+            });
+
+            console.log(`📦 Found ${fontFiles.length} custom font(s) in Media Manager`);
+
+            // Load all fonts from CDN in parallel
+            const loadPromises = fontFiles.map(async (file) => {
+                try {
+                    // Extract font name from filename (remove extension)
+                    const fontName = file.fileName.replace(/\.(woff2?|ttf|otf)$/i, '');
+                    const fontFamily = `"${fontName}", Arial, sans-serif`;
+
+                    const fontData = {
+                        name: fontName,
+                        family: fontFamily,
+                        fileName: file.fileName,
+                        cdnUrl: file.fileUrl,
+                        mimeType: file.mimeType,
+                        size: file.sizeInBytes,
+                        uploadedAt: Date.now()
+                    };
+
+                    this.customFonts.set(fontName, fontData);
+                    await this.loadFont(fontData);
+                    console.log(`   ✅ Loaded "${fontName}" from CDN`);
+                } catch (error) {
+                    console.warn(`   ⚠️ Failed to load font "${file.fileName}":`, error);
+                }
+            });
+
+            await Promise.all(loadPromises);
+            console.log(`✅ All custom fonts loaded and available in dropdown`);
         } catch (error) {
-            console.warn('Failed to load custom fonts from storage:', error);
+            console.warn('Failed to load custom fonts from Media Manager:', error);
         }
     }
 
     /**
-     * Save custom fonts metadata to localStorage (CDN URLs only)
+     * Note: Fonts are now stored in Wix Media Manager backend.
+     * No need to save to localStorage - fonts persist on CDN.
      */
-    saveCustomFontsToStorage() {
-        try {
-            const fonts = Array.from(this.customFonts.values());
-            localStorage.setItem('customFonts', JSON.stringify(fonts));
-        } catch (error) {
-            console.warn('Failed to save custom fonts to storage:', error);
-        }
-    }
 
     /**
      * Upload and process a font file - uploads to Wix Media Manager CDN
@@ -123,9 +150,8 @@ class FontManager {
                 mimeType: result.file.mimeType
             };
 
-            // Store metadata locally
+            // Store metadata in memory (already persisted to Wix Media Manager)
             this.customFonts.set(fontData.name, fontData);
-            this.saveCustomFontsToStorage();
 
             // Load font from CDN
             await this.loadFont(fontData);
@@ -231,7 +257,6 @@ class FontManager {
         // Add to local registry if not already present
         if (!this.customFonts.has(fontData.name)) {
             this.customFonts.set(fontData.name, fontData);
-            this.saveCustomFontsToStorage();
         }
 
         // Load the font
@@ -268,9 +293,8 @@ class FontManager {
                 style.remove();
             }
 
-            // Remove from storage
+            // Remove from memory (still exists in Wix Media Manager)
             this.customFonts.delete(name);
-            this.saveCustomFontsToStorage();
             return true;
         }
         return false;

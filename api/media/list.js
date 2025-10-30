@@ -55,37 +55,53 @@ export default async function handler(req, res) {
 
         const data = await response.json();
 
-        // Filter for images, videos, and document files (for Lottie), and normalize the response
+        // Filter for images, videos, document files (for Lottie), and fonts
         const mediaFiles = (data.files || [])
             .filter(file => {
                 const isImage = file.mediaType === 'IMAGE';
                 const isVideo = file.mediaType === 'VIDEO';
                 const isDocument = file.mediaType === 'DOCUMENT';
-                // Include documents if they're JSON/Lottie files
+                // Include documents if they're JSON/Lottie files or fonts
                 const isLottie = isDocument && (
                     file.displayName?.endsWith('.json') ||
                     file.displayName?.endsWith('.lottie')
                 );
-                return isImage || isVideo || isLottie;
+                const isFont = isDocument && (
+                    file.displayName?.endsWith('.woff') ||
+                    file.displayName?.endsWith('.woff2') ||
+                    file.displayName?.endsWith('.ttf') ||
+                    file.displayName?.endsWith('.otf')
+                );
+                return isImage || isVideo || isLottie || isFont;
             })
             .map(file => {
                 // Determine MIME type based on file type and extension
                 let mimeType;
+                const displayName = file.displayName?.toLowerCase() || '';
+
                 if (file.mediaType === 'IMAGE') {
                     // Check if it's a GIF by filename
-                    if (file.displayName?.toLowerCase().endsWith('.gif')) {
+                    if (displayName.endsWith('.gif')) {
                         mimeType = 'image/gif';
-                    } else if (file.displayName?.toLowerCase().endsWith('.png')) {
+                    } else if (displayName.endsWith('.png')) {
                         mimeType = 'image/png';
-                    } else if (file.displayName?.toLowerCase().endsWith('.webp')) {
+                    } else if (displayName.endsWith('.webp')) {
                         mimeType = 'image/webp';
                     } else {
                         mimeType = 'image/jpeg';
                     }
                 } else if (file.mediaType === 'VIDEO') {
                     mimeType = 'video/mp4';
-                } else if (file.displayName?.endsWith('.json') || file.displayName?.endsWith('.lottie')) {
+                } else if (displayName.endsWith('.json') || displayName.endsWith('.lottie')) {
                     mimeType = 'application/json';
+                } else if (displayName.endsWith('.woff')) {
+                    mimeType = 'font/woff';
+                } else if (displayName.endsWith('.woff2')) {
+                    mimeType = 'font/woff2';
+                } else if (displayName.endsWith('.ttf')) {
+                    mimeType = 'font/ttf';
+                } else if (displayName.endsWith('.otf')) {
+                    mimeType = 'font/otf';
                 } else {
                     mimeType = 'application/octet-stream';
                 }
