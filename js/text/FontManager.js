@@ -6,7 +6,17 @@
 class FontManager {
     constructor() {
         this.customFonts = new Map(); // Map of fontName -> fontData
-        this.mediaApiUrl = 'http://localhost:3001/api/media/upload'; // Backend API URL
+
+        // Auto-detect environment for API URL
+        const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+        if (isLocalhost) {
+            // Development - use separate backend server on port 3001
+            this.mediaApiUrl = 'http://localhost:3001/api/media/upload';
+        } else {
+            // Production - use relative API path (Vercel serverless function)
+            this.mediaApiUrl = '/api/media/upload';
+        }
+
         // Note: loadCustomFontsFromStorage() is async and must be called explicitly
         // after construction by the caller (e.g., UIManager.initializeFontUpload())
     }
