@@ -19,6 +19,31 @@ class PresetManager {
     }
 
     /**
+     * Safe render wrapper that checks canvas is ready before rendering
+     * Prevents "negative canvas dimensions" errors during async media loading
+     * @private
+     */
+    safeRender() {
+        try {
+            // Check that app and canvas are initialized
+            if (!this.app || !this.app.canvasManager || !this.app.canvasManager.canvas) {
+                return;
+            }
+
+            // Check canvas has valid dimensions
+            const canvas = this.app.canvasManager.canvas;
+            if (canvas.width <= 0 || canvas.height <= 0) {
+                return;
+            }
+
+            // Safe to render
+            this.app.render();
+        } catch (error) {
+            console.error('Failed to render canvas:', error);
+        }
+    }
+
+    /**
      * Serialize the complete application state to JSON
      * @param {string} presetName - Name for the preset
      * @returns {Object} Complete state object ready for JSON.stringify
@@ -555,10 +580,8 @@ class PresetManager {
             img.crossOrigin = 'anonymous'; // Enable CORS for CDN images
             img.onload = () => {
                 bg.setBackgroundImage(img);
-                console.log('   ✅ Background image loaded and set!');
-                console.log('   → Image size:', img.width, 'x', img.height);
-                // NOTE: Render is called at the end of deserializeState, no need for extra render here
-                // this.app.render(); // REMOVED: Causes canvas dimension issues
+                // Trigger render after image loads so it appears on canvas
+                this.safeRender();
             };
             img.onerror = (e) => {
                 console.error('   ❌ LOAD: Failed to load background image!');
@@ -780,12 +803,8 @@ class PresetManager {
         img.onload = () => {
             if (cell.content) {
                 cell.content.media = img; // CellRenderer looks for .media not .image
-                console.log(`   ✅ Cell image loaded and set! (${cell.id})`);
-                console.log('   → Image size:', img.width, 'x', img.height);
-                console.log('   → cell.content.media set to:', cell.content.media.constructor.name);
-                // NOTE: Images load async but we render at end of deserializeState
-                // Extra renders here can cause canvas dimension calculation issues
-                // this.app.render(); // REMOVED: Causes negative canvas dimensions
+                // Trigger render after image loads so it appears on canvas
+                this.safeRender();
             }
         };
         img.onerror = (e) => {
@@ -816,19 +835,19 @@ class PresetManager {
         video.addEventListener('loadedmetadata', () => {
             if (cell.content) {
                 cell.content.media = video; // CellRenderer looks for .media
-                console.log(`   ✅ Cell video loaded and set! (${cell.id})`);
-                console.log('   → Video size:', video.videoWidth, 'x', video.videoHeight);
-                console.log('   → Video duration:', video.duration, 'seconds');
-                console.log('   → cell.content.media set to:', cell.content.media.constructor.name);
 
                 // Start playing
-                video.play().catch(err => {
-                    console.warn(`   ⚠️ Autoplay prevented for ${cell.id}:`, err.message);
+                video.play().catch(() => {
+                    console.warn(`Autoplay prevented for cell ${cell.id}`);
                 });
 
-                // NOTE: Videos load async but we render at end of deserializeState
-                // Extra renders here can cause canvas dimension calculation issues
-                // this.app.render(); // REMOVED: Causes negative canvas dimensions
+                // Trigger render after video loads so it appears on canvas
+                this.safeRender();
+
+                // Start animation loop for video frame updates
+                if (this.app._startAnimationLoop) {
+                    this.app._startAnimationLoop();
+                }
             }
         });
 
