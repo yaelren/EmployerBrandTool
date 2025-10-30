@@ -74,18 +74,29 @@ class TextComponent {
      * @returns {Array} Array of font options with name and value
      */
     static getAvailableFonts() {
-        const defaultFonts = [
+        // Wix Madefor fonts always at the top
+        const wixFonts = [
             { name: 'Wix Madefor Display', value: '"Wix Madefor Display", Arial, sans-serif' },
-            { name: 'Wix Madefor Text', value: '"Wix Madefor Text", Arial, sans-serif' },
-            { name: 'Arial', value: 'Arial, sans-serif' },
-            { name: 'Helvetica', value: 'Helvetica, Arial, sans-serif' },
-            { name: 'Times New Roman', value: '"Times New Roman", Times, serif' },
-            { name: 'Georgia', value: 'Georgia, serif' },
-            { name: 'Courier New', value: '"Courier New", Courier, monospace' },
-            { name: 'Verdana', value: 'Verdana, Geneva, sans-serif' },
-            { name: 'Trebuchet MS', value: '"Trebuchet MS", Helvetica, sans-serif' },
-            { name: 'Impact', value: 'Impact, Charcoal, sans-serif' }
+            { name: 'Wix Madefor Text', value: '"Wix Madefor Text", Arial, sans-serif' }
         ];
+
+        // Other default fonts (will be sorted alphabetically)
+        const defaultFonts = [
+            { name: 'Arial', value: 'Arial, sans-serif' },
+            { name: 'Courier New', value: '"Courier New", Courier, monospace' },
+            { name: 'Georgia', value: 'Georgia, serif' },
+            { name: 'Helvetica', value: 'Helvetica, Arial, sans-serif' },
+            { name: 'Impact', value: 'Impact, Charcoal, sans-serif' },
+            { name: 'Times New Roman', value: '"Times New Roman", Times, serif' },
+            { name: 'Trebuchet MS', value: '"Trebuchet MS", Helvetica, sans-serif' },
+            { name: 'Verdana', value: 'Verdana, Geneva, sans-serif' }
+        ];
+
+        // Sort default fonts alphabetically
+        defaultFonts.sort((a, b) => a.name.localeCompare(b.name));
+
+        // Combine all fonts
+        let allFonts = [...wixFonts, ...defaultFonts];
 
         // Add custom fonts if FontManager is available
         if (typeof FontManager !== 'undefined' && window.fontManager) {
@@ -98,11 +109,14 @@ class TextComponent {
                 size: font.size
             }));
 
+            // Sort custom fonts alphabetically
+            customFontOptions.sort((a, b) => a.name.localeCompare(b.name));
+
             // Add custom fonts at the end
-            return [...defaultFonts, ...customFontOptions];
+            allFonts = [...allFonts, ...customFontOptions];
         }
 
-        return defaultFonts;
+        return allFonts;
     }
 
     /**

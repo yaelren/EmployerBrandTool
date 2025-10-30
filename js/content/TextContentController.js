@@ -130,9 +130,8 @@ class TextContentController extends ContentController {
             option.value = font.value;
             option.textContent = font.name;
             
-            // Mark custom fonts with ASCII cloud icon
+            // Mark custom fonts with italic style
             if (font.isCustom) {
-                option.textContent += ' ☁';
                 option.style.fontStyle = 'italic';
             }
             
