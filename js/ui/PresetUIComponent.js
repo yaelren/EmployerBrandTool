@@ -8,6 +8,7 @@ class PresetUIComponent {
         this.app = app;
         this.presetManager = null; // Will be set when PresetManager is initialized
         this.currentPresetId = null; // Track currently selected preset
+        this.savePagePanel = null; // Inline panel for saving pages
     }
 
     /**
@@ -37,13 +38,23 @@ class PresetUIComponent {
                     <p class="preset-description">Save and load pages in multi-page presets</p>
                     <div class="preset-multipage-controls">
                         <button type="button" class="preset-save-page-btn">
-                            📄 Save Page to Preset
+                            Save Page
                         </button>
                         <button type="button" class="preset-load-page-btn">
-                            📂 Load Page from Preset
+                            Load Page
                         </button>
                     </div>
                 </div>
+
+                <!-- Save Page Panel (Inline) -->
+                <div class="preset-section save-page-panel-section" id="savePagePanelContainer">
+                    <!-- SavePagePanel will render here -->
+                </div>
+
+                <!-- Old Preset System (Collapsible for debugging) -->
+                <div class="preset-section old-preset-system-section">
+                    <h3 class="old-preset-toggle">Old Preset System <span class="toggle-indicator">▶</span></h3>
+                    <div class="old-preset-content" style="display: none;">
 
                 <!-- Save Section -->
                 <div class="preset-section preset-save-section">
@@ -105,10 +116,20 @@ class PresetUIComponent {
                         </div>
                     </div>
                 </div>
+
+                    </div><!-- end old-preset-content -->
+                </div><!-- end old-preset-system-section -->
             </div>
         `;
 
         this.setupEventListeners();
+
+        // Initialize SavePagePanel
+        this.savePagePanel = new SavePagePanel(this.app);
+        const panelContainer = container.querySelector('#savePagePanelContainer');
+        if (panelContainer) {
+            this.savePagePanel.render(panelContainer);
+        }
 
         // Populate dropdown on render
         this.populatePresetDropdown();
@@ -118,6 +139,18 @@ class PresetUIComponent {
      * Setup event listeners for preset controls
      */
     setupEventListeners() {
+        // Old preset system toggle
+        const oldPresetToggle = document.querySelector('.old-preset-toggle');
+        const oldPresetContent = document.querySelector('.old-preset-content');
+        const toggleIndicator = document.querySelector('.toggle-indicator');
+        if (oldPresetToggle && oldPresetContent && toggleIndicator) {
+            oldPresetToggle.addEventListener('click', () => {
+                const isVisible = oldPresetContent.style.display === 'block';
+                oldPresetContent.style.display = isVisible ? 'none' : 'block';
+                toggleIndicator.textContent = isVisible ? '▶' : '▼';
+            });
+        }
+
         // Save page to preset button (multi-page workflow)
         const savePageBtn = document.querySelector('.preset-save-page-btn');
         if (savePageBtn) {
@@ -588,14 +621,14 @@ class PresetUIComponent {
      * Opens the SavePageModal to configure editable fields and save
      */
     handleSavePageToPreset() {
-        if (!this.app.savePageModal) {
-            this.showError('Multi-page system not initialized');
-            console.error('SavePageModal not found on app object');
+        if (!this.savePagePanel) {
+            this.showError('Save page panel not initialized');
+            console.error('SavePagePanel not found');
             return;
         }
 
-        // Show the save page modal
-        this.app.savePageModal.show();
+        // Show the save page panel
+        this.savePagePanel.show();
     }
 
     /**

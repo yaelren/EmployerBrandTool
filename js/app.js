@@ -84,7 +84,7 @@ class EmployerBrandToolPOC {
 
             // Initialize Multi-Page Preset System
             this.presetPageManager = new PresetPageManager(this);
-            this.savePageModal = new SavePageModal(this);
+            // this.savePageModal = new SavePageModal(this); // Replaced by SavePagePanel in sidebar
             this.loadPageModal = new LoadPageModal(this);
 
             // Initialize Wix Cloud Backend for Presets (MUST happen before font loading)
@@ -688,6 +688,11 @@ class EmployerBrandToolPOC {
      * @private
      */
     onCanvasClick(event) {
+        // Skip normal canvas click behavior if in save page mode
+        if (this.savePageModeActive) {
+            return;
+        }
+
         const canvasCoords = this.canvasManager.screenToCanvas(event.clientX, event.clientY);
         
         // Find clicked cell using grid system
