@@ -44,7 +44,7 @@ class FontManager {
                 try {
                     this.customFonts.set(fontData.name, fontData);
                     await this.loadFont(fontData);
-                    console.log(`   ✅ Loaded "${fontData.name}" from CDN`);
+                    
                 } catch (error) {
                     console.warn(`   ⚠️ Failed to load font "${fontData.name}":`, error);
                 }
@@ -221,8 +221,6 @@ class FontManager {
         style.setAttribute('data-font', fontData.name);
         style.textContent = css;
         document.head.appendChild(style);
-
-        console.log(`✅ Loaded custom font from CDN: ${fontData.name}`);
 
         // Wait for font to be ready
         try {

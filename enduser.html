@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Employee Spotlight - Employer Brand Tool</title>
+
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Wix+Madefor+Display:wght@400..800&family=Wix+Madefor+Text:ital,wght@0,400..800;1,400..800&display=swap" rel="stylesheet">
+
+    <!-- Chatooly CDN Styles -->
+    <link rel="stylesheet" href="https://yaelren.github.io/chatooly-cdn/css/unified.min.css">
+
+    <!-- End-User Custom Styles -->
+    <link rel="stylesheet" href="css/enduser.css">
+</head>
+<body>
+    <!-- Removed Preset Selector Modal for mock-up -->
+
+    <!-- Main End-User Interface -->
+    <div class="enduser-container" id="mainInterface">
+        <!-- Header -->
+        <div class="enduser-header">
+            <div class="header-left">
+                <h1 class="header-title">Employer Brand Tool</h1>
+                <span class="header-subtitle">End User</span>
+            </div>
+            <div class="header-right">
+                <span class="preset-loaded-name" id="presetLoadedName">Employee Spotlight</span>
+            </div>
+        </div>
+
+        <!-- Export Bar (below header) -->
+        <div class="export-bar" id="exportBar">
+            <button class="export-bar-btn" onclick="exportAllPages()">
+                Export
+            </button>
+        </div>
+
+        <!-- Main Content Area -->
+        <div class="enduser-main">
+            <!-- Left Sidebar: Form -->
+            <div class="enduser-sidebar">
+                <div class="sidebar-header" id="sidebarHeader">
+                    <h2 class="sidebar-title" id="sidebarTitle">Employee Spotlight</h2>
+                </div>
+
+                <div class="sidebar-content" id="sidebarContent">
+                    <!-- Page 1 Section (Opening Page - No editable fields) -->
+                    <div class="enduser-page-section no-fields">
+                        <div class="page-section-header-static">
+                            <span class="section-title">Page 1: Opening Page</span>
+                            <span class="section-badge">No editable fields</span>
+                        </div>
+                    </div>
+
+                    <!-- Page 2 Section (Employee Spotlight - has editable fields) -->
+                    <div class="enduser-page-section">
+                        <button class="page-section-header" onclick="toggleSection(this)">
+                            <span class="section-toggle">▼</span>
+                            <span class="section-title">Page 2: Employee Spotlight</span>
+                            <span class="section-badge">3 fields</span>
+                        </button>
+                        <div class="page-section-content">
+                            <!-- Employee Photo Field -->
+                            <div class="enduser-form-field">
+                                <label class="field-label">
+                                    Employee Photo
+                                    <span class="field-required">*</span>
+                                </label>
+                                <input
+                                    type="file"
+                                    class="field-file-input"
+                                    accept="image/*"
+                                    data-field-name="employeePhoto"
+                                    style="display: none;"
+                                    id="employeePhotoInput">
+                                <button class="field-file-btn" onclick="document.getElementById('employeePhotoInput').click()">
+                                    📁 Choose File
+                                </button>
+                                <span class="field-hint">Upload employee photo (recommended: 800x800px)</span>
+                                <div class="field-image-preview" style="display: none;">
+                                    <img src="" alt="Preview">
+                                    <button class="field-image-remove" onclick="removeImage()">×</button>
+                                </div>
+                            </div>
+
+                            <!-- Employee Name Field -->
+                            <div class="enduser-form-field">
+                                <label class="field-label">
+                                    Employee Name
+                                    <span class="field-required">*</span>
+                                </label>
+                                <input
+                                    type="text"
+                                    class="field-input"
+                                    placeholder="Enter employee name..."
+                                    value="DANI SHTEINBER"
+                                    data-field-name="employeeName">
+                                <span class="field-hint">Full name of the featured employee</span>
+                            </div>
+
+                            <!-- Employee Quote Field -->
+                            <div class="enduser-form-field">
+                                <label class="field-label">
+                                    Employee Quote
+                                    <span class="field-required">*</span>
+                                </label>
+                                <textarea
+                                    class="field-textarea"
+                                    placeholder="Enter employee quote..."
+                                    data-field-name="employeeQuote">I will always choose design over anything else - you can only find that on the wix platforms Thats why i love working with all of the super taleted people eveyday thats what i think and thanks to everyone who taught me to type look how well im typing now and designing and creating and yay</textarea>
+                                <span class="field-hint">Employee's testimonial or quote about their experience</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Page 3 Section (Closing Page - No editable fields) -->
+                    <div class="enduser-page-section no-fields">
+                        <div class="page-section-header-static">
+                            <span class="section-title">Page 3: Closing Page</span>
+                            <span class="section-badge">No editable fields</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Center: Mock Canvas Preview -->
+            <div class="enduser-canvas-area">
+                <div class="canvas-wrapper">
+                    <div class="mock-canvas-preview">
+                        <img src="sample-data/employee-spotlight-preview.png" alt="Employee Spotlight Preview" id="mockPreviewImage">
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Bottom: Page Navigation -->
+        <div class="enduser-page-nav" id="pageNav">
+            <div class="page-nav-left">
+                <div class="enduser-page-thumbs">
+                    <!-- Page 1 Thumbnail -->
+                    <div class="enduser-page-thumb" onclick="switchPage(1)">
+                        <div class="thumb-preview">
+                            <div class="thumb-placeholder">
+                                <span class="thumb-number">1</span>
+                            </div>
+                        </div>
+                        <span class="thumb-label">Opening Page</span>
+                    </div>
+
+                    <!-- Page 2 Thumbnail (Active by default) -->
+                    <div class="enduser-page-thumb active" onclick="switchPage(2)">
+                        <div class="thumb-preview">
+                            <div class="thumb-placeholder">
+                                <span class="thumb-number">2</span>
+                            </div>
+                        </div>
+                        <span class="thumb-label">Employee Spotlight</span>
+                        <span class="thumb-indicator">●</span>
+                    </div>
+
+                    <!-- Page 3 Thumbnail -->
+                    <div class="enduser-page-thumb" onclick="switchPage(3)">
+                        <div class="thumb-preview">
+                            <div class="thumb-placeholder">
+                                <span class="thumb-number">3</span>
+                            </div>
+                        </div>
+                        <span class="thumb-label">Closing Page</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="page-nav-right">
+                <span class="page-indicator">Page 2 of 3</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- JavaScript for Employee Spotlight -->
+    <script>
+        // Initialize on load - start on Page 2 (Employee Spotlight)
+        window.addEventListener('DOMContentLoaded', () => {
+            document.getElementById('sidebarContent').style.display = 'block';
+            document.getElementById('pageNav').style.display = 'flex';
+            document.getElementById('exportBar').style.display = 'flex';
+
+            // Start on Page 2 (Employee Spotlight page with mock preview)
+            switchPage(2);
+        });
+
+        // Toggle page section expand/collapse
+        function toggleSection(button) {
+            const content = button.nextElementSibling;
+            const toggle = button.querySelector('.section-toggle');
+
+            if (button.classList.contains('collapsed')) {
+                button.classList.remove('collapsed');
+                content.classList.remove('collapsed');
+                toggle.textContent = '▼';
+            } else {
+                button.classList.add('collapsed');
+                content.classList.add('collapsed');
+                toggle.textContent = '▶';
+            }
+        }
+
+        // Switch page
+        function switchPage(pageNumber) {
+            // Update active thumbnail
+            document.querySelectorAll('.enduser-page-thumb').forEach((thumb, index) => {
+                if (index + 1 === pageNumber) {
+                    thumb.classList.add('active');
+                } else {
+                    thumb.classList.remove('active');
+                }
+            });
+
+            // Update page indicator
+            const totalPages = document.querySelectorAll('.enduser-page-thumb').length;
+            document.querySelector('.page-indicator').textContent = `Page ${pageNumber} of ${totalPages}`;
+
+            // Show mock preview only for Page 2, hide for others
+            const mockPreview = document.querySelector('.mock-canvas-preview');
+            if (pageNumber === 2) {
+                mockPreview.style.display = 'flex';
+            } else {
+                mockPreview.style.display = 'none';
+            }
+
+            console.log('Switched to page:', pageNumber);
+        }
+
+        // Remove uploaded image
+        function removeImage() {
+            const preview = document.querySelector('.field-image-preview');
+            preview.style.display = 'none';
+            document.getElementById('employeePhotoInput').value = '';
+            console.log('Image removed');
+        }
+
+        // Export all pages
+        function exportAllPages() {
+            alert('Export functionality will export all 3 Employee Spotlight pages as PNGs in a ZIP file.');
+        }
+
+        // Image upload preview
+        document.getElementById('employeePhotoInput')?.addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(event) {
+                    const preview = document.querySelector('.field-image-preview');
+                    const img = preview.querySelector('img');
+                    img.src = event.target.result;
+                    preview.style.display = 'block';
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+    </script>
+</body>
+</html>
