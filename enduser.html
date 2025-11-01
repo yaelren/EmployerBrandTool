@@ -17,7 +17,27 @@
     <link rel="stylesheet" href="css/enduser.css">
 </head>
 <body>
-    <!-- Removed Preset Selector Modal for mock-up -->
+    <!-- Preset Selector Modal -->
+    <div class="preset-selector-overlay" id="presetSelector">
+        <div class="preset-selector-modal">
+            <div class="preset-selector-header">
+                <h2 class="preset-selector-title">Choose Your Preset</h2>
+            </div>
+            <div class="preset-selector-body">
+                <label class="modal-preset-label">Select a preset to get started:</label>
+                <select class="modal-preset-dropdown" id="modalPresetDropdown">
+                    <option value="">-- Select Preset --</option>
+                    <option value="employee-spotlight">Employee Spotlight (3 pages)</option>
+                    <option value="tour-promo">Tour Promo (3 pages)</option>
+                    <option value="early-talent">Early Talent Program (4 pages)</option>
+                    <option value="city-guides">City Guides (5 pages)</option>
+                </select>
+                <button class="modal-load-btn" onclick="loadPresetFromModal()">
+                    Load Preset
+                </button>
+            </div>
+        </div>
+    </div>
 
     <!-- Main End-User Interface -->
     <div class="enduser-container" id="mainInterface">
@@ -182,15 +202,69 @@
 
     <!-- JavaScript for Employee Spotlight -->
     <script>
-        // Initialize on load - start on Page 2 (Employee Spotlight)
+        // Initialize on load - show preset selector
         window.addEventListener('DOMContentLoaded', () => {
+            document.getElementById('presetSelector').style.display = 'flex';
+            // Hide content that should only appear after preset selection
+            document.getElementById('sidebarContent').style.display = 'none';
+            document.getElementById('pageNav').style.display = 'none';
+            document.getElementById('exportBar').style.display = 'none';
+        });
+
+        // Load preset from modal dropdown
+        function loadPresetFromModal() {
+            const dropdown = document.getElementById('modalPresetDropdown');
+            const presetId = dropdown.value;
+
+            if (!presetId) {
+                alert('Please select a preset first');
+                return;
+            }
+
+            loadPreset(presetId);
+        }
+
+        // Load preset (shows content and closes modal)
+        function loadPreset(presetId) {
+            if (!presetId) return;
+
+            console.log('Loading preset:', presetId);
+
+            // Update preset name mapping
+            const presetNames = {
+                'employee-spotlight': 'Employee Spotlight',
+                'tour-promo': 'Tour Promo',
+                'early-talent': 'Early Talent Program',
+                'city-guides': 'City Guides'
+            };
+
+            const selectedPresetName = presetNames[presetId] || 'Unknown Preset';
+
+            // Update sidebar title
+            document.getElementById('sidebarTitle').textContent = selectedPresetName;
+
+            // Update header preset name and show it
+            const presetLoadedName = document.getElementById('presetLoadedName');
+            presetLoadedName.textContent = selectedPresetName;
+            presetLoadedName.style.display = 'inline';
+
+            // Show all hidden elements
             document.getElementById('sidebarContent').style.display = 'block';
             document.getElementById('pageNav').style.display = 'flex';
             document.getElementById('exportBar').style.display = 'flex';
 
-            // Start on Page 2 (Employee Spotlight page with mock preview)
-            switchPage(2);
-        });
+            // Close modal
+            document.getElementById('presetSelector').style.display = 'none';
+
+            // Start on Page 2 for employee-spotlight, otherwise page 1
+            if (presetId === 'employee-spotlight') {
+                switchPage(2);
+            } else {
+                switchPage(1);
+            }
+
+            console.log('Preset loaded:', selectedPresetName);
+        }
 
         // Toggle page section expand/collapse
         function toggleSection(button) {
