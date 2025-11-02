@@ -1174,7 +1174,66 @@ class PresetManager {
             if (this.app.uiManager.elements.textColor) {
                 this.app.uiManager.elements.textColor.value = stateData.mainText.color;
             }
-            
+
+            // Update line spacing UI
+            const lineSpacingInput = document.getElementById('lineSpacing');
+            if (lineSpacingInput && stateData.mainText.lineSpacing !== undefined) {
+                lineSpacingInput.value = stateData.mainText.lineSpacing;
+            }
+
+            // Update margin UI
+            const marginVerticalInput = document.getElementById('marginVertical');
+            if (marginVerticalInput && stateData.mainText.marginVertical !== undefined) {
+                marginVerticalInput.value = stateData.mainText.marginVertical;
+            }
+            const marginHorizontalInput = document.getElementById('marginHorizontal');
+            if (marginHorizontalInput && stateData.mainText.marginHorizontal !== undefined) {
+                marginHorizontalInput.value = stateData.mainText.marginHorizontal;
+            }
+
+            // Update text style buttons (bold, italic, underline, highlight)
+            const boldBtn = document.getElementById('mainTextBold');
+            if (boldBtn) {
+                if (stateData.mainText.fontWeight === 'bold') {
+                    boldBtn.classList.add('active');
+                } else {
+                    boldBtn.classList.remove('active');
+                }
+            }
+
+            const italicBtn = document.getElementById('mainTextItalic');
+            if (italicBtn) {
+                if (stateData.mainText.fontStyle === 'italic') {
+                    italicBtn.classList.add('active');
+                } else {
+                    italicBtn.classList.remove('active');
+                }
+            }
+
+            const underlineBtn = document.getElementById('mainTextUnderline');
+            if (underlineBtn) {
+                if (stateData.mainText.underline) {
+                    underlineBtn.classList.add('active');
+                } else {
+                    underlineBtn.classList.remove('active');
+                }
+            }
+
+            const highlightBtn = document.getElementById('mainTextHighlight');
+            if (highlightBtn) {
+                if (stateData.mainText.highlight) {
+                    highlightBtn.classList.add('active');
+                } else {
+                    highlightBtn.classList.remove('active');
+                }
+            }
+
+            // Update highlight color UI
+            const highlightColorInput = document.getElementById('mainTextHighlightColor');
+            if (highlightColorInput && stateData.mainText.highlightColor) {
+                highlightColorInput.value = stateData.mainText.highlightColor;
+            }
+
             // Update padding UI
             if (this.app.uiManager.elements.paddingHorizontal) {
                 this.app.uiManager.elements.paddingHorizontal.value = stateData.canvas.padding.left;
@@ -1187,7 +1246,24 @@ class PresetManager {
             if (this.app.uiManager.elements.minSpotSize) {
                 this.app.uiManager.elements.minSpotSize.value = stateData.grid.minCellSize;
             }
-            
+
+            // Update position alignment buttons UI
+            if (stateData.mainText.alignH && stateData.mainText.alignV) {
+                const positioningGrid = document.querySelector('.positioning-grid');
+                if (positioningGrid) {
+                    // Remove active class from all position buttons
+                    positioningGrid.querySelectorAll('.pos-btn').forEach(btn => btn.classList.remove('active'));
+
+                    // Find and activate the button matching the loaded alignment
+                    const matchingButton = positioningGrid.querySelector(
+                        `.pos-btn[data-horizontal="${stateData.mainText.alignH}"][data-vertical="${stateData.mainText.alignV}"]`
+                    );
+                    if (matchingButton) {
+                        matchingButton.classList.add('active');
+                    }
+                }
+            }
+
             // UI elements updated successfully
         } finally {
             // Restore original event listener
