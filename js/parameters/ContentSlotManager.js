@@ -270,13 +270,9 @@ class ContentSlotManager {
                 break;
             case 'fit':
             default:
-                if (mediaAspect > contentAspect) {
-                    drawWidth = contentWidth * scale;
-                    drawHeight = (contentWidth / mediaAspect) * scale;
-                } else {
-                    drawWidth = (contentHeight * mediaAspect) * scale;
-                    drawHeight = contentHeight * scale;
-                }
+                // Free mode: scale from natural image dimensions
+                drawWidth = mediaWidth * scale;
+                drawHeight = mediaHeight * scale;
                 break;
         }
 
