@@ -41,6 +41,7 @@
     <link rel="stylesheet" href="css/media-picker.css">
     <link rel="stylesheet" href="css/save-page-panel.css">
     <link rel="stylesheet" href="css/load-page-modal.css">
+    <link rel="stylesheet" href="css/content-slots.css">
 </head>
 <body>
     <div class="chatooly-app-container">
@@ -303,6 +304,10 @@ SPOTLIGHT
                     <span class="guides-icon">📐</span>
                     <span id="guidesLabel">Show Guides</span>
                 </button>
+                <button id="toggleContentSlots" class="guides-toggle-btn">
+                    <span class="guides-icon">📝</span>
+                    <span id="contentSlotsLabel">Show Content Slots</span>
+                </button>
             </div>
             
             <!-- Spot Edit Popup removed - functionality moved to unified sidebar -->
@@ -428,7 +433,13 @@ SPOTLIGHT
     <script src="js/parameters/PresetManager.js"></script>
 
     <!-- Multi-Page Preset System -->
+    <script src="js/parameters/ContentSlotTypes.js"></script>
+    <script src="js/parameters/ContentSlotManager.js"></script>
     <script src="js/parameters/PresetPageManager.js"></script>
+    <script src="js/ui/ContentSlotConfigPanel.js"></script>
+    <script src="js/ui/SavePageModal.js"></script>
+    <script src="js/ui/ExportFormatSelector.js"></script>
+    <script src="js/ui/ContentSlotOverlay.js"></script>
     <script src="js/ui/SavePagePanel.js"></script>
     <script src="js/ui/LoadPageModal.js"></script>
 

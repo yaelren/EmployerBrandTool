@@ -14,20 +14,17 @@ class SavePagePanel {
     constructor(app) {
         this.app = app;
         this.presetPageManager = app.presetPageManager;
+        this.contentSlotManager = app.presetPageManager.contentSlotManager;
 
         this.container = null;
         this.isExpanded = false;
+        
+        // Content slot configuration panel
+        this.configPanel = new ContentSlotConfigPanel(app);
 
-        // Editable field configuration
-        this.editableConfig = {
-            mainText: { editable: false, fieldName: null, fieldLabel: null },
-            textCells: {},
-            contentCells: {},
-            background: {
-                color: { editable: false, fieldName: null },
-                image: { editable: false, fieldName: null }
-            }
-        };
+        // Track configured slots for this page
+        this.configuredSlots = []; // Array of slot objects
+        this.configuredCellIds = new Set(); // Set of cell IDs that have slots
 
         // Currently selected cell for editing
         this.selectedCellId = null;
@@ -185,16 +182,9 @@ class SavePagePanel {
      * Show/expand the panel
      */
     async show() {
-        // Reset state
-        this.editableConfig = {
-            mainText: { editable: false, fieldName: null, fieldLabel: null },
-            textCells: {},
-            contentCells: {},
-            background: {
-                color: { editable: false, fieldName: null },
-                image: { editable: false, fieldName: null }
-            }
-        };
+        // Reset content slots
+        this.configuredSlots = [];
+        this.configuredCellIds.clear();
         this.selectedCellId = null;
 
         // Load existing presets for dropdown
@@ -425,14 +415,11 @@ class SavePagePanel {
      * Check if cell is editable
      */
     isCellEditable(elementId) {
-        if (elementId === 'mainText') {
-            return this.editableConfig.mainText.editable;
-        } else if (elementId.startsWith('textCell-')) {
-            const cellId = elementId.replace('textCell-', '');
-            return this.editableConfig.textCells[cellId]?.editable || false;
-        } else if (elementId.startsWith('contentCell-')) {
-            const cellId = elementId.replace('contentCell-', '');
-            return this.editableConfig.contentCells[cellId]?.editable || false;
+        // Parse cell ID from elementId
+        if (elementId.startsWith('textCell-') || elementId.startsWith('contentCell-')) {
+            const cellIdStr = elementId.replace('textCell-', '').replace('contentCell-', '');
+            const cellId = parseInt(cellIdStr);
+            return this.configuredCellIds.has(cellId);
         }
         return false;
     }
@@ -440,49 +427,65 @@ class SavePagePanel {
     /**
      * Toggle cell lock/unlock
      */
-    toggleCellLock(elementId, cellId, cellType) {
-        const isCurrentlyEditable = this.isCellEditable(elementId);
-        
-        if (isCurrentlyEditable) {
-            // Remove editability
-            this.removeEditableCell(elementId);
-            this.updateLockIcon(elementId, false);
-        } else {
-            // Make editable and show editor
-            this.showCellEditor(elementId, cellId, cellType);
-            this.updateLockIcon(elementId, true);
+    /**
+     * Find cell by element ID
+     */
+    _findCellByElementId(elementId) {
+        const grid = this.app.grid;
+        if (!grid) return null;
+
+        if (elementId === 'mainText') {
+            const allCells = grid.getAllCells();
+            return allCells.find(c => c.type === 'main-text');
+        } else if (elementId.startsWith('textCell-')) {
+            const cellIdStr = elementId.replace('textCell-', '');
+            const cellId = parseInt(cellIdStr);
+            return grid.getCellById(cellId);
+        } else if (elementId.startsWith('contentCell-')) {
+            const cellIdStr = elementId.replace('contentCell-', '');
+            const cellId = parseInt(cellIdStr);
+            return grid.getCellById(cellId);
         }
+
+        return null;
     }
 
-    /**
-     * Remove editable cell (helper method)
-     */
-    removeEditableCell(elementId) {
-        if (elementId === 'mainText') {
-            this.editableConfig.mainText.editable = false;
-        } else if (elementId.startsWith('textCell-')) {
-            const cellId = elementId.replace('textCell-', '');
-            if (this.editableConfig.textCells[cellId]) {
-                delete this.editableConfig.textCells[cellId];
+    toggleCellLock(elementId, cellId, cellType) {
+        // Check if already configured
+        const alreadyConfigured = this.configuredCellIds.has(cellId);
+        
+        if (alreadyConfigured) {
+            // Remove slot
+            this.configuredSlots = this.configuredSlots.filter(slot => 
+                !slot.sourceContentId || slot.sourceContentId !== cellId
+            );
+            this.configuredCellIds.delete(cellId);
+            this.updateLockIcon(elementId, false);
+            this.updateEditableFieldsList();
+        } else {
+            // Find the cell and open config panel
+            const cell = this._findCellByElementId(elementId);
+            if (!cell) {
+                console.error('Cell not found:', elementId);
+                return;
             }
-        } else if (elementId.startsWith('contentCell-')) {
-            const cellId = elementId.replace('contentCell-', '');
-            if (this.editableConfig.contentCells[cellId]) {
-                delete this.editableConfig.contentCells[cellId];
-            }
-        }
 
-        // If this was the selected cell, hide editor
-        if (this.selectedCellId === elementId) {
-            const cellEditor = this.container.querySelector('#save-cell-editor');
-            if (cellEditor) {
-                cellEditor.style.display = 'none';
-            }
-            this.selectedCellId = null;
+            // Open config panel
+            this.configPanel.show(cell,
+                (slot) => {
+                    // On save: add slot to configured list
+                    this.configuredSlots.push(slot);
+                    this.configuredCellIds.add(cellId);
+                    this.updateLockIcon(elementId, true);
+                    this.updateEditableFieldsList();
+                    console.log('✅ Slot configured:', slot.slotId);
+                },
+                () => {
+                    // On cancel: do nothing, leave unlocked
+                    console.log('❌ Slot configuration cancelled');
+                }
+            );
         }
-
-        // Update editable fields list
-        this.updateEditableFieldsList();
     }
 
     handleCanvasClick(event) {
@@ -640,7 +643,7 @@ class SavePagePanel {
     }
 
     /**
-     * Update editable fields list display
+     * Update editable fields list display - now shows configured content slots
      */
     updateEditableFieldsList() {
         const listContainer = this.container.querySelector('#save-editable-fields-list');
@@ -648,39 +651,30 @@ class SavePagePanel {
 
         listContainer.innerHTML = '';
 
-        let hasFields = false;
-
-        // Main Text
-        if (this.editableConfig.mainText.editable) {
-            hasFields = true;
-            listContainer.appendChild(this.createFieldListItem('mainText', 'Main Text', this.editableConfig.mainText));
-        }
-
-        // Text Cells
-        Object.entries(this.editableConfig.textCells).forEach(([cellId, config]) => {
-            if (config.editable) {
-                hasFields = true;
-                listContainer.appendChild(this.createFieldListItem(`textCell-${cellId}`, `Cell #${cellId}`, config));
-            }
-        });
-
-        // Content Cells
-        Object.entries(this.editableConfig.contentCells).forEach(([cellId, config]) => {
-            if (config.editable) {
-                hasFields = true;
-                listContainer.appendChild(this.createFieldListItem(`contentCell-${cellId}`, `Cell #${cellId}`, config));
-            }
-        });
-
-        // Background
-        if (this.editableConfig.background.color.editable) {
-            hasFields = true;
-            listContainer.appendChild(this.createFieldListItem('background-color', 'Background Color', this.editableConfig.background.color));
-        }
-
-        if (!hasFields) {
+        if (this.configuredSlots.length === 0) {
             listContainer.innerHTML = '<p class="no-fields-message">No editable fields yet</p>';
+            return;
         }
+
+        // Show configured slots
+        this.configuredSlots.forEach(slot => {
+            const item = document.createElement('div');
+            item.className = 'configured-slot-item';
+            item.innerHTML = `
+                <div class="field-list-header">
+                    <div class="field-list-label">
+                        <strong>${slot.fieldLabel}</strong>
+                        <span class="slot-type-badge">${slot.type}</span>
+                    </div>
+                    <div class="field-list-details">
+                        <span class="field-detail-name">${slot.fieldName}</span>
+                        ${slot.required ? '<span class="slot-required">Required</span>' : ''}
+                    </div>
+                </div>
+                ${slot.fieldDescription ? `<div class="slot-description">${slot.fieldDescription}</div>` : ''}
+            `;
+            listContainer.appendChild(item);
+        });
     }
 
     /**
@@ -916,11 +910,16 @@ class SavePagePanel {
                 }
             }
 
-            // Capture current page
-            const pageData = this.presetPageManager.captureCurrentPage(pagePosition, pageName);
+            // Clear content slot manager and add configured slots
+            this.contentSlotManager.clearSlots();
+            this.configuredSlots.forEach(slot => {
+                this.contentSlotManager.addSlot(slot);
+            });
 
-            // Apply editable fields configuration
-            pageData.editableFields = this.editableConfig;
+            // Capture current page (will include content slots)
+            const pageData = this.presetPageManager.captureCurrentPage(pagePosition, pageName);
+            
+            console.log(`✅ Page captured with ${pageData.contentSlots.length} content slots`);
 
             // Save
             if (presetType === 'new') {
