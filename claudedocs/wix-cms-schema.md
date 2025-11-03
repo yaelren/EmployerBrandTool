@@ -1,10 +1,13 @@
-# Wix CMS Schema - Multi-Page Presets
+# Wix CMS Schema - Multi-Page Presets v3
 
-## Collection: `Presets`
+**Architecture Version**: v3 (Content Slots)
+**Related Documentation**: [content-slots-architecture-v3.md](content-slots-architecture-v3.md)
+
+## Collection: `MultiPagePresets`
 
 ### Collection Settings
-- **Name**: `Presets`
-- **Collection ID**: `Presets`
+- **Name**: `MultiPagePresets`
+- **Collection ID**: `MultiPagePresets`
 - **Permissions**:
   - Read: Anyone
   - Write: Admin only (designer mode)
@@ -39,7 +42,7 @@ Each page is a **separate rich content field** to allow complex JSON storage:
 
 ---
 
-## Page Data Structure (JSON)
+## Page Data Structure (JSON) - v3 with Content Slots
 
 Each `pageX` field contains stringified JSON with this structure:
 
@@ -47,8 +50,11 @@ Each `pageX` field contains stringified JSON with this structure:
 {
   "pageName": "Hero Banner",
   "pageNumber": 1,
-  "exportFormat": "png",
-  "exportDuration": null,
+
+  "exportConfig": {
+    "format": "image",
+    "duration": null
+  },
 
   "canvas": {
     "width": 1080,
@@ -135,6 +141,52 @@ Each `pageX` field contains stringified JSON with this structure:
     ]
   },
 
+  "contentSlots": [
+    {
+      "slotId": "text-cell-1-slot",
+      "sourceElement": "text-cell-1",
+      "type": "text",
+      "boundingBox": {
+        "x": 370,
+        "y": 140,
+        "width": 340,
+        "height": 80
+      },
+      "constraints": {
+        "maxCharacters": 50,
+        "fontSizeMode": "auto-fit",
+        "minFontSize": 24,
+        "maxFontSize": 48,
+        "wordWrap": true
+      },
+      "styling": {
+        "fontFamily": "Inter",
+        "fontWeight": "bold",
+        "color": "#333333",
+        "textAlign": "center"
+      },
+      "fieldName": "heroHeadline",
+      "fieldLabel": "Hero Headline"
+    },
+    {
+      "slotId": "content-cell-1-slot",
+      "sourceElement": "content-cell-1",
+      "type": "image",
+      "boundingBox": {
+        "x": 370,
+        "y": 240,
+        "width": 340,
+        "height": 450
+      },
+      "constraints": {
+        "fitMode": "cover",
+        "allowedTypes": ["image/jpeg", "image/png", "image/webp"]
+      },
+      "fieldName": "heroImage",
+      "fieldLabel": "Hero Image"
+    }
+  ],
+
   "editableFields": {
     "mainText": {
       "editable": false,
@@ -146,11 +198,6 @@ Each `pageX` field contains stringified JSON with this structure:
         "editable": true,
         "fieldName": "heroHeadline",
         "fieldLabel": "Hero Headline"
-      },
-      "text-cell-2": {
-        "editable": true,
-        "fieldName": "heroSubheadline",
-        "fieldLabel": "Hero Subheadline"
       }
     },
     "contentCells": {
@@ -174,6 +221,15 @@ Each `pageX` field contains stringified JSON with this structure:
 }
 ```
 
+### Key v3 Changes:
+- **`exportConfig`**: Per-page export format configuration (image/video)
+- **`contentSlots`**: Array of constrained input areas with auto-captured bounding boxes
+- Each content slot includes:
+  - `boundingBox`: Auto-captured from `cell.bounds` property
+  - `constraints`: Text limits (character count, font range) or image fit modes
+  - `fieldName`/`fieldLabel`: For end-user form generation
+- **Backwards Compatible**: Still includes `editableFields` for reference
+
 ---
 
 ## Wix Data API - Code Examples
@@ -194,7 +250,7 @@ async function saveNewPreset(presetName, page1Data) {
     page5: null
   };
 
-  const result = await wixData.insert("Presets", preset);
+  const result = await wixData.insert("MultiPagePresets", preset);
   return result._id;
 }
 ```
@@ -210,7 +266,7 @@ async function addPageToPreset(presetId, pageNumber, pageData) {
     [fieldName]: JSON.stringify(pageData)
   };
 
-  await wixData.update("Presets", updateData);
+  await wixData.update("MultiPagePresets", updateData);
 }
 ```
 
@@ -218,7 +274,7 @@ async function addPageToPreset(presetId, pageNumber, pageData) {
 
 ```javascript
 async function getAllPresets() {
-  const results = await wixData.query("Presets")
+  const results = await wixData.query("MultiPagePresets")
     .ascending("presetName")
     .find();
 
@@ -240,7 +296,7 @@ async function getAllPresets() {
 
 ```javascript
 async function loadPage(presetId, pageNumber) {
-  const preset = await wixData.get("Presets", presetId);
+  const preset = await wixData.get("MultiPagePresets", presetId);
   const fieldName = `page${pageNumber}`;
   const pageDataString = preset[fieldName];
 
@@ -263,7 +319,7 @@ async function updatePage(presetId, pageNumber, updatedPageData) {
     [fieldName]: JSON.stringify(updatedPageData)
   };
 
-  await wixData.update("Presets", updateData);
+  await wixData.update("MultiPagePresets", updateData);
 }
 ```
 
@@ -271,7 +327,7 @@ async function updatePage(presetId, pageNumber, updatedPageData) {
 
 ```javascript
 async function getPresetWithPageCount(presetId) {
-  const preset = await wixData.get("Presets", presetId);
+  const preset = await wixData.get("MultiPagePresets", presetId);
 
   const pageCount = [
     preset.page1,
@@ -342,7 +398,7 @@ async function getPresetWithPageCount(presetId) {
 ```javascript
 // Get all presets with page names for dropdown
 async function getPresetList() {
-  const results = await wixData.query("Presets")
+  const results = await wixData.query("MultiPagePresets")
     .ascending("presetName")
     .find();
 
@@ -374,7 +430,7 @@ async function getPresetList() {
 ```javascript
 // Load all pages for end-user
 async function loadCompletePreset(presetId) {
-  const preset = await wixData.get("Presets", presetId);
+  const preset = await wixData.get("MultiPagePresets", presetId);
 
   const pages = [];
   for (let i = 1; i <= 5; i++) {
@@ -397,7 +453,7 @@ async function loadCompletePreset(presetId) {
 
 ### In Wix Dashboard:
 
-1. **Create Collection**: "Presets"
+1. **Create Collection**: "MultiPagePresets"
 
 2. **Add Fields**:
    - `presetName` (Text, Required, Show in List)
@@ -414,7 +470,7 @@ async function loadCompletePreset(presetId) {
 
 4. **Configure Display**:
    - Primary Field: `presetName`
-   - Thumbnail: None (we'll add thumbnails in Phase 2)
+   - Thumbnail: None (can add in future phase)
 
 ---
 
@@ -465,6 +521,15 @@ function validatePageData(pageData) {
 
 ---
 
-**Status**: Schema defined, ready for implementation
-**Last Updated**: 2025-10-22
-**Version**: 2.0
+## Related Documentation
+
+- **Architecture**: [content-slots-architecture-v3.md](content-slots-architecture-v3.md)
+- **Implementation Plan**: [implementation-tasks-v3.md](implementation-tasks-v3.md)
+- **Documentation Index**: [README-v3.md](README-v3.md)
+- **Historical v2 Docs**: [archive/](archive/)
+
+---
+
+**Status**: Schema updated for v3 Content Slots architecture
+**Last Updated**: 2025-01-03
+**Version**: 3.0
