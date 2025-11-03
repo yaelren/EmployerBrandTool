@@ -257,12 +257,28 @@ class ContentSlotManager {
                 break;
         }
 
-        // Return bounds (top-left corner and dimensions)
+        // Calculate final bounds (top-left corner and dimensions)
+        let finalX = anchorX - drawWidth / 2;
+        let finalY = anchorY - drawHeight / 2;
+        let finalWidth = drawWidth;
+        let finalHeight = drawHeight;
+
+        // For fill and stretch modes, clip to content area (match CellRenderer behavior)
+        if (fillMode === 'fill' || fillMode === 'stretch') {
+            // Calculate intersection with content area
+            const right = Math.min(finalX + finalWidth, contentX + contentWidth);
+            const bottom = Math.min(finalY + finalHeight, contentY + contentHeight);
+            finalX = Math.max(finalX, contentX);
+            finalY = Math.max(finalY, contentY);
+            finalWidth = right - finalX;
+            finalHeight = bottom - finalY;
+        }
+
         return {
-            x: anchorX - drawWidth / 2,
-            y: anchorY - drawHeight / 2,
-            width: drawWidth,
-            height: drawHeight
+            x: finalX,
+            y: finalY,
+            width: finalWidth,
+            height: finalHeight
         };
     }
 
