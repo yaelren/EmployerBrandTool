@@ -229,16 +229,9 @@ class CellRenderer {
                 
             case 'fit':
             default:
-                // Free: Maintain aspect ratio, fit within spot (scale can exceed boundaries)
-                if (mediaAspect > contentAspect) {
-                    // Media is wider than content area
-                    drawWidth = contentWidth * scale;
-                    drawHeight = (contentWidth / mediaAspect) * scale;
-                } else {
-                    // Media is taller than content area
-                    drawWidth = (contentHeight * mediaAspect) * scale;
-                    drawHeight = contentHeight * scale;
-                }
+                // Free mode: scale from natural image dimensions (can exceed cell boundaries)
+                drawWidth = mediaWidth * scale;
+                drawHeight = mediaHeight * scale;
                 break;
         }
 
@@ -312,17 +305,17 @@ class CellRenderer {
                 if (media.readyState >= HTMLMediaElement.HAVE_METADATA) {
                     ctx.drawImage(media, 0, 0, drawWidth, drawHeight);
                     
-                    // Debug: Log video state occasionally
-                    if (Math.random() < 0.001) { // Very infrequent logging
-                        console.log('Video rendering:', {
-                            readyState: media.readyState,
-                            paused: media.paused,
-                            currentTime: media.currentTime,
-                            duration: media.duration,
-                            videoWidth: media.videoWidth,
-                            videoHeight: media.videoHeight
-                        });
-                    }
+                    // // Debug: Log video state occasionally
+                    // if (Math.random() < 0.001) { // Very infrequent logging
+                    //     console.log('Video rendering:', {
+                    //         readyState: media.readyState,
+                    //         paused: media.paused,
+                    //         currentTime: media.currentTime,
+                    //         duration: media.duration,
+                    //         videoWidth: media.videoWidth,
+                    //         videoHeight: media.videoHeight
+                    //     });
+                    // }
                 } else {
                     // Video not ready, draw placeholder
                     this.renderVideoPlaceholder(ctx, 0, 0, drawWidth, drawHeight);
