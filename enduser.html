@@ -15,6 +15,26 @@
 
     <!-- End-User Custom Styles -->
     <link rel="stylesheet" href="css/enduser.css">
+
+    <!-- Chatooly App Scripts -->
+    <script src="js/utils/ColorUtils.js"></script>
+    <script src="js/utils/FontLoader.js"></script>
+    <script src="js/canvas/CanvasManager.js"></script>
+    <script src="js/canvas/DebugController.js"></script>
+    <script src="js/background/BackgroundController.js"></script>
+    <script src="js/text/TextComponent.js"></script>
+    <script src="js/text/SpotTextComponent.js"></script>
+    <script src="js/text/MainTextController.js"></script>
+    <script src="js/grid/GridCell.js"></script>
+    <script src="js/grid/GridSystem.js"></script>
+    <script src="js/grid/CellRenderer.js"></script>
+    <script src="js/layers/LayerController.js"></script>
+    <script src="js/media/MediaController.js"></script>
+    <script src="js/parameters/PresetManager.js"></script>
+    <script src="js/parameters/ContentSlotTypes.js"></script>
+    <script src="js/parameters/ContentSlotManager.js"></script>
+    <script src="js/parameters/PresetPageManager.js"></script>
+    <script src="js/app.js"></script>
 </head>
 <body>
     <!-- Preset Selector Modal -->
@@ -147,11 +167,11 @@
                 </div>
             </div>
 
-            <!-- Center: Mock Canvas Preview -->
+            <!-- Center: Real Canvas Preview -->
             <div class="enduser-canvas-area">
                 <div class="canvas-wrapper">
-                    <div class="mock-canvas-preview">
-                        <img src="sample-data/employee-spotlight-preview.png" alt="Employee Spotlight Preview" id="mockPreviewImage">
+                    <div id="canvasContainer" style="display: flex; justify-content: center; align-items: center;">
+                        <!-- Canvas will be injected here by App -->
                     </div>
                 </div>
             </div>
@@ -202,8 +222,20 @@
 
     <!-- JavaScript for Employee Spotlight -->
     <script>
-        // Initialize on load - show preset selector
+        let app;
+        let currentPresetId = null;
+        let currentPage = 1;
+        let loadedPages = {}; // Store loaded page data
+
+        // Initialize app and show preset selector
         window.addEventListener('DOMContentLoaded', () => {
+            // Initialize canvas app
+            const container = document.getElementById('canvasContainer');
+            app = new App(container, 1080, 1920);
+            app.initialize();
+            console.log('✅ App initialized');
+
+            // Show preset selector
             document.getElementById('presetSelector').style.display = 'flex';
             // Hide content that should only appear after preset selection
             document.getElementById('sidebarContent').style.display = 'none';
@@ -225,45 +257,111 @@
         }
 
         // Load preset (shows content and closes modal)
-        function loadPreset(presetId) {
+        async function loadPreset(presetId) {
             if (!presetId) return;
 
             console.log('Loading preset:', presetId);
+            currentPresetId = presetId;
 
-            // Update preset name mapping
-            const presetNames = {
-                'employee-spotlight': 'Employee Spotlight',
-                'tour-promo': 'Tour Promo',
-                'early-talent': 'Early Talent Program',
-                'city-guides': 'City Guides'
-            };
+            try {
+                // Update preset name mapping
+                const presetNames = {
+                    'employee-spotlight': 'Employee Spotlight',
+                    'tour-promo': 'Tour Promo',
+                    'early-talent': 'Early Talent Program',
+                    'city-guides': 'City Guides'
+                };
 
-            const selectedPresetName = presetNames[presetId] || 'Unknown Preset';
+                const selectedPresetName = presetNames[presetId] || 'Unknown Preset';
 
-            // Update sidebar title
-            document.getElementById('sidebarTitle').textContent = selectedPresetName;
+                // Update sidebar title
+                document.getElementById('sidebarTitle').textContent = selectedPresetName;
 
-            // Update header preset name and show it
-            const presetLoadedName = document.getElementById('presetLoadedName');
-            presetLoadedName.textContent = selectedPresetName;
-            presetLoadedName.style.display = 'inline';
+                // Update header preset name and show it
+                const presetLoadedName = document.getElementById('presetLoadedName');
+                presetLoadedName.textContent = selectedPresetName;
+                presetLoadedName.style.display = 'inline';
 
-            // Show all hidden elements
-            document.getElementById('sidebarContent').style.display = 'block';
-            document.getElementById('pageNav').style.display = 'flex';
-            document.getElementById('exportBar').style.display = 'flex';
+                // Show all hidden elements
+                document.getElementById('sidebarContent').style.display = 'block';
+                document.getElementById('pageNav').style.display = 'flex';
+                document.getElementById('exportBar').style.display = 'flex';
 
-            // Close modal
-            document.getElementById('presetSelector').style.display = 'none';
+                // Close modal
+                document.getElementById('presetSelector').style.display = 'none';
 
-            // Start on Page 2 for employee-spotlight, otherwise page 1
-            if (presetId === 'employee-spotlight') {
+                // Load page 2 (employee spotlight page with editable fields)
+                await loadPageData(2);
+
+                // Start on Page 2 for employee-spotlight
                 switchPage(2);
-            } else {
-                switchPage(1);
+
+                console.log('✅ Preset loaded:', selectedPresetName);
+
+            } catch (error) {
+                console.error('❌ Error loading preset:', error);
+                alert('Failed to load preset: ' + error.message);
+            }
+        }
+
+        // Load page data from preset
+        async function loadPageData(pageNumber) {
+            try {
+                console.log(`Loading page ${pageNumber}...`);
+
+                // Load page from PresetPageManager
+                const pageData = await app.presetPageManager.loadPage(currentPresetId, pageNumber);
+
+                // Store loaded page data
+                loadedPages[pageNumber] = pageData;
+
+                // Render the page
+                app.render();
+
+                console.log(`✅ Page ${pageNumber} loaded with ${pageData.contentSlots?.length || 0} slots`);
+
+                // Build form fields from content slots
+                buildFormFromSlots();
+
+            } catch (error) {
+                console.error(`❌ Error loading page ${pageNumber}:`, error);
+                throw error;
+            }
+        }
+
+        // Build form fields dynamically from content slots
+        function buildFormFromSlots() {
+            const slots = app.presetPageManager.contentSlotManager.getAllSlots();
+
+            if (slots.length === 0) {
+                console.warn('No content slots found for this page');
+                return;
             }
 
-            console.log('Preset loaded:', selectedPresetName);
+            console.log(`Building form from ${slots.length} content slots`);
+
+            // For now, just map to existing fields by fieldName
+            // Later we can dynamically generate the form
+            slots.forEach(slot => {
+                const input = document.querySelector(`[data-field-name="${slot.fieldName}"]`);
+                if (input) {
+                    // Set up live update
+                    input.addEventListener('input', () => {
+                        applyFieldUpdate(slot.slotId, input.value || input.files?.[0]);
+                    });
+                    console.log(`✅ Connected field: ${slot.fieldLabel}`);
+                }
+            });
+        }
+
+        // Apply single field update to canvas
+        function applyFieldUpdate(slotId, value) {
+            try {
+                const slotData = { [slotId]: value };
+                app.presetPageManager.applyContentToSlots(slotData);
+            } catch (error) {
+                console.error('Error applying field update:', error);
+            }
         }
 
         // Toggle page section expand/collapse
@@ -283,7 +381,9 @@
         }
 
         // Switch page
-        function switchPage(pageNumber) {
+        async function switchPage(pageNumber) {
+            currentPage = pageNumber;
+
             // Update active thumbnail
             document.querySelectorAll('.enduser-page-thumb').forEach((thumb, index) => {
                 if (index + 1 === pageNumber) {
@@ -297,15 +397,20 @@
             const totalPages = document.querySelectorAll('.enduser-page-thumb').length;
             document.querySelector('.page-indicator').textContent = `Page ${pageNumber} of ${totalPages}`;
 
-            // Show mock preview only for Page 2, hide for others
-            const mockPreview = document.querySelector('.mock-canvas-preview');
-            if (pageNumber === 2) {
-                mockPreview.style.display = 'flex';
-            } else {
-                mockPreview.style.display = 'none';
+            // Load page if not already loaded
+            if (!loadedPages[pageNumber] && currentPresetId) {
+                try {
+                    await loadPageData(pageNumber);
+                } catch (error) {
+                    console.error(`Failed to load page ${pageNumber}:`, error);
+                }
+            } else if (loadedPages[pageNumber]) {
+                // Page already loaded, just apply it
+                await app.presetPageManager.applyPageToCanvas(loadedPages[pageNumber]);
+                app.render();
             }
 
-            console.log('Switched to page:', pageNumber);
+            console.log('✅ Switched to page:', pageNumber);
         }
 
         // Remove uploaded image
@@ -317,8 +422,53 @@
         }
 
         // Export all pages
-        function exportAllPages() {
-            alert('Export functionality will export all 3 Employee Spotlight pages as PNGs in a ZIP file.');
+        async function exportAllPages() {
+            try {
+                console.log('Starting export of all pages...');
+
+                const totalPages = document.querySelectorAll('.enduser-page-thumb').length;
+                const exportedImages = [];
+
+                for (let pageNum = 1; pageNum <= totalPages; pageNum++) {
+                    // Load and render page
+                    if (!loadedPages[pageNum]) {
+                        await loadPageData(pageNum);
+                    } else {
+                        await app.presetPageManager.applyPageToCanvas(loadedPages[pageNum]);
+                        app.render();
+                    }
+
+                    // Wait for render to complete
+                    await new Promise(resolve => setTimeout(resolve, 500));
+
+                    // Export page as PNG
+                    const dataUrl = app.canvasManager.canvas.toDataURL('image/png');
+                    exportedImages.push({
+                        pageNumber: pageNum,
+                        dataUrl: dataUrl
+                    });
+
+                    console.log(`✅ Exported page ${pageNum}`);
+                }
+
+                // Download each image
+                exportedImages.forEach(({pageNumber, dataUrl}) => {
+                    const link = document.createElement('a');
+                    link.download = `${currentPresetId}-page-${pageNumber}.png`;
+                    link.href = dataUrl;
+                    link.click();
+                });
+
+                // Return to current page
+                await switchPage(currentPage);
+
+                alert(`✅ Successfully exported ${totalPages} pages!`);
+                console.log('✅ Export complete');
+
+            } catch (error) {
+                console.error('❌ Export failed:', error);
+                alert('Export failed: ' + error.message);
+            }
         }
 
         // Image upload preview
