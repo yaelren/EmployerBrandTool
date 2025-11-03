@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Background Image Save/Load</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 20px auto;
+            padding: 20px;
+            background: #f9fafb;
+        }
+        h1 { color: #111827; }
+        .section {
+            background: white;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 8px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+        button {
+            padding: 12px 24px;
+            background: #3b82f6;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 5px;
+        }
+        button:hover { background: #2563eb; }
+        button.secondary { background: #6b7280; }
+        button.danger { background: #ef4444; }
+        .log {
+            background: #1f2937;
+            color: #10b981;
+            padding: 15px;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+            max-height: 400px;
+            overflow-y: auto;
+            margin-top: 10px;
+        }
+        .log-entry { margin: 3px 0; }
+        .success { color: #10b981; }
+        .error { color: #ef4444; }
+        .info { color: #60a5fa; }
+        #canvasContainer {
+            border: 2px solid #333;
+            margin: 20px 0;
+            min-height: 400px;
+        }
+    </style>
+</head>
+<body>
+    <h1>🖼️ Test Background Image Save/Load</h1>
+    <p>Tests that background images persist correctly in localStorage</p>
+
+    <div class="section">
+        <h2>Actions</h2>
+        <button onclick="setBackgroundImage()">1. Set Background Image</button>
+        <button onclick="savePreset()">2. Save Preset</button>
+        <button onclick="clearCanvas()">3. Clear Canvas</button>
+        <button onclick="loadPreset()" class="secondary">4. Load Preset</button>
+        <button onclick="clearStorage()" class="danger">Clear Storage</button>
+    </div>
+
+    <div class="section">
+        <h2>Canvas Preview</h2>
+        <div id="canvasContainer"></div>
+    </div>
+
+    <div class="section">
+        <h2>Log</h2>
+        <div id="log" class="log"></div>
+    </div>
+
+    <!-- Chatooly App Scripts -->
+    <script src="js/utils/ColorUtils.js"></script>
+    <script src="js/utils/FontLoader.js"></script>
+    <script src="js/canvas/CanvasManager.js"></script>
+    <script src="js/canvas/DebugController.js"></script>
+    <script src="js/background/BackgroundManager.js"></script>
+    <script src="js/text/TextComponent.js"></script>
+    <script src="js/text/SpotTextComponent.js"></script>
+    <script src="js/text/MainTextController.js"></script>
+    <script src="js/grid/GridCell.js"></script>
+    <script src="js/grid/GridSystem.js"></script>
+    <script src="js/grid/CellRenderer.js"></script>
+    <script src="js/layers/LayerController.js"></script>
+    <script src="js/media/MediaController.js"></script>
+    <script src="js/parameters/PresetManager.js"></script>
+    <script src="js/parameters/ContentSlotTypes.js"></script>
+    <script src="js/parameters/ContentSlotManager.js"></script>
+    <script src="js/parameters/PresetPageManager.js"></script>
+    <script src="js/app.js"></script>
+
+    <script>
+        let app;
+        const TEST_PRESET_ID = 'test-background-image';
+
+        // Initialize app
+        window.addEventListener('DOMContentLoaded', () => {
+            const container = document.getElementById('canvasContainer');
+            app = new App(container, 1080, 1920);
+            app.initialize();
+            log('✅ App initialized', 'success');
+        });
+
+        function log(message, type = 'info') {
+            const logEl = document.getElementById('log');
+            const entry = document.createElement('div');
+            entry.className = `log-entry ${type}`;
+            entry.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+            logEl.appendChild(entry);
+            logEl.scrollTop = logEl.scrollHeight;
+            console.log(message);
+        }
+
+        function setBackgroundImage() {
+            log('🖼️ Setting background image (blue square with "BG" text)...', 'info');
+
+            // Create a simple test image as data URL
+            const img = new Image();
+            img.crossOrigin = 'anonymous';
+            // Blue square with "BG" text
+            img.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iODAwIiBoZWlnaHQ9IjgwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iODAwIiBoZWlnaHQ9IjgwMCIgZmlsbD0iIzNiODJmNiIvPjx0ZXh0IHg9IjUwJSIgeT0iNTAlIiBmb250LXNpemU9IjEyMCIgZmlsbD0id2hpdGUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGR5PSIuM2VtIj5CRzwvdGV4dD48L3N2Zz4=';
+
+            img.onload = () => {
+                // Set as background image
+                app.canvasManager.backgroundManager.backgroundImage = img;
+                app.canvasManager.backgroundManager.backgroundImageDataURL = img.src;
+                app.canvasManager.backgroundManager.setBackgroundFitMode('cover');
+                app.render();
+
+                log('✅ Background image set', 'success');
+                log(`   → Image dimensions: ${img.width}x${img.height}`, 'info');
+                log(`   → Data URL length: ${img.src.length} characters`, 'info');
+            };
+
+            img.onerror = () => {
+                log('❌ Failed to load background image', 'error');
+            };
+        }
+
+        async function savePreset() {
+            try {
+                log('💾 Saving preset with background image...', 'info');
+
+                // Add some text to make it visible
+                app.mainTextController.mainTextComponent.text = 'TEST\nBACKGROUND';
+                app.mainTextController.mainTextComponent.fontSize = 72;
+                app.render();
+
+                // Capture page data
+                const pageData = app.presetPageManager.captureCurrentPage(1, 'Test Page');
+
+                log(`   → Page captured`, 'info');
+                log(`   → Background imageURL length: ${pageData.background.imageURL?.length || 0} chars`, 'info');
+
+                // Save to localStorage
+                const preset = {
+                    _id: TEST_PRESET_ID,
+                    presetName: 'Background Image Test',
+                    description: 'Test preset with background image',
+                    page1: JSON.stringify(pageData)
+                };
+
+                await app.presetPageManager.savePresetToCMS(preset);
+
+                log('✅ Preset saved to localStorage', 'success');
+                log(`   → Preset ID: ${TEST_PRESET_ID}`, 'info');
+
+            } catch (error) {
+                log(`❌ Error: ${error.message}`, 'error');
+                console.error(error);
+            }
+        }
+
+        function clearCanvas() {
+            log('🗑️ Clearing canvas...', 'info');
+
+            app.canvasManager.backgroundManager.backgroundImage = null;
+            app.canvasManager.backgroundManager.backgroundImageDataURL = null;
+            app.canvasManager.backgroundManager.setBackgroundColor('#ffffff');
+            app.mainTextController.mainTextComponent.text = '';
+            app.render();
+
+            log('✅ Canvas cleared', 'success');
+        }
+
+        async function loadPreset() {
+            try {
+                log('📂 Loading preset from localStorage...', 'info');
+
+                const preset = await app.presetPageManager.getPresetFromCMS(TEST_PRESET_ID);
+
+                if (!preset) {
+                    log('❌ Preset not found. Save it first!', 'error');
+                    return;
+                }
+
+                log(`   → Preset found: ${preset.presetName}`, 'info');
+
+                // Parse page data
+                const pageData = JSON.parse(preset.page1);
+                log(`   → Background imageURL length: ${pageData.background.imageURL?.length || 0} chars`, 'info');
+
+                // Apply to canvas
+                await app.presetPageManager.applyPageToCanvas(pageData);
+
+                log('✅ Preset loaded successfully!', 'success');
+
+                // Check if background image was restored
+                const hasImage = !!app.canvasManager.backgroundManager.backgroundImage;
+                log(`   → Background image restored: ${hasImage ? 'YES ✅' : 'NO ❌'}`, hasImage ? 'success' : 'error');
+
+                if (hasImage) {
+                    const bg = app.canvasManager.backgroundManager;
+                    log(`   → Image dimensions: ${bg.backgroundImage.width}x${bg.backgroundImage.height}`, 'info');
+                    log(`   → Data URL present: ${!!bg.backgroundImageDataURL ? 'YES' : 'NO'}`, 'info');
+                }
+
+            } catch (error) {
+                log(`❌ Error: ${error.message}`, 'error');
+                console.error(error);
+            }
+        }
+
+        function clearStorage() {
+            if (confirm('Clear localStorage?')) {
+                localStorage.clear();
+                log('🗑️ localStorage cleared', 'info');
+            }
+        }
+    </script>
+</body>
+</html>

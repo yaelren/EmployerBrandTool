@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Create Employee Spotlight Preset</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 20px auto;
+            padding: 20px;
+            background: #f9fafb;
+        }
+        h1 {
+            color: #111827;
+        }
+        .section {
+            background: white;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 8px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+        button {
+            padding: 12px 24px;
+            background: #3b82f6;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 5px;
+        }
+        button:hover {
+            background: #2563eb;
+        }
+        .log {
+            background: #1f2937;
+            color: #10b981;
+            padding: 15px;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+            max-height: 400px;
+            overflow-y: auto;
+            margin-top: 10px;
+        }
+        .log-entry {
+            margin: 3px 0;
+        }
+        .success { color: #10b981; }
+        .error { color: #ef4444; }
+        .info { color: #60a5fa; }
+        #canvasContainer {
+            border: 2px solid #333;
+            margin: 20px 0;
+        }
+    </style>
+</head>
+<body>
+    <h1>🎨 Create Employee Spotlight Preset</h1>
+    <p>This will create a complete 3-page preset with content slots and save it to localStorage</p>
+
+    <div class="section">
+        <h2>Actions</h2>
+        <button onclick="createPreset()">Create & Save Employee Spotlight Preset</button>
+        <button onclick="viewPreset()" style="background: #6b7280;">View Saved Preset</button>
+        <button onclick="clearStorage()" style="background: #ef4444;">Clear All Presets</button>
+    </div>
+
+    <div class="section">
+        <h2>Canvas Preview</h2>
+        <div id="canvasContainer"></div>
+    </div>
+
+    <div class="section">
+        <h2>Log</h2>
+        <div id="log" class="log"></div>
+    </div>
+
+    <!-- Chatooly App Scripts -->
+    <script src="js/utils/ColorUtils.js"></script>
+    <script src="js/utils/FontLoader.js"></script>
+    <script src="js/canvas/CanvasManager.js"></script>
+    <script src="js/canvas/DebugController.js"></script>
+    <script src="js/background/BackgroundController.js"></script>
+    <script src="js/text/TextComponent.js"></script>
+    <script src="js/text/SpotTextComponent.js"></script>
+    <script src="js/text/MainTextController.js"></script>
+    <script src="js/grid/GridCell.js"></script>
+    <script src="js/grid/GridSystem.js"></script>
+    <script src="js/grid/CellRenderer.js"></script>
+    <script src="js/layers/LayerController.js"></script>
+    <script src="js/media/MediaController.js"></script>
+    <script src="js/parameters/PresetManager.js"></script>
+    <script src="js/parameters/ContentSlotTypes.js"></script>
+    <script src="js/parameters/ContentSlotManager.js"></script>
+    <script src="js/parameters/PresetPageManager.js"></script>
+    <script src="js/app.js"></script>
+
+    <script>
+        let app;
+
+        // Initialize app
+        window.addEventListener('DOMContentLoaded', () => {
+            const container = document.getElementById('canvasContainer');
+            app = new App(container, 1080, 1920);
+            app.initialize();
+            log('✅ App initialized', 'success');
+        });
+
+        function log(message, type = 'info') {
+            const logEl = document.getElementById('log');
+            const entry = document.createElement('div');
+            entry.className = `log-entry ${type}`;
+            entry.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+            logEl.appendChild(entry);
+            logEl.scrollTop = logEl.scrollHeight;
+            console.log(message);
+        }
+
+        async function createPreset() {
+            try {
+                log('🎨 Creating Employee Spotlight Preset...', 'info');
+
+                // ===== PAGE 1: Opening Page (No editable fields) =====
+                log('Creating Page 1: Opening Page', 'info');
+
+                // Set simple opening design
+                if (app.mainTextController) {
+                    app.mainTextController.mainTextComponent.text = 'EMPLOYEE\nSPOTLIGHT';
+                    app.mainTextController.mainTextComponent.fontSize = 96;
+                    app.mainTextController.mainTextComponent.fontWeight = 'bold';
+                }
+
+                app.backgroundController.setBackgroundColor('#3b82f6');
+                app.render();
+
+                const page1Data = app.presetPageManager.captureCurrentPage(1, 'Opening Page');
+                log(`✅ Page 1 created (${page1Data.contentSlots.length} slots)`, 'success');
+
+                // ===== PAGE 2: Employee Spotlight (Has editable fields) =====
+                log('Creating Page 2: Employee Spotlight', 'info');
+
+                // Reset for page 2
+                app.backgroundController.setBackgroundColor('#ffffff');
+
+                // Set main text
+                if (app.mainTextController) {
+                    app.mainTextController.mainTextComponent.text = 'DANI SHTEINBER';
+                    app.mainTextController.mainTextComponent.fontSize = 72;
+                    app.mainTextController.mainTextComponent.fontWeight = 'bold';
+                    app.mainTextController.mainTextComponent.color = '#111827';
+                }
+
+                // Add employee quote text to a text cell
+                const cells = app.grid.getAllCells();
+                const textCell = cells.find(c => c.type === 'text' && c.id !== 11);
+                if (textCell && textCell.content) {
+                    textCell.content.text = 'I will always choose design over anything else - you can only find that on the wix platforms. Thats why i love working with all of the super talented people everyday.';
+                    textCell.content.fontSize = 24;
+                    textCell.content.fontWeight = 'normal';
+                    textCell.content.color = '#4b5563';
+                }
+
+                // Add employee photo to content cell
+                const contentCell = cells.find(c => c.type === 'content' && c.id !== 1 && c.id !== 11);
+                if (contentCell) {
+                    const img = new Image();
+                    img.crossOrigin = 'anonymous';
+                    img.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAwIiBoZWlnaHQ9IjQwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iNDAwIiBoZWlnaHQ9IjQwMCIgZmlsbD0iIzNiODJmNiIvPjx0ZXh0IHg9IjUwJSIgeT0iNTAlIiBmb250LXNpemU9IjI0IiBmaWxsPSJ3aGl0ZSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZHk9Ii4zZW0iPkVtcGxveWVlIFBob3RvPC90ZXh0Pjwvc3ZnPg==';
+
+                    await new Promise(resolve => { img.onload = resolve; });
+
+                    contentCell.content = {
+                        type: 'media',
+                        mediaType: 'image',
+                        media: img,
+                        fillMode: 'fit',
+                        scale: 1.0,
+                        positionH: 'center',
+                        positionV: 'middle'
+                    };
+                }
+
+                app.render();
+
+                // Create content slots for editable fields
+                app.presetPageManager.contentSlotManager.clearSlots();
+
+                // Slot 1: Employee Photo
+                if (contentCell) {
+                    const photoSlot = app.presetPageManager.contentSlotManager.createSlotFromCell(contentCell, {
+                        fieldName: 'employeePhoto',
+                        fieldLabel: 'Employee Photo',
+                        fieldDescription: 'Upload employee photo',
+                        required: true
+                    });
+                    app.presetPageManager.contentSlotManager.addSlot(photoSlot);
+                    log(`  ✅ Created slot: ${photoSlot.slotId} (employeePhoto)`, 'success');
+                }
+
+                // Slot 2: Employee Name
+                const mainTextCell = cells.find(c => c.type === 'main-text');
+                if (mainTextCell) {
+                    const nameSlot = app.presetPageManager.contentSlotManager.createSlotFromCell(mainTextCell, {
+                        fieldName: 'employeeName',
+                        fieldLabel: 'Employee Name',
+                        fieldDescription: 'Full name of the featured employee',
+                        required: true,
+                        constraints: {
+                            maxCharacters: 50,
+                            minFontSize: 48,
+                            maxFontSize: 96
+                        }
+                    });
+                    app.presetPageManager.contentSlotManager.addSlot(nameSlot);
+                    log(`  ✅ Created slot: ${nameSlot.slotId} (employeeName)`, 'success');
+                }
+
+                // Slot 3: Employee Quote
+                if (textCell) {
+                    const quoteSlot = app.presetPageManager.contentSlotManager.createSlotFromCell(textCell, {
+                        fieldName: 'employeeQuote',
+                        fieldLabel: 'Employee Quote',
+                        fieldDescription: "Employee's testimonial or quote",
+                        required: true,
+                        constraints: {
+                            maxCharacters: 500,
+                            minFontSize: 18,
+                            maxFontSize: 32
+                        }
+                    });
+                    app.presetPageManager.contentSlotManager.addSlot(quoteSlot);
+                    log(`  ✅ Created slot: ${quoteSlot.slotId} (employeeQuote)`, 'success');
+                }
+
+                const page2Data = app.presetPageManager.captureCurrentPage(2, 'Employee Spotlight');
+                log(`✅ Page 2 created (${page2Data.contentSlots.length} slots)`, 'success');
+
+                // ===== PAGE 3: Closing Page (No editable fields) =====
+                log('Creating Page 3: Closing Page', 'info');
+
+                // Simple closing design
+                app.backgroundController.setBackgroundColor('#111827');
+                if (app.mainTextController) {
+                    app.mainTextController.mainTextComponent.text = 'JOIN OUR TEAM';
+                    app.mainTextController.mainTextComponent.fontSize = 80;
+                    app.mainTextController.mainTextComponent.fontWeight = 'bold';
+                    app.mainTextController.mainTextComponent.color = '#ffffff';
+                }
+
+                // Clear content slots for page 3
+                app.presetPageManager.contentSlotManager.clearSlots();
+                app.render();
+
+                const page3Data = app.presetPageManager.captureCurrentPage(3, 'Closing Page');
+                log(`✅ Page 3 created (${page3Data.contentSlots.length} slots)`, 'success');
+
+                // ===== SAVE PRESET =====
+                log('💾 Saving preset to localStorage...', 'info');
+
+                const preset = {
+                    _id: 'employee-spotlight',
+                    presetName: 'Employee Spotlight',
+                    description: '3-page employee spotlight template with editable fields',
+                    page1: JSON.stringify(page1Data),
+                    page2: JSON.stringify(page2Data),
+                    page3: JSON.stringify(page3Data)
+                };
+
+                await app.presetPageManager.savePresetToCMS(preset);
+
+                log('✅ Preset saved successfully!', 'success');
+                log(`📋 Preset ID: ${preset._id}`, 'info');
+                log(`📄 Total pages: 3`, 'info');
+                log(`🎯 Editable fields: 3 (Page 2 only)`, 'info');
+                log('', 'info');
+                log('🎉 You can now use this preset in enduser.html!', 'success');
+
+            } catch (error) {
+                log(`❌ Error: ${error.message}`, 'error');
+                console.error(error);
+            }
+        }
+
+        async function viewPreset() {
+            try {
+                const preset = await app.presetPageManager.getPresetFromCMS('employee-spotlight');
+
+                if (!preset) {
+                    log('❌ Preset not found. Create it first!', 'error');
+                    return;
+                }
+
+                log('📋 Preset Details:', 'info');
+                log(`  Name: ${preset.presetName}`, 'info');
+                log(`  ID: ${preset._id}`, 'info');
+                log(`  Description: ${preset.description}`, 'info');
+                log('', 'info');
+
+                for (let i = 1; i <= 3; i++) {
+                    if (preset[`page${i}`]) {
+                        const pageData = JSON.parse(preset[`page${i}`]);
+                        log(`  Page ${i}: ${pageData.pageName}`, 'info');
+                        log(`    - Content Slots: ${pageData.contentSlots.length}`, 'info');
+
+                        pageData.contentSlots.forEach(slot => {
+                            log(`      • ${slot.fieldLabel} (${slot.fieldName}) - ${slot.type}`, 'info');
+                        });
+                    }
+                }
+
+            } catch (error) {
+                log(`❌ Error: ${error.message}`, 'error');
+                console.error(error);
+            }
+        }
+
+        function clearStorage() {
+            if (confirm('Are you sure you want to clear all presets from localStorage?')) {
+                localStorage.clear();
+                log('🗑️ All presets cleared from localStorage', 'info');
+            }
+        }
+    </script>
+</body>
+</html>

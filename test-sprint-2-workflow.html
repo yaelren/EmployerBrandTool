@@ -1,0 +1,589 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Sprint 2 Designer Workflow</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1400px;
+            margin: 20px auto;
+            padding: 20px;
+            background: #f9fafb;
+        }
+        h1 { color: #111827; margin-bottom: 10px; }
+        .subtitle { color: #6b7280; margin-bottom: 30px; }
+        .test-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+        .section {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+        .section h2 {
+            margin-top: 0;
+            color: #111827;
+            border-bottom: 2px solid #e5e7eb;
+            padding-bottom: 10px;
+        }
+        .test-step {
+            background: #f9fafb;
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 6px;
+            border-left: 4px solid #3b82f6;
+        }
+        .test-step h3 {
+            margin: 0 0 10px 0;
+            color: #1f2937;
+            font-size: 16px;
+        }
+        .test-step p {
+            margin: 5px 0;
+            color: #4b5563;
+            font-size: 14px;
+        }
+        button {
+            padding: 12px 24px;
+            background: #3b82f6;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 15px;
+            margin: 5px 5px 5px 0;
+            font-weight: 500;
+        }
+        button:hover { background: #2563eb; }
+        button.secondary { background: #6b7280; }
+        button.secondary:hover { background: #4b5563; }
+        button.success { background: #10b981; }
+        button.success:hover { background: #059669; }
+        button.danger { background: #ef4444; }
+        button.danger:hover { background: #dc2626; }
+        .log {
+            background: #1f2937;
+            color: #10b981;
+            padding: 15px;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            max-height: 400px;
+            overflow-y: auto;
+            margin-top: 10px;
+        }
+        .log-entry { margin: 2px 0; }
+        .success { color: #10b981; }
+        .error { color: #ef4444; }
+        .info { color: #60a5fa; }
+        .warning { color: #fbbf24; }
+        #canvasContainer {
+            border: 2px solid #333;
+            margin: 15px 0;
+            min-height: 300px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background: #f9fafb;
+        }
+        .status-badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 600;
+            margin-left: 10px;
+        }
+        .status-pending { background: #dbeafe; color: #1e40af; }
+        .status-running { background: #fef3c7; color: #92400e; }
+        .status-pass { background: #d1fae5; color: #065f46; }
+        .status-fail { background: #fee2e2; color: #991b1b; }
+    </style>
+</head>
+<body>
+    <h1>🧪 Sprint 2 Designer Workflow Test Suite</h1>
+    <p class="subtitle">Comprehensive end-to-end testing for content slots and designer UI</p>
+
+    <div class="test-grid">
+        <div class="section">
+            <h2>Test Controls</h2>
+            <button onclick="runAllTests()">▶ Run All Tests</button>
+            <button onclick="runTest1()" class="secondary">Test 1: Background Image</button>
+            <button onclick="runTest2()" class="secondary">Test 2: Text Slot</button>
+            <button onclick="runTest3()" class="secondary">Test 3: Image Slot</button>
+            <button onclick="runTest4()" class="secondary">Test 4: Multi-Page</button>
+            <button onclick="clearStorage()" class="danger">Clear Storage</button>
+        </div>
+
+        <div class="section">
+            <h2>Test Status</h2>
+            <div id="testStatus">
+                <div class="test-step">
+                    <h3>Test 1: Background Image Save/Load <span id="status1" class="status-badge status-pending">PENDING</span></h3>
+                    <p>Tests background image persistence with data URLs</p>
+                </div>
+                <div class="test-step">
+                    <h3>Test 2: Text Content Slot <span id="status2" class="status-badge status-pending">PENDING</span></h3>
+                    <p>Tests text slot creation with constraints</p>
+                </div>
+                <div class="test-step">
+                    <h3>Test 3: Image Content Slot <span id="status3" class="status-badge status-pending">PENDING</span></h3>
+                    <p>Tests image slot creation with bounds</p>
+                </div>
+                <div class="test-step">
+                    <h3>Test 4: Multi-Page Preset <span id="status4" class="status-badge status-pending">PENDING</span></h3>
+                    <p>Tests complete 3-page preset with mixed slots</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="section">
+        <h2>Canvas Preview</h2>
+        <div id="canvasContainer"></div>
+    </div>
+
+    <div class="section">
+        <h2>Test Log</h2>
+        <div id="log" class="log"></div>
+    </div>
+
+    <!-- Chatooly App Scripts -->
+    <script src="js/utils/ColorUtils.js"></script>
+    <script src="js/utils/FontLoader.js"></script>
+    <script src="js/canvas/CanvasManager.js"></script>
+    <script src="js/canvas/DebugController.js"></script>
+    <script src="js/background/BackgroundManager.js"></script>
+    <script src="js/text/TextComponent.js"></script>
+    <script src="js/text/SpotTextComponent.js"></script>
+    <script src="js/text/MainTextController.js"></script>
+    <script src="js/grid/GridCell.js"></script>
+    <script src="js/grid/GridSystem.js"></script>
+    <script src="js/grid/CellRenderer.js"></script>
+    <script src="js/layers/LayerController.js"></script>
+    <script src="js/media/MediaController.js"></script>
+    <script src="js/parameters/PresetManager.js"></script>
+    <script src="js/parameters/ContentSlotTypes.js"></script>
+    <script src="js/parameters/ContentSlotManager.js"></script>
+    <script src="js/parameters/PresetPageManager.js"></script>
+    <script src="js/app.js"></script>
+
+    <script>
+        let app;
+        let testResults = {
+            test1: null,
+            test2: null,
+            test3: null,
+            test4: null
+        };
+
+        // Initialize app
+        window.addEventListener('DOMContentLoaded', () => {
+            const container = document.getElementById('canvasContainer');
+            app = new App(container, 1080, 1920);
+            app.initialize();
+            log('✅ App initialized', 'success');
+            log('ℹ️ Ready to run tests', 'info');
+        });
+
+        function log(message, type = 'info') {
+            const logEl = document.getElementById('log');
+            const entry = document.createElement('div');
+            entry.className = `log-entry ${type}`;
+            entry.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+            logEl.appendChild(entry);
+            logEl.scrollTop = logEl.scrollHeight;
+            console.log(message);
+        }
+
+        function setTestStatus(testNum, status) {
+            const statusEl = document.getElementById(`status${testNum}`);
+            statusEl.className = `status-badge status-${status}`;
+            statusEl.textContent = status.toUpperCase();
+        }
+
+        async function runAllTests() {
+            log('🧪 Starting all tests...', 'info');
+            log('═══════════════════════════════════════', 'info');
+
+            try {
+                await runTest1();
+                await delay(1000);
+                await runTest2();
+                await delay(1000);
+                await runTest3();
+                await delay(1000);
+                await runTest4();
+
+                log('═══════════════════════════════════════', 'info');
+                log('📊 Test Results:', 'info');
+                log(`  Test 1: ${testResults.test1 ? '✅ PASS' : '❌ FAIL'}`, testResults.test1 ? 'success' : 'error');
+                log(`  Test 2: ${testResults.test2 ? '✅ PASS' : '❌ FAIL'}`, testResults.test2 ? 'success' : 'error');
+                log(`  Test 3: ${testResults.test3 ? '✅ PASS' : '❌ FAIL'}`, testResults.test3 ? 'success' : 'error');
+                log(`  Test 4: ${testResults.test4 ? '✅ PASS' : '❌ FAIL'}`, testResults.test4 ? 'success' : 'error');
+
+                const allPassed = Object.values(testResults).every(r => r === true);
+                if (allPassed) {
+                    log('🎉 All tests passed!', 'success');
+                } else {
+                    log('⚠️ Some tests failed', 'warning');
+                }
+
+            } catch (error) {
+                log(`❌ Test suite error: ${error.message}`, 'error');
+                console.error(error);
+            }
+        }
+
+        async function runTest1() {
+            log('', 'info');
+            log('═══ TEST 1: Background Image Save/Load ═══', 'info');
+            setTestStatus(1, 'running');
+
+            try {
+                // Step 1: Set background image
+                log('Step 1: Setting background image...', 'info');
+                const img = new Image();
+                img.crossOrigin = 'anonymous';
+                img.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iODAwIiBoZWlnaHQ9IjgwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iODAwIiBoZWlnaHQ9IjgwMCIgZmlsbD0iIzNiODJmNiIvPjx0ZXh0IHg9IjUwJSIgeT0iNTAlIiBmb250LXNpemU9IjEyMCIgZmlsbD0id2hpdGUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGR5PSIuM2VtIj5URVNUMTwvdGV4dD48L3N2Zz4=';
+
+                await new Promise((resolve) => { img.onload = resolve; });
+
+                app.canvasManager.backgroundManager.backgroundImage = img;
+                app.canvasManager.backgroundManager.backgroundImageDataURL = img.src;
+                app.mainTextController.mainTextComponent.text = 'TEST 1\nBACKGROUND';
+                app.render();
+
+                log('  ✅ Background image set', 'success');
+
+                // Step 2: Save preset
+                log('Step 2: Saving preset...', 'info');
+                const pageData = app.presetPageManager.captureCurrentPage(1, 'Test 1 Page');
+                const preset = {
+                    _id: 'test-bg-image',
+                    presetName: 'Test Background Image',
+                    page1: JSON.stringify(pageData)
+                };
+                await app.presetPageManager.savePresetToCMS(preset);
+                log(`  ✅ Saved (imageURL length: ${pageData.background.imageURL?.length || 0})`, 'success');
+
+                // Step 3: Clear canvas
+                log('Step 3: Clearing canvas...', 'info');
+                app.canvasManager.backgroundManager.backgroundImage = null;
+                app.canvasManager.backgroundManager.backgroundImageDataURL = null;
+                app.canvasManager.backgroundManager.setBackgroundColor('#ffffff');
+                app.mainTextController.mainTextComponent.text = '';
+                app.render();
+                await delay(200);
+
+                // Step 4: Load preset
+                log('Step 4: Loading preset...', 'info');
+                const loadedPreset = await app.presetPageManager.getPresetFromCMS('test-bg-image');
+                const loadedPage = JSON.parse(loadedPreset.page1);
+                await app.presetPageManager.applyPageToCanvas(loadedPage);
+                await delay(500);
+
+                // Verify
+                const hasImage = !!app.canvasManager.backgroundManager.backgroundImage;
+                log(`  → Background restored: ${hasImage}`, hasImage ? 'success' : 'error');
+
+                if (hasImage) {
+                    log('✅ TEST 1 PASSED', 'success');
+                    setTestStatus(1, 'pass');
+                    testResults.test1 = true;
+                } else {
+                    log('❌ TEST 1 FAILED: Background not restored', 'error');
+                    setTestStatus(1, 'fail');
+                    testResults.test1 = false;
+                }
+
+            } catch (error) {
+                log(`❌ TEST 1 FAILED: ${error.message}`, 'error');
+                setTestStatus(1, 'fail');
+                testResults.test1 = false;
+            }
+        }
+
+        async function runTest2() {
+            log('', 'info');
+            log('═══ TEST 2: Text Content Slot ═══', 'info');
+            setTestStatus(2, 'running');
+
+            try {
+                // Clear canvas
+                app.mainTextController.mainTextComponent.text = 'TEST 2\nTEXT SLOT';
+                app.mainTextController.mainTextComponent.fontSize = 72;
+                app.backgroundController.setBackgroundColor('#10b981');
+                app.render();
+
+                // Get main text cell
+                const cells = app.grid.getAllCells();
+                const mainTextCell = cells.find(c => c.type === 'main-text');
+
+                if (!mainTextCell) {
+                    throw new Error('Main text cell not found');
+                }
+
+                log('Step 1: Creating text content slot...', 'info');
+                app.presetPageManager.contentSlotManager.clearSlots();
+
+                const textSlot = app.presetPageManager.contentSlotManager.createSlotFromCell(mainTextCell, {
+                    fieldName: 'testHeadline',
+                    fieldLabel: 'Test Headline',
+                    fieldDescription: 'Test text slot',
+                    required: true,
+                    constraints: {
+                        maxCharacters: 100,
+                        minFontSize: 48,
+                        maxFontSize: 96
+                    }
+                });
+                app.presetPageManager.contentSlotManager.addSlot(textSlot);
+
+                log(`  ✅ Slot created: ${textSlot.slotId}`, 'success');
+
+                // Save
+                log('Step 2: Saving preset with text slot...', 'info');
+                const pageData = app.presetPageManager.captureCurrentPage(1, 'Test 2 Page');
+                const preset = {
+                    _id: 'test-text-slot',
+                    presetName: 'Test Text Slot',
+                    page1: JSON.stringify(pageData)
+                };
+                await app.presetPageManager.savePresetToCMS(preset);
+                log(`  ✅ Saved with ${pageData.contentSlots.length} slots`, 'success');
+
+                // Load and verify
+                log('Step 3: Loading and verifying...', 'info');
+                const loaded = await app.presetPageManager.getPresetFromCMS('test-text-slot');
+                const loadedPage = JSON.parse(loaded.page1);
+
+                const hasSlots = loadedPage.contentSlots.length > 0;
+                const slotHasConstraints = loadedPage.contentSlots[0]?.constraints?.maxCharacters === 100;
+
+                log(`  → Content slots: ${loadedPage.contentSlots.length}`, hasSlots ? 'success' : 'error');
+                log(`  → Constraints preserved: ${slotHasConstraints}`, slotHasConstraints ? 'success' : 'error');
+
+                if (hasSlots && slotHasConstraints) {
+                    log('✅ TEST 2 PASSED', 'success');
+                    setTestStatus(2, 'pass');
+                    testResults.test2 = true;
+                } else {
+                    log('❌ TEST 2 FAILED', 'error');
+                    setTestStatus(2, 'fail');
+                    testResults.test2 = false;
+                }
+
+            } catch (error) {
+                log(`❌ TEST 2 FAILED: ${error.message}`, 'error');
+                setTestStatus(2, 'fail');
+                testResults.test2 = false;
+            }
+        }
+
+        async function runTest3() {
+            log('', 'info');
+            log('═══ TEST 3: Image Content Slot ═══', 'info');
+            setTestStatus(3, 'running');
+
+            try {
+                // Setup
+                app.mainTextController.mainTextComponent.text = 'TEST 3\nIMAGE SLOT';
+                app.backgroundController.setBackgroundColor('#8b5cf6');
+                app.render();
+
+                // Get content cell
+                const cells = app.grid.getAllCells();
+                const contentCell = cells.find(c => c.type === 'content' && c.id !== 1 && c.id !== 11);
+
+                if (!contentCell) {
+                    throw new Error('Content cell not found');
+                }
+
+                // Add image to cell
+                const img = new Image();
+                img.crossOrigin = 'anonymous';
+                img.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAwIiBoZWlnaHQ9IjQwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iNDAwIiBoZWlnaHQ9IjQwMCIgZmlsbD0iI2Y1OWU0MiIvPjx0ZXh0IHg9IjUwJSIgeT0iNTAlIiBmb250LXNpemU9IjI0IiBmaWxsPSJ3aGl0ZSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZHk9Ii4zZW0iPklNRzwvdGV4dD48L3N2Zz4=';
+                await new Promise(resolve => { img.onload = resolve; });
+
+                contentCell.content = {
+                    type: 'media',
+                    mediaType: 'image',
+                    media: img,
+                    fillMode: 'cover',
+                    scale: 1.0
+                };
+                app.render();
+
+                log('Step 1: Creating image content slot...', 'info');
+                app.presetPageManager.contentSlotManager.clearSlots();
+
+                const imageSlot = app.presetPageManager.contentSlotManager.createSlotFromCell(contentCell, {
+                    fieldName: 'testImage',
+                    fieldLabel: 'Test Image',
+                    fieldDescription: 'Test image slot',
+                    required: true
+                });
+                app.presetPageManager.contentSlotManager.addSlot(imageSlot);
+
+                log(`  ✅ Slot created with bounds: ${JSON.stringify(imageSlot.boundingBox)}`, 'success');
+
+                // Save
+                log('Step 2: Saving preset with image slot...', 'info');
+                const pageData = app.presetPageManager.captureCurrentPage(1, 'Test 3 Page');
+                const preset = {
+                    _id: 'test-image-slot',
+                    presetName: 'Test Image Slot',
+                    page1: JSON.stringify(pageData)
+                };
+                await app.presetPageManager.savePresetToCMS(preset);
+                log(`  ✅ Saved with ${pageData.contentSlots.length} slots`, 'success');
+
+                // Verify
+                const loaded = await app.presetPageManager.getPresetFromCMS('test-image-slot');
+                const loadedPage = JSON.parse(loaded.page1);
+
+                const hasSlot = loadedPage.contentSlots.length > 0;
+                const hasBounds = loadedPage.contentSlots[0]?.boundingBox?.width > 0;
+                const correctType = loadedPage.contentSlots[0]?.type === 'image';
+
+                log(`  → Slot present: ${hasSlot}`, hasSlot ? 'success' : 'error');
+                log(`  → Bounding box: ${hasBounds}`, hasBounds ? 'success' : 'error');
+                log(`  → Type is image: ${correctType}`, correctType ? 'success' : 'error');
+
+                if (hasSlot && hasBounds && correctType) {
+                    log('✅ TEST 3 PASSED', 'success');
+                    setTestStatus(3, 'pass');
+                    testResults.test3 = true;
+                } else {
+                    log('❌ TEST 3 FAILED', 'error');
+                    setTestStatus(3, 'fail');
+                    testResults.test3 = false;
+                }
+
+            } catch (error) {
+                log(`❌ TEST 3 FAILED: ${error.message}`, 'error');
+                setTestStatus(3, 'fail');
+                testResults.test3 = false;
+            }
+        }
+
+        async function runTest4() {
+            log('', 'info');
+            log('═══ TEST 4: Multi-Page Preset ═══', 'info');
+            setTestStatus(4, 'running');
+
+            try {
+                // Page 1: No slots
+                log('Step 1: Creating Page 1 (no slots)...', 'info');
+                app.mainTextController.mainTextComponent.text = 'PAGE 1\nOPENING';
+                app.backgroundController.setBackgroundColor('#3b82f6');
+                app.render();
+                app.presetPageManager.contentSlotManager.clearSlots();
+                const page1Data = app.presetPageManager.captureCurrentPage(1, 'Opening');
+                log(`  ✅ Page 1: ${page1Data.contentSlots.length} slots`, 'success');
+
+                // Page 2: With slots
+                log('Step 2: Creating Page 2 (with slots)...', 'info');
+                app.mainTextController.mainTextComponent.text = 'PAGE 2\nCONTENT';
+                app.backgroundController.setBackgroundColor('#10b981');
+                app.render();
+
+                const cells = app.grid.getAllCells();
+                const mainTextCell = cells.find(c => c.type === 'main-text');
+
+                app.presetPageManager.contentSlotManager.clearSlots();
+                const slot = app.presetPageManager.contentSlotManager.createSlotFromCell(mainTextCell, {
+                    fieldName: 'page2Text',
+                    fieldLabel: 'Page 2 Text',
+                    required: true
+                });
+                app.presetPageManager.contentSlotManager.addSlot(slot);
+
+                const page2Data = app.presetPageManager.captureCurrentPage(2, 'Content');
+                log(`  ✅ Page 2: ${page2Data.contentSlots.length} slots`, 'success');
+
+                // Page 3: No slots
+                log('Step 3: Creating Page 3 (no slots)...', 'info');
+                app.mainTextController.mainTextComponent.text = 'PAGE 3\nCLOSING';
+                app.backgroundController.setBackgroundColor('#8b5cf6');
+                app.render();
+                app.presetPageManager.contentSlotManager.clearSlots();
+                const page3Data = app.presetPageManager.captureCurrentPage(3, 'Closing');
+                log(`  ✅ Page 3: ${page3Data.contentSlots.length} slots`, 'success');
+
+                // Save multi-page preset
+                log('Step 4: Saving multi-page preset...', 'info');
+                const preset = {
+                    _id: 'test-multipage',
+                    presetName: 'Test Multi-Page',
+                    description: '3-page test preset',
+                    page1: JSON.stringify(page1Data),
+                    page2: JSON.stringify(page2Data),
+                    page3: JSON.stringify(page3Data)
+                };
+                await app.presetPageManager.savePresetToCMS(preset);
+                log('  ✅ 3-page preset saved', 'success');
+
+                // Verify
+                log('Step 5: Verifying multi-page preset...', 'info');
+                const loaded = await app.presetPageManager.getPresetFromCMS('test-multipage');
+
+                const hasAllPages = loaded.page1 && loaded.page2 && loaded.page3;
+                const p1 = JSON.parse(loaded.page1);
+                const p2 = JSON.parse(loaded.page2);
+                const p3 = JSON.parse(loaded.page3);
+
+                log(`  → All pages present: ${hasAllPages}`, hasAllPages ? 'success' : 'error');
+                log(`  → Page 1 slots: ${p1.contentSlots.length}`, 'info');
+                log(`  → Page 2 slots: ${p2.contentSlots.length}`, 'info');
+                log(`  → Page 3 slots: ${p3.contentSlots.length}`, 'info');
+
+                const correctStructure = p1.contentSlots.length === 0 &&
+                                        p2.contentSlots.length === 1 &&
+                                        p3.contentSlots.length === 0;
+
+                log(`  → Correct slot distribution: ${correctStructure}`, correctStructure ? 'success' : 'error');
+
+                if (hasAllPages && correctStructure) {
+                    log('✅ TEST 4 PASSED', 'success');
+                    setTestStatus(4, 'pass');
+                    testResults.test4 = true;
+                } else {
+                    log('❌ TEST 4 FAILED', 'error');
+                    setTestStatus(4, 'fail');
+                    testResults.test4 = false;
+                }
+
+            } catch (error) {
+                log(`❌ TEST 4 FAILED: ${error.message}`, 'error');
+                setTestStatus(4, 'fail');
+                testResults.test4 = false;
+            }
+        }
+
+        function clearStorage() {
+            if (confirm('Clear all test data from localStorage?')) {
+                localStorage.clear();
+                log('🗑️ localStorage cleared', 'info');
+
+                // Reset test statuses
+                for (let i = 1; i <= 4; i++) {
+                    setTestStatus(i, 'pending');
+                    testResults[`test${i}`] = null;
+                }
+            }
+        }
+
+        function delay(ms) {
+            return new Promise(resolve => setTimeout(resolve, ms));
+        }
+    </script>
+</body>
+</html>

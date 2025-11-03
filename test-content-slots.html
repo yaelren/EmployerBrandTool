@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Content Slots Test</title>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            padding: 20px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        h1 {
+            color: #333;
+        }
+        .test-section {
+            background: #f5f5f5;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 8px;
+        }
+        .success {
+            color: #22c55e;
+            font-weight: bold;
+        }
+        .error {
+            color: #ef4444;
+            font-weight: bold;
+        }
+        .info {
+            color: #3b82f6;
+        }
+        pre {
+            background: #1e293b;
+            color: #e2e8f0;
+            padding: 15px;
+            border-radius: 4px;
+            overflow-x: auto;
+        }
+        button {
+            background: #3b82f6;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            margin: 5px;
+        }
+        button:hover {
+            background: #2563eb;
+        }
+    </style>
+</head>
+<body>
+    <h1>🧪 Content Slots System Test</h1>
+    <p class="info">Testing Sprint 1: Content Slots Foundation</p>
+
+    <div class="test-section">
+        <h2>Test 1: ContentSlotTypes Loaded</h2>
+        <div id="test1-result"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>Test 2: Mock Cell Bounding Box Capture</h2>
+        <button onclick="testBoundingBox()">Run Test</button>
+        <div id="test2-result"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>Test 3: Create Text Slot from Mock Cell</h2>
+        <button onclick="testCreateTextSlot()">Run Test</button>
+        <div id="test3-result"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>Test 4: Create Image Slot from Mock Cell</h2>
+        <button onclick="testCreateImageSlot()">Run Test</button>
+        <div id="test4-result"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>Test 5: Slot Validation</h2>
+        <button onclick="testSlotValidation()">Run Test</button>
+        <div id="test5-result"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>Test 6: Slot Management (Add/Remove/Get)</h2>
+        <button onclick="testSlotManagement()">Run Test</button>
+        <div id="test6-result"></div>
+    </div>
+
+    <!-- Load Content Slots System -->
+    <script src="js/parameters/ContentSlotTypes.js"></script>
+    <script src="js/parameters/ContentSlotManager.js"></script>
+
+    <script>
+        // Mock app object for testing
+        const mockApp = {
+            mainTextComponent: {
+                text: 'Test Main Text',
+                fontFamily: 'Inter',
+                fontSize: 48,
+                fontWeight: 'bold',
+                color: '#000000'
+            },
+            grid: null // No actual grid needed for basic tests
+        };
+
+        // Create ContentSlotManager instance
+        const slotManager = new ContentSlotManager(mockApp);
+
+        // Test 1: Check if types are loaded
+        function test1() {
+            const result = document.getElementById('test1-result');
+            if (typeof DEFAULT_TEXT_CONSTRAINTS !== 'undefined' &&
+                typeof DEFAULT_IMAGE_CONSTRAINTS !== 'undefined' &&
+                typeof DEFAULT_EXPORT_CONFIG !== 'undefined') {
+                result.innerHTML = '<p class="success">✅ All default types loaded successfully</p>';
+                result.innerHTML += '<pre>' + JSON.stringify({
+                    DEFAULT_TEXT_CONSTRAINTS,
+                    DEFAULT_IMAGE_CONSTRAINTS,
+                    DEFAULT_EXPORT_CONFIG
+                }, null, 2) + '</pre>';
+            } else {
+                result.innerHTML = '<p class="error">❌ Types not loaded properly</p>';
+            }
+        }
+
+        // Test 2: Bounding box capture
+        function testBoundingBox() {
+            const result = document.getElementById('test2-result');
+            try {
+                // Create mock text cell
+                const mockCell = {
+                    id: 'text-cell-1',
+                    contentId: 'uuid-123-456',
+                    type: 'text',
+                    bounds: { x: 100, y: 200, width: 300, height: 80 }
+                };
+
+                const boundingBox = slotManager.captureBoundingBox(mockCell);
+
+                result.innerHTML = '<p class="success">✅ Bounding box captured successfully</p>';
+                result.innerHTML += '<pre>' + JSON.stringify({
+                    input: mockCell.bounds,
+                    captured: boundingBox,
+                    match: JSON.stringify(mockCell.bounds) === JSON.stringify(boundingBox)
+                }, null, 2) + '</pre>';
+            } catch (error) {
+                result.innerHTML = '<p class="error">❌ Error: ' + error.message + '</p>';
+            }
+        }
+
+        // Test 3: Create text slot
+        function testCreateTextSlot() {
+            const result = document.getElementById('test3-result');
+            try {
+                // Create mock text cell
+                const mockCell = {
+                    id: 'text-cell-1',
+                    contentId: 'uuid-123-456',
+                    type: 'text',
+                    bounds: { x: 100, y: 200, width: 300, height: 80 },
+                    content: {
+                        text: 'Sample headline text',
+                        fontSize: 48,
+                        fontFamily: 'Inter',
+                        fontWeight: 'bold',
+                        color: '#333333'
+                    }
+                };
+
+                const config = {
+                    fieldName: 'headline',
+                    fieldLabel: 'Hero Headline',
+                    fieldDescription: 'Enter your main headline',
+                    required: true,
+                    constraints: {
+                        maxCharacters: 50
+                    }
+                };
+
+                const slot = slotManager.createSlotFromCell(mockCell, config);
+
+                result.innerHTML = '<p class="success">✅ Text slot created successfully</p>';
+                result.innerHTML += '<pre>' + JSON.stringify(slot, null, 2) + '</pre>';
+            } catch (error) {
+                result.innerHTML = '<p class="error">❌ Error: ' + error.message + '</p>';
+                console.error(error);
+            }
+        }
+
+        // Test 4: Create image slot
+        function testCreateImageSlot() {
+            const result = document.getElementById('test4-result');
+            try {
+                // Create mock content cell
+                const mockCell = {
+                    id: 'content-cell-1',
+                    contentId: 'uuid-789-012',
+                    type: 'content',
+                    bounds: { x: 400, y: 400, width: 200, height: 200 },
+                    content: {
+                        mediaUrl: 'https://static.wixstatic.com/media/test-image.png',
+                        mediaType: 'image'
+                    }
+                };
+
+                const config = {
+                    fieldName: 'companyLogo',
+                    fieldLabel: 'Company Logo',
+                    fieldDescription: 'Upload your company logo',
+                    required: true,
+                    constraints: {
+                        fitMode: 'cover'
+                    }
+                };
+
+                const slot = slotManager.createSlotFromCell(mockCell, config);
+
+                result.innerHTML = '<p class="success">✅ Image slot created successfully</p>';
+                result.innerHTML += '<pre>' + JSON.stringify(slot, null, 2) + '</pre>';
+            } catch (error) {
+                result.innerHTML = '<p class="error">❌ Error: ' + error.message + '</p>';
+                console.error(error);
+            }
+        }
+
+        // Test 5: Slot validation
+        function testSlotValidation() {
+            const result = document.getElementById('test5-result');
+            let output = '';
+
+            // Valid slot
+            try {
+                const validSlot = {
+                    slotId: 'test-slot-1',
+                    sourceElement: 'text-cell-1',
+                    sourceContentId: 'uuid-123',
+                    type: 'text',
+                    boundingBox: { x: 0, y: 0, width: 100, height: 100 },
+                    constraints: {},
+                    styling: {},
+                    defaultContent: 'test',
+                    fieldName: 'testField',
+                    fieldLabel: 'Test Field',
+                    fieldDescription: '',
+                    required: false
+                };
+                slotManager.validateSlot(validSlot);
+                output += '<p class="success">✅ Valid slot passed validation</p>';
+            } catch (error) {
+                output += '<p class="error">❌ Valid slot failed: ' + error.message + '</p>';
+            }
+
+            // Invalid slot (missing fieldName)
+            try {
+                const invalidSlot = {
+                    slotId: 'test-slot-2',
+                    type: 'text',
+                    boundingBox: { x: 0, y: 0, width: 100, height: 100 }
+                };
+                slotManager.validateSlot(invalidSlot);
+                output += '<p class="error">❌ Invalid slot passed (should have failed)</p>';
+            } catch (error) {
+                output += '<p class="success">✅ Invalid slot correctly rejected: ' + error.message + '</p>';
+            }
+
+            result.innerHTML = output;
+        }
+
+        // Test 6: Slot management
+        function testSlotManagement() {
+            const result = document.getElementById('test6-result');
+            let output = '';
+
+            try {
+                // Clear slots
+                slotManager.clearSlots();
+                output += '<p class="info">🔄 Cleared all slots</p>';
+
+                // Create test slots
+                const mockCell1 = {
+                    id: 'test-1',
+                    contentId: 'uuid-1',
+                    type: 'text',
+                    bounds: { x: 0, y: 0, width: 100, height: 50 }
+                };
+
+                const mockCell2 = {
+                    id: 'test-2',
+                    contentId: 'uuid-2',
+                    type: 'content',
+                    bounds: { x: 100, y: 100, width: 100, height: 100 }
+                };
+
+                const slot1 = slotManager.createSlotFromCell(mockCell1, {
+                    fieldName: 'field1',
+                    fieldLabel: 'Field 1'
+                });
+
+                const slot2 = slotManager.createSlotFromCell(mockCell2, {
+                    fieldName: 'field2',
+                    fieldLabel: 'Field 2'
+                });
+
+                // Add slots
+                slotManager.addSlot(slot1);
+                slotManager.addSlot(slot2);
+                output += '<p class="success">✅ Added 2 slots</p>';
+
+                // Get all slots
+                const allSlots = slotManager.getAllSlots();
+                output += '<p class="info">📋 Retrieved ' + allSlots.length + ' slots</p>';
+
+                // Get slot by ID
+                const found = slotManager.getSlotById('test-1-slot');
+                output += '<p class="success">✅ Found slot by ID: ' + (found ? found.slotId : 'null') + '</p>';
+
+                // Update slot
+                const updated = slotManager.updateSlot('test-1-slot', {
+                    fieldLabel: 'Updated Field 1'
+                });
+                output += '<p class="success">✅ Updated slot: ' + updated + '</p>';
+
+                // Remove slot
+                const removed = slotManager.removeSlot('test-2-slot');
+                output += '<p class="success">✅ Removed slot: ' + removed + '</p>';
+
+                // Final count
+                output += '<p class="info">📊 Final slot count: ' + slotManager.getAllSlots().length + '</p>';
+
+                result.innerHTML = output;
+            } catch (error) {
+                result.innerHTML = '<p class="error">❌ Error: ' + error.message + '</p>';
+                console.error(error);
+            }
+        }
+
+        // Run Test 1 automatically on load
+        window.addEventListener('load', test1);
+    </script>
+</body>
+</html>

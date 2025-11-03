@@ -61,10 +61,14 @@
 - [x] Update save logic to create content slots instead of editableFields
 - [x] Lock/unlock workflow opens ContentSlotConfigPanel for configuration
 
-**Sprint 2.2-2.3 Tasks (Remaining)**:
-- [ ] Test designer workflow end-to-end with real presets
-- [ ] Test ExportFormatSelector integration
-- [ ] Verify content slots persist correctly in saved presets
+**Sprint 2.2-2.3 Tasks (Ready for Testing)**:
+- [x] Created comprehensive test suite: [test-sprint-2-workflow.html](../test-sprint-2-workflow.html)
+- [x] Test 1: Background image save/load with data URLs
+- [x] Test 2: Text content slot creation and persistence
+- [x] Test 3: Image content slot with bounding box
+- [x] Test 4: Multi-page preset with mixed slot configurations
+- [ ] Manual verification in index.html with SavePagePanel
+- [ ] Test ExportFormatSelector integration (Sprint 2.3)
 
 ---
 

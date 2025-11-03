@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Employee Spotlight - Employer Brand Tool</title>
+
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Wix+Madefor+Display:wght@400..800&family=Wix+Madefor+Text:ital,wght@0,400..800;1,400..800&display=swap" rel="stylesheet">
+
+    <!-- Chatooly CDN Styles -->
+    <link rel="stylesheet" href="https://yaelren.github.io/chatooly-cdn/css/unified.min.css">
+
+    <!-- End-User Custom Styles -->
+    <link rel="stylesheet" href="css/enduser.css">
+</head>
+<body>
+    <!-- Removed Preset Selector Modal for mock-up -->
+
+    <!-- Main End-User Interface -->
+    <div class="enduser-container" id="mainInterface">
+        <!-- Header -->
+        <div class="enduser-header">
+            <div class="header-left">
+                <h1 class="header-title">Employer Brand Tool</h1>
+                <span class="header-subtitle">End User</span>
+            </div>
+            <div class="header-right">
+                <span class="preset-loaded-name" id="presetLoadedName">Employee Spotlight</span>
+            </div>
+        </div>
+
+        <!-- Export Bar (below header) -->
+        <div class="export-bar" id="exportBar">
+            <button class="export-bar-btn" onclick="exportAllPages()">
+                Export
+            </button>
+        </div>
+
+        <!-- Main Content Area -->
+        <div class="enduser-main">
+            <!-- Left Sidebar: Form -->
+            <div class="enduser-sidebar">
+                <div class="sidebar-header" id="sidebarHeader">
+                    <h2 class="sidebar-title" id="sidebarTitle">Employee Spotlight</h2>
+                </div>
+
+                <div class="sidebar-content" id="sidebarContent">
+                    <!-- Employee Spotlight Fields -->
+                    <div class="enduser-page-section">
+                        <div class="page-section-content" style="display: block;">
+                            <!-- Employee Photo Field -->
+                            <div class="enduser-form-field">
+                                <label class="field-label">
+                                    Employee Photo
+                                    <span class="field-required">*</span>
+                                </label>
+                                <input
+                                    type="file"
+                                    class="field-file-input"
+                                    accept="image/*"
+                                    data-field-name="employeePhoto"
+                                    style="display: none;"
+                                    id="employeePhotoInput">
+                                <button class="field-file-btn" onclick="document.getElementById('employeePhotoInput').click()">
+                                    📁 Choose File
+                                </button>
+                                <span class="field-hint">Upload employee photo (recommended: 800x800px)</span>
+                                <div class="field-image-preview" style="display: none;">
+                                    <img src="" alt="Preview">
+                                    <button class="field-image-remove" onclick="removeImage()">×</button>
+                                </div>
+                            </div>
+
+                            <!-- Employee Name Field -->
+                            <div class="enduser-form-field">
+                                <label class="field-label">
+                                    Employee Name
+                                    <span class="field-required">*</span>
+                                </label>
+                                <input
+                                    type="text"
+                                    class="field-input"
+                                    placeholder="Enter employee name..."
+                                    value="Anna Lomako"
+                                    data-field-name="employeeName">
+                                <span class="field-hint">Full name of the featured employee</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Center: Mock Canvas Preview -->
+            <div class="enduser-canvas-area">
+                <div class="canvas-wrapper">
+                    <div class="mock-canvas-preview">
+                        <img src="sample-data/employee-spotlight-preview.jpg" alt="Employee Spotlight Preview" id="mockPreviewImage">
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Removed Page Navigation for single-page mock-up -->
+    </div>
+
+    <!-- JavaScript for Employee Spotlight Mock-up -->
+    <script>
+        // Show all content on load (no preset selector needed)
+        window.addEventListener('DOMContentLoaded', () => {
+            document.getElementById('sidebarContent').style.display = 'block';
+            document.getElementById('exportBar').style.display = 'flex';
+        });
+
+        // Remove uploaded image
+        function removeImage() {
+            const preview = document.querySelector('.field-image-preview');
+            preview.style.display = 'none';
+            document.getElementById('employeePhotoInput').value = '';
+            console.log('Image removed');
+        }
+
+        // Export functionality
+        function exportAllPages() {
+            alert('Export functionality will export the Employee Spotlight design as PNG.');
+        }
+
+        // Image upload preview
+        document.getElementById('employeePhotoInput')?.addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(event) {
+                    const preview = document.querySelector('.field-image-preview');
+                    const img = preview.querySelector('img');
+                    img.src = event.target.result;
+                    preview.style.display = 'block';
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+    </script>
+</body>
+</html>

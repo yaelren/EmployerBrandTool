@@ -99,6 +99,9 @@ class EmployerBrandToolPOC {
             // Initialize Grid system (NEW - simple per-cell animations)
             this.grid = new Grid(this);
 
+            // Initialize Content Slot Overlay (visual indicators like grid guides)
+            this.contentSlotOverlay = new ContentSlotOverlay(this);
+
             // Set initial canvas size via Chatooly CDN
             this.initializeChatoolyCanvas();
 

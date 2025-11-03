@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html>
+<head><title>Quick Test</title></head>
+<body>
+<h1>ContentSlotManager Quick Test</h1>
+<div id="result"></div>
+
+<script src="js/parameters/ContentSlotTypes.js"></script>
+<script src="js/parameters/ContentSlotManager.js"></script>
+<script>
+const result = document.getElementById('result');
+
+// Mock app
+const mockApp = {
+    mainTextComponent: { text: 'Test', fontFamily: 'Inter', fontSize: 48, fontWeight: 'bold', color: '#000' },
+    grid: null
+};
+
+try {
+    const manager = new ContentSlotManager(mockApp);
+    result.innerHTML = '<p style="color:green;">✅ ContentSlotManager loaded successfully!</p>';
+    result.innerHTML += '<p>Manager type: ' + typeof manager + '</p>';
+    result.innerHTML += '<p>Has captureBoundingBox: ' + (typeof manager.captureBoundingBox === 'function') + '</p>';
+} catch (error) {
+    result.innerHTML = '<p style="color:red;">❌ Error: ' + error.message + '</p>';
+    console.error(error);
+}
+</script>
+</body>
+</html>
