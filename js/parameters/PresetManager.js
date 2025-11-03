@@ -123,7 +123,7 @@ class PresetManager {
     }
 
     /**
-     * Serialize background state (NO base64 - URLs only)
+     * Serialize background state (supports both cloud URLs and localStorage data URLs)
      * @returns {Object} Background state
      * @private
      */
@@ -136,14 +136,29 @@ class PresetManager {
         if (hasImage) {
             console.log('   → Image element type:', bg.backgroundImage.constructor.name);
             console.log('   → Image dimensions:', bg.backgroundImage.width, 'x', bg.backgroundImage.height);
-            console.log('   → Image will be uploaded to cloud');
+
+            // For localStorage: Use data URL if available (from file upload)
+            // For cloud: imageElement will be uploaded and URL set in saveToCloud()
+            const hasDataURL = !!bg.backgroundImageDataURL;
+            const hasCloudURL = !!bg.backgroundImageURL;
+            console.log('   → Has data URL:', hasDataURL);
+            console.log('   → Has cloud URL:', hasCloudURL);
+
+            if (hasDataURL) {
+                console.log('   → Using data URL for localStorage');
+            } else if (hasCloudURL) {
+                console.log('   → Using cloud URL');
+            } else {
+                console.log('   → Image will be uploaded to cloud');
+            }
         } else {
             console.log('   → No image to serialize');
         }
 
         return {
             color: bg.backgroundColor,
-            imageURL: bg.backgroundImageURL || null, // Will be set during cloud upload
+            // Use data URL for localStorage, cloud URL if available, or null for upload
+            imageURL: bg.backgroundImageDataURL || bg.backgroundImageURL || null,
             imageElement: bg.backgroundImage, // Temp reference for upload
             fitMode: bg.backgroundFitMode,
             videoSettings: {
@@ -578,7 +593,7 @@ class PresetManager {
     }
 
     /**
-     * Restore background state from Wix URL
+     * Restore background state from URL (supports both cloud URLs and data URLs)
      * @param {Object} backgroundData - Background state data
      * @private
      */
@@ -588,16 +603,24 @@ class PresetManager {
         // Set background color
         bg.setBackgroundColor(backgroundData.color);
 
-        // Restore background image from Wix CDN URL
+        // Restore background image from URL (cloud CDN or data URL)
         if (backgroundData.imageURL) {
             console.log('🔄 LOAD: Restoring background image...');
-            console.log('   → URL type:', backgroundData.imageURL.substring(0, 30));
+            const isDataURL = backgroundData.imageURL.startsWith('data:');
+            console.log('   → URL type:', isDataURL ? 'data URL' : 'cloud URL');
             console.log('   → URL length:', backgroundData.imageURL.length, 'characters');
 
             const img = new Image();
             img.crossOrigin = 'anonymous'; // Enable CORS for CDN images
             img.onload = () => {
-                bg.setBackgroundImage(img);
+                // Store both image element and data URL in BackgroundManager
+                bg.backgroundImage = img;
+                if (isDataURL) {
+                    bg.backgroundImageDataURL = backgroundData.imageURL;
+                } else {
+                    bg.backgroundImageURL = backgroundData.imageURL;
+                    bg.backgroundImageDataURL = null;
+                }
                 // Trigger render after image loads so it appears on canvas
                 this.safeRender();
             };
