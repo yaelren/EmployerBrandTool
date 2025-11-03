@@ -19,9 +19,44 @@ class PresetPageManager {
         // Content Slots Manager (v3)
         this.contentSlotManager = new ContentSlotManager(app);
 
+        // Wix Multi-Page Preset Adapter (Sprint 3)
+        this.wixAdapter = null; // Initialized with initializeWix()
+
         // Validation constants
         this.MAX_PAGES = 5;
         this.MAX_PAGE_SIZE = 60000; // 60KB safety margin (Wix Rich Content limit: 64KB)
+    }
+
+    /**
+     * Initialize Wix integration (Sprint 3)
+     * @param {WixPresetAPI} wixAPI - Initialized WixPresetAPI instance
+     * @returns {Promise<boolean>} Success status
+     */
+    async initializeWix(wixAPI) {
+        try {
+            if (!wixAPI) {
+                console.warn('⚠️ No WixPresetAPI provided, using localStorage only');
+                return false;
+            }
+
+            // Dynamically import and create adapter
+            const { WixMultiPagePresetAdapter } = await import('../api/WixMultiPagePresetAdapter.js');
+            this.wixAdapter = new WixMultiPagePresetAdapter(wixAPI);
+
+            console.log('✅ Wix Multi-Page Preset Adapter initialized');
+            return true;
+        } catch (error) {
+            console.error('❌ Failed to initialize Wix adapter:', error);
+            this.wixAdapter = null;
+            return false;
+        }
+    }
+
+    /**
+     * Check if Wix integration is available
+     */
+    isWixAvailable() {
+        return this.wixAdapter !== null;
     }
 
     /**
@@ -303,86 +338,70 @@ class PresetPageManager {
     async getAllPresets() {
         const allPresets = await this.getAllPresetsFromCMS();
 
-        return allPresets.map(preset => {
-            const pages = [];
-
-            for (let i = 1; i <= this.MAX_PAGES; i++) {
-                const fieldName = `page${i}`;
-                if (preset[fieldName]) {
-                    const pageData = JSON.parse(preset[fieldName]);
-                    pages.push({
-                        pageNumber: i,
-                        pageName: pageData.pageName
-                    });
-                }
-            }
-
-            return {
-                presetId: preset._id || preset.id,
-                presetName: preset.presetName,
-                pages: pages,
-                pageCount: pages.length
-            };
-        });
+        // WixMultiPagePresetAdapter.listPresets() already returns the correct format
+        // with pages array and pageCount, so just map the ID field
+        return allPresets.map(preset => ({
+            presetId: preset._id || preset.id,
+            presetName: preset.presetName,
+            description: preset.description,
+            pages: preset.pages || [],
+            pageCount: preset.pageCount || 0,
+            _createdDate: preset._createdDate,
+            _updatedDate: preset._updatedDate
+        }));
     }
 
     // ===== CMS Integration Methods =====
-    // For now, these use localStorage. Will be replaced with Wix Data API
+    // Wix CMS only - localStorage removed for Sprint 3 testing
 
     /**
-     * Save preset to CMS (localStorage for now)
+     * Save preset to Wix CMS
      */
     async savePresetToCMS(preset) {
-        const presetId = `preset-${Date.now()}`;
-        preset._id = presetId;
-        preset._createdDate = new Date().toISOString();
-        preset._updatedDate = new Date().toISOString();
+        if (!this.isWixAvailable()) {
+            throw new Error('Wix CMS not available. Please initialize Wix integration first.');
+        }
 
-        // Get existing presets
-        const presets = this.getAllPresetsFromLocalStorage();
-        presets.push(preset);
-
-        localStorage.setItem('chatooly_multipage_presets', JSON.stringify(presets));
+        const presetId = await this.wixAdapter.savePreset(preset);
+        console.log(`✅ Saved to Wix CMS: ${presetId}`);
         return presetId;
     }
 
     /**
-     * Get preset from CMS (localStorage for now)
+     * Get preset from Wix CMS
      */
     async getPresetFromCMS(presetId) {
-        const presets = this.getAllPresetsFromLocalStorage();
-        return presets.find(p => p._id === presetId);
-    }
-
-    /**
-     * Update preset in CMS (localStorage for now)
-     */
-    async updatePresetInCMS(presetId, updatedPreset) {
-        const presets = this.getAllPresetsFromLocalStorage();
-        const index = presets.findIndex(p => p._id === presetId);
-
-        if (index === -1) {
-            throw new Error(`Preset not found: ${presetId}`);
+        if (!this.isWixAvailable()) {
+            throw new Error('Wix CMS not available. Please initialize Wix integration first.');
         }
 
-        updatedPreset._updatedDate = new Date().toISOString();
-        presets[index] = updatedPreset;
-
-        localStorage.setItem('chatooly_multipage_presets', JSON.stringify(presets));
+        const preset = await this.wixAdapter.loadPreset(presetId);
+        console.log(`✅ Loaded from Wix CMS: ${preset.presetName}`);
+        return preset;
     }
 
     /**
-     * Get all presets from CMS (localStorage for now)
+     * Update preset in Wix CMS
+     */
+    async updatePresetInCMS(presetId, updatedPreset) {
+        if (!this.isWixAvailable()) {
+            throw new Error('Wix CMS not available. Please initialize Wix integration first.');
+        }
+
+        await this.wixAdapter.updatePreset(presetId, updatedPreset);
+        console.log(`✅ Updated in Wix CMS: ${presetId}`);
+    }
+
+    /**
+     * Get all presets from Wix CMS
      */
     async getAllPresetsFromCMS() {
-        return this.getAllPresetsFromLocalStorage();
-    }
+        if (!this.isWixAvailable()) {
+            throw new Error('Wix CMS not available. Please initialize Wix integration first.');
+        }
 
-    /**
-     * Helper: Get all presets from localStorage
-     */
-    getAllPresetsFromLocalStorage() {
-        const presetsJson = localStorage.getItem('chatooly_multipage_presets');
-        return presetsJson ? JSON.parse(presetsJson) : [];
+        const presets = await this.wixAdapter.listPresets();
+        console.log(`✅ Listed ${presets.length} presets from Wix CMS`);
+        return presets;
     }
 }

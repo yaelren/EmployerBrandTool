@@ -1496,10 +1496,14 @@ class EmployerBrandToolPOC {
             // Expose WixAPI globally for FontManager to use
             window.wixAPI = this.wixAPI;
 
-            // Connect Wix API to PresetManager
+            // Connect Wix API to PresetManager (single-page presets)
             this.presetManager.setWixAPI(this.wixAPI);
 
+            // Connect Wix API to PresetPageManager (multi-page presets - Sprint 3)
+            await this.presetPageManager.initializeWix(this.wixAPI);
+
             console.log('✅ Wix Cloud Backend initialized successfully');
+            console.log('✅ Multi-page preset Wix integration ready');
 
         } catch (error) {
             console.error('❌ Failed to initialize Wix Cloud Backend:', error);

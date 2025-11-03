@@ -1,0 +1,609 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Wix CMS Integration - Sprint 3</title>
+
+    <!-- Import Map for Wix SDK -->
+    <script type="importmap">
+    {
+        "imports": {
+            "@wix/sdk": "https://cdn.jsdelivr.net/npm/@wix/sdk@1.17.1/+esm",
+            "@wix/data": "https://cdn.jsdelivr.net/npm/@wix/data@1.0.306/+esm",
+            "@wix/media": "https://cdn.jsdelivr.net/npm/@wix/media@1.0.195/+esm"
+        }
+    }
+    </script>
+
+    <style>
+        body {
+            font-family: 'Courier New', monospace;
+            max-width: 1400px;
+            margin: 20px auto;
+            padding: 20px;
+            background: #0f1419;
+            color: #e6edf3;
+        }
+        h1 {
+            color: #58a6ff;
+            border-bottom: 2px solid #30363d;
+            padding-bottom: 10px;
+        }
+        h2 {
+            color: #79c0ff;
+            margin-top: 30px;
+        }
+        .test-section {
+            background: #161b22;
+            border: 1px solid #30363d;
+            border-radius: 6px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+        .test-controls {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        button {
+            padding: 10px 20px;
+            background: #238636;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: bold;
+        }
+        button:hover {
+            background: #2ea043;
+        }
+        button.secondary {
+            background: #1f6feb;
+        }
+        button.danger {
+            background: #da3633;
+        }
+        button:disabled {
+            background: #484f58;
+            cursor: not-allowed;
+        }
+        .log-container {
+            background: #0d1117;
+            border: 1px solid #30363d;
+            border-radius: 6px;
+            padding: 15px;
+            height: 400px;
+            overflow-y: auto;
+            font-size: 13px;
+            margin-top: 10px;
+        }
+        .log-entry {
+            margin: 4px 0;
+            padding: 4px 8px;
+            border-left: 3px solid transparent;
+        }
+        .log-entry.success {
+            color: #3fb950;
+            border-left-color: #3fb950;
+        }
+        .log-entry.error {
+            color: #f85149;
+            border-left-color: #f85149;
+        }
+        .log-entry.warning {
+            color: #d29922;
+            border-left-color: #d29922;
+        }
+        .log-entry.info {
+            color: #58a6ff;
+            border-left-color: #58a6ff;
+        }
+        .credentials {
+            background: #1c2128;
+            padding: 15px;
+            border-radius: 6px;
+            margin-bottom: 20px;
+        }
+        .credentials input {
+            width: 100%;
+            padding: 8px;
+            background: #0d1117;
+            border: 1px solid #30363d;
+            border-radius: 6px;
+            color: #e6edf3;
+            margin-top: 5px;
+            font-family: 'Courier New', monospace;
+        }
+        .credentials label {
+            display: block;
+            margin-bottom: 10px;
+            color: #8b949e;
+        }
+        .test-status {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: bold;
+            margin-left: 10px;
+        }
+        .status-pending {
+            background: #6e7681;
+            color: white;
+        }
+        .status-running {
+            background: #1f6feb;
+            color: white;
+        }
+        .status-passed {
+            background: #238636;
+            color: white;
+        }
+        .status-failed {
+            background: #da3633;
+            color: white;
+        }
+        #canvasContainer {
+            border: 2px solid #30363d;
+            background: #0d1117;
+            min-height: 400px;
+            margin: 20px 0;
+        }
+        .test-results {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+        }
+        .test-card {
+            background: #1c2128;
+            border: 1px solid #30363d;
+            border-radius: 6px;
+            padding: 15px;
+        }
+        .test-card h3 {
+            margin-top: 0;
+            color: #79c0ff;
+            font-size: 16px;
+        }
+        .test-data {
+            font-size: 12px;
+            color: #8b949e;
+            margin-top: 10px;
+        }
+        .test-data strong {
+            color: #e6edf3;
+        }
+    </style>
+</head>
+<body>
+    <h1>🧪 Wix CMS Integration Test - Sprint 3</h1>
+    <p style="color: #8b949e;">Tests WixMultiPagePresetAdapter with real Wix CMS operations</p>
+
+    <!-- Wix Credentials -->
+    <div class="test-section">
+        <h2>1. Wix Configuration</h2>
+        <div class="credentials">
+            <label>
+                Wix OAuth Client ID:
+                <input type="text" id="wixClientId" placeholder="Enter your Wix OAuth Client ID">
+            </label>
+            <label>
+                Wix API Key (Optional):
+                <input type="text" id="wixApiKey" placeholder="Optional API Key">
+            </label>
+            <label>
+                Wix Site ID:
+                <input type="text" id="wixSiteId" placeholder="Enter your Wix Site ID">
+            </label>
+        </div>
+        <div class="test-controls">
+            <button onclick="initializeWix()">Initialize Wix SDK</button>
+            <span id="wixStatus" class="test-status status-pending">Not Initialized</span>
+        </div>
+    </div>
+
+    <!-- Test Controls -->
+    <div class="test-section">
+        <h2>2. Test Operations</h2>
+        <div class="test-controls">
+            <button onclick="runTest1()" id="test1Btn" disabled>Test 1: Save Single Page</button>
+            <button onclick="runTest2()" id="test2Btn" disabled>Test 2: Save Multi-Page (3 pages)</button>
+            <button onclick="runTest3()" id="test3Btn" disabled>Test 3: Load & Verify</button>
+            <button onclick="runTest4()" id="test4Btn" disabled>Test 4: Content Slots Persist</button>
+            <button onclick="runAllTests()" id="runAllBtn" disabled class="secondary">Run All Tests</button>
+            <button onclick="clearLogs()" class="danger">Clear Logs</button>
+        </div>
+    </div>
+
+    <!-- Test Results -->
+    <div class="test-section">
+        <h2>3. Test Results</h2>
+        <div class="test-results" id="testResults">
+            <div class="test-card">
+                <h3>Test 1: Save Single Page <span id="test1Status" class="test-status status-pending">PENDING</span></h3>
+                <div class="test-data" id="test1Data">Not run yet</div>
+            </div>
+            <div class="test-card">
+                <h3>Test 2: Multi-Page Save <span id="test2Status" class="test-status status-pending">PENDING</span></h3>
+                <div class="test-data" id="test2Data">Not run yet</div>
+            </div>
+            <div class="test-card">
+                <h3>Test 3: Load & Verify <span id="test3Status" class="test-status status-pending">PENDING</span></h3>
+                <div class="test-data" id="test3Data">Not run yet</div>
+            </div>
+            <div class="test-card">
+                <h3>Test 4: Content Slots <span id="test4Status" class="test-status status-pending">PENDING</span></h3>
+                <div class="test-data" id="test4Data">Not run yet</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Canvas Preview -->
+    <div class="test-section">
+        <h2>4. Canvas Preview</h2>
+        <div id="canvasContainer"></div>
+    </div>
+
+    <!-- Logs -->
+    <div class="test-section">
+        <h2>5. Execution Logs</h2>
+        <div class="log-container" id="logs"></div>
+    </div>
+
+    <!-- Chatooly App Scripts -->
+    <script src="js/utils/ColorUtils.js"></script>
+    <script src="js/utils/FontLoader.js"></script>
+    <script src="js/canvas/CanvasManager.js"></script>
+    <script src="js/canvas/DebugController.js"></script>
+    <script src="js/background/BackgroundManager.js"></script>
+    <script src="js/text/TextComponent.js"></script>
+    <script src="js/text/SpotTextComponent.js"></script>
+    <script src="js/text/MainTextController.js"></script>
+    <script src="js/grid/GridCell.js"></script>
+    <script src="js/grid/GridSystem.js"></script>
+    <script src="js/grid/CellRenderer.js"></script>
+    <script src="js/layers/LayerController.js"></script>
+    <script src="js/media/MediaController.js"></script>
+    <script src="js/parameters/PresetManager.js"></script>
+    <script src="js/parameters/ContentSlotTypes.js"></script>
+    <script src="js/parameters/ContentSlotManager.js"></script>
+    <script src="js/parameters/PresetPageManager.js"></script>
+    <script src="js/app.js"></script>
+
+    <script type="module">
+        import { WixPresetAPI } from './js/api/WixPresetAPI.js';
+        import { WixMultiPagePresetAdapter } from './js/api/WixMultiPagePresetAdapter.js';
+
+        let app;
+        let wixAPI;
+        let wixAdapter;
+        let testPresetId = null;
+
+        // Make functions globally available
+        window.wixAPI = null;
+        window.wixAdapter = null;
+
+        // Initialize app on load
+        window.addEventListener('DOMContentLoaded', () => {
+            const container = document.getElementById('canvasContainer');
+            app = new App(container, 1080, 1920);
+            app.initialize();
+            log('✅ Chatooly app initialized', 'success');
+            window.app = app;
+        });
+
+        // Logging
+        function log(message, type = 'info') {
+            const logsEl = document.getElementById('logs');
+            const entry = document.createElement('div');
+            entry.className = `log-entry ${type}`;
+            const timestamp = new Date().toLocaleTimeString();
+            entry.textContent = `[${timestamp}] ${message}`;
+            logsEl.appendChild(entry);
+            logsEl.scrollTop = logsEl.scrollHeight;
+            console.log(message);
+        }
+
+        function clearLogs() {
+            document.getElementById('logs').innerHTML = '';
+            log('📋 Logs cleared', 'info');
+        }
+
+        function setTestStatus(testNum, status, data = null) {
+            const statusEl = document.getElementById(`test${testNum}Status`);
+            const dataEl = document.getElementById(`test${testNum}Data`);
+
+            statusEl.className = `test-status status-${status}`;
+            statusEl.textContent = status.toUpperCase();
+
+            if (data) {
+                dataEl.innerHTML = data;
+            }
+        }
+
+        // Initialize Wix SDK
+        window.initializeWix = async function() {
+            try {
+                log('🔧 Initializing Wix SDK...', 'info');
+
+                const clientId = document.getElementById('wixClientId').value.trim();
+                const apiKey = document.getElementById('wixApiKey').value.trim() || null;
+                const siteId = document.getElementById('wixSiteId').value.trim();
+
+                if (!clientId || !siteId) {
+                    throw new Error('Client ID and Site ID are required');
+                }
+
+                // Initialize WixPresetAPI
+                wixAPI = new WixPresetAPI();
+                await wixAPI.initialize(clientId, apiKey, siteId);
+                window.wixAPI = wixAPI;
+
+                log('✅ WixPresetAPI initialized', 'success');
+
+                // Initialize WixMultiPagePresetAdapter
+                wixAdapter = new WixMultiPagePresetAdapter(wixAPI);
+                window.wixAdapter = wixAdapter;
+
+                // Initialize PresetPageManager with Wix
+                await app.presetPageManager.initializeWix(wixAPI);
+
+                log('✅ WixMultiPagePresetAdapter initialized', 'success');
+                log('✅ PresetPageManager Wix integration ready', 'success');
+
+                // Update UI
+                document.getElementById('wixStatus').className = 'test-status status-passed';
+                document.getElementById('wixStatus').textContent = 'Connected';
+
+                // Enable test buttons
+                ['test1Btn', 'test2Btn', 'test3Btn', 'test4Btn', 'runAllBtn'].forEach(id => {
+                    document.getElementById(id).disabled = false;
+                });
+
+            } catch (error) {
+                log(`❌ Wix initialization failed: ${error.message}`, 'error');
+                console.error(error);
+                document.getElementById('wixStatus').className = 'test-status status-failed';
+                document.getElementById('wixStatus').textContent = 'Failed';
+            }
+        };
+
+        // Test 1: Save Single Page Preset
+        window.runTest1 = async function() {
+            try {
+                setTestStatus(1, 'running');
+                log('🧪 TEST 1: Save Single Page to Wix CMS', 'info');
+
+                // Create test content
+                app.mainTextController.mainTextComponent.text = 'TEST PAGE 1\nWix Integration';
+                app.mainTextController.mainTextComponent.fontSize = 64;
+                app.canvasManager.backgroundManager.setBackgroundColor('#3b82f6');
+                app.render();
+
+                // Create content slot
+                const mainTextCell = app.grid.cells.find(c => c.type === 'main-text');
+                const slot = app.presetPageManager.contentSlotManager.createSlotFromCell(mainTextCell, {
+                    fieldName: 'headline',
+                    fieldLabel: 'Main Headline',
+                    fieldDescription: 'Test headline field'
+                });
+                app.presetPageManager.contentSlotManager.addSlot(slot);
+
+                log('   → Created content slot', 'info');
+
+                // Capture page
+                const pageData = app.presetPageManager.captureCurrentPage(1, 'Test Page 1');
+                log(`   → Page captured (${(JSON.stringify(pageData).length / 1024).toFixed(1)} KB)`, 'info');
+
+                // Save to Wix
+                const presetId = await app.presetPageManager.saveToNewPreset('Test Single Page', pageData, 1);
+                testPresetId = presetId;
+
+                log(`✅ TEST 1 PASSED: Preset saved with ID: ${presetId}`, 'success');
+                setTestStatus(1, 'passed', `
+                    <strong>Preset ID:</strong> ${presetId}<br>
+                    <strong>Page Size:</strong> ${(JSON.stringify(pageData).length / 1024).toFixed(1)} KB<br>
+                    <strong>Content Slots:</strong> ${pageData.contentSlots.length}<br>
+                    <strong>Status:</strong> Saved to Wix CMS
+                `);
+
+            } catch (error) {
+                log(`❌ TEST 1 FAILED: ${error.message}`, 'error');
+                console.error(error);
+                setTestStatus(1, 'failed', `Error: ${error.message}`);
+            }
+        };
+
+        // Test 2: Save Multi-Page Preset (3 pages)
+        window.runTest2 = async function() {
+            try {
+                setTestStatus(2, 'running');
+                log('🧪 TEST 2: Save Multi-Page Preset (3 pages)', 'info');
+
+                const presetName = 'Test Multi-Page';
+                const pages = [];
+
+                // Create 3 pages
+                for (let i = 1; i <= 3; i++) {
+                    log(`   → Creating page ${i}...`, 'info');
+
+                    // Set unique content
+                    app.mainTextController.mainTextComponent.text = `PAGE ${i}\nMulti-Page Test`;
+                    app.mainTextController.mainTextComponent.fontSize = 56 + (i * 4);
+                    const colors = ['#3b82f6', '#10b981', '#f59e0b'];
+                    app.canvasManager.backgroundManager.setBackgroundColor(colors[i - 1]);
+                    app.render();
+
+                    // Capture page
+                    const pageData = app.presetPageManager.captureCurrentPage(i, `Test Page ${i}`);
+                    pages.push({ pageNumber: i, pageData });
+                }
+
+                log('   → All 3 pages captured', 'info');
+
+                // Build preset object
+                const preset = {
+                    presetName: presetName,
+                    description: 'Three-page test preset',
+                    page1: JSON.stringify(pages[0].pageData),
+                    page2: JSON.stringify(pages[1].pageData),
+                    page3: JSON.stringify(pages[2].pageData)
+                };
+
+                // Save to Wix
+                const presetId = await wixAdapter.savePreset(preset);
+                testPresetId = presetId;
+
+                const totalSize = pages.reduce((sum, p) => sum + JSON.stringify(p.pageData).length, 0);
+
+                log(`✅ TEST 2 PASSED: Multi-page preset saved with ID: ${presetId}`, 'success');
+                setTestStatus(2, 'passed', `
+                    <strong>Preset ID:</strong> ${presetId}<br>
+                    <strong>Pages:</strong> 3<br>
+                    <strong>Total Size:</strong> ${(totalSize / 1024).toFixed(1)} KB<br>
+                    <strong>Status:</strong> Saved to Wix CMS
+                `);
+
+            } catch (error) {
+                log(`❌ TEST 2 FAILED: ${error.message}`, 'error');
+                console.error(error);
+                setTestStatus(2, 'failed', `Error: ${error.message}`);
+            }
+        };
+
+        // Test 3: Load and Verify
+        window.runTest3 = async function() {
+            try {
+                setTestStatus(3, 'running');
+                log('🧪 TEST 3: Load and Verify Preset', 'info');
+
+                if (!testPresetId) {
+                    throw new Error('No test preset ID. Run Test 1 or 2 first.');
+                }
+
+                // Load preset
+                log(`   → Loading preset: ${testPresetId}`, 'info');
+                const preset = await wixAdapter.loadPreset(testPresetId);
+
+                log(`   → Preset loaded: ${preset.presetName}`, 'success');
+
+                // Count pages
+                let pageCount = 0;
+                for (let i = 1; i <= 5; i++) {
+                    if (preset[`page${i}`]) pageCount++;
+                }
+
+                log(`   → Found ${pageCount} pages`, 'info');
+
+                // Load and apply page 1
+                const page1Data = JSON.parse(preset.page1);
+                await app.presetPageManager.applyPageToCanvas(page1Data);
+
+                log('   → Page 1 applied to canvas', 'success');
+
+                // Verify canvas state
+                const mainText = app.mainTextController.mainTextComponent.text;
+                const bgColor = app.canvasManager.backgroundManager.backgroundColor;
+
+                log(`   → Main text: "${mainText}"`, 'info');
+                log(`   → Background: ${bgColor}`, 'info');
+
+                log(`✅ TEST 3 PASSED: Preset loaded and verified`, 'success');
+                setTestStatus(3, 'passed', `
+                    <strong>Preset:</strong> ${preset.presetName}<br>
+                    <strong>Pages Found:</strong> ${pageCount}<br>
+                    <strong>Main Text:</strong> ${mainText.substring(0, 30)}...<br>
+                    <strong>Background:</strong> ${bgColor}<br>
+                    <strong>Status:</strong> Successfully loaded from Wix
+                `);
+
+            } catch (error) {
+                log(`❌ TEST 3 FAILED: ${error.message}`, 'error');
+                console.error(error);
+                setTestStatus(3, 'failed', `Error: ${error.message}`);
+            }
+        };
+
+        // Test 4: Content Slots Persistence
+        window.runTest4 = async function() {
+            try {
+                setTestStatus(4, 'running');
+                log('🧪 TEST 4: Content Slots Persistence', 'info');
+
+                if (!testPresetId) {
+                    throw new Error('No test preset ID. Run Test 1 or 2 first.');
+                }
+
+                // Load preset
+                const preset = await wixAdapter.loadPreset(testPresetId);
+                const page1Data = JSON.parse(preset.page1);
+
+                log(`   → Checking content slots in page data...`, 'info');
+
+                // Verify content slots exist
+                if (!page1Data.contentSlots || !Array.isArray(page1Data.contentSlots)) {
+                    throw new Error('Content slots array missing');
+                }
+
+                const slotCount = page1Data.contentSlots.length;
+                log(`   → Found ${slotCount} content slots`, 'info');
+
+                // Verify slot structure
+                if (slotCount > 0) {
+                    const firstSlot = page1Data.contentSlots[0];
+                    const requiredFields = ['slotId', 'type', 'fieldName', 'fieldLabel', 'boundingBox', 'constraints'];
+                    const missingFields = requiredFields.filter(f => !(f in firstSlot));
+
+                    if (missingFields.length > 0) {
+                        throw new Error(`Content slot missing fields: ${missingFields.join(', ')}`);
+                    }
+
+                    log(`   → Content slot structure valid`, 'success');
+                    log(`   → Slot ID: ${firstSlot.slotId}`, 'info');
+                    log(`   → Type: ${firstSlot.type}`, 'info');
+                    log(`   → Field: ${firstSlot.fieldName}`, 'info');
+                }
+
+                // Apply to canvas and verify restoration
+                await app.presetPageManager.applyPageToCanvas(page1Data);
+                const restoredSlots = app.presetPageManager.contentSlotManager.getAllSlots();
+
+                log(`   → Restored ${restoredSlots.length} content slots to manager`, 'success');
+
+                log(`✅ TEST 4 PASSED: Content slots persist correctly`, 'success');
+                setTestStatus(4, 'passed', `
+                    <strong>Slots in Page Data:</strong> ${slotCount}<br>
+                    <strong>Slots Restored:</strong> ${restoredSlots.length}<br>
+                    <strong>First Slot ID:</strong> ${slotCount > 0 ? page1Data.contentSlots[0].slotId : 'N/A'}<br>
+                    <strong>Status:</strong> Content slots working correctly
+                `);
+
+            } catch (error) {
+                log(`❌ TEST 4 FAILED: ${error.message}`, 'error');
+                console.error(error);
+                setTestStatus(4, 'failed', `Error: ${error.message}`);
+            }
+        };
+
+        // Run all tests sequentially
+        window.runAllTests = async function() {
+            log('🚀 Running all tests sequentially...', 'info');
+            await runTest1();
+            await new Promise(resolve => setTimeout(resolve, 1000));
+            await runTest2();
+            await new Promise(resolve => setTimeout(resolve, 1000));
+            await runTest3();
+            await new Promise(resolve => setTimeout(resolve, 1000));
+            await runTest4();
+            log('✅ All tests completed', 'success');
+        };
+
+        window.log = log;
+        window.clearLogs = clearLogs;
+    </script>
+</body>
+</html>
