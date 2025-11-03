@@ -544,6 +544,7 @@ class ImageContentController extends ContentController {
                         mediaType: mediaType,
                         mediaUrl: selectedFile.fileUrl, // Store CDN URL
                         fileName: selectedFile.displayName,
+                        mimeType: selectedFile.mimeType || 'video/mp4', // Store mime type for preset saving
                         scale: 1,
                         rotation: 0,
                         autoplay: true,

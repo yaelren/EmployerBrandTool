@@ -289,19 +289,19 @@ class PresetUIComponent {
         const hasCellVideos = this.hasCellVideos();
 
         if (hasBgVideo || hasCellVideos) {
-            let message = '⚠️ Video Content Detected\n\n';
+            let message = '⚠️ Local Video Content Detected\n\n';
 
             if (hasBgVideo && hasCellVideos) {
-                message += 'Background and cell videos cannot be saved in presets.\n';
+                message += 'Local background and cell videos cannot be saved in presets.\n';
             } else if (hasBgVideo) {
-                message += 'Background video cannot be saved in presets.\n';
+                message += 'Local background video cannot be saved in presets.\n';
             } else {
-                message += 'Cell videos cannot be saved in presets.\n';
+                message += 'Local cell videos cannot be saved in presets.\n';
             }
 
-            message += 'The preset will be saved without the videos.\n\n';
-            message += 'Reason: OAuth visitor authentication limitation.\n';
-            message += 'See MEDIA_MANAGER_AUTH_LIMITATION.md for details.\n\n';
+            message += 'The preset will be saved without the local videos.\n\n';
+            message += 'Note: Videos uploaded through Media Manager ARE saved correctly.\n';
+            message += 'Only locally-loaded videos are excluded.\n\n';
             message += 'Continue?';
 
             const proceed = confirm(message);
@@ -511,18 +511,21 @@ class PresetUIComponent {
     }
 
     /**
-     * Check if there are any cell videos
-     * @returns {boolean} True if any cell has video content
+     * Check if there are any cell videos that are NOT from CDN
+     * @returns {boolean} True if any cell has non-CDN video content
      */
     hasCellVideos() {
         if (!this.app.grid) return false;
 
         const allCells = this.app.grid.getAllCells();
         return allCells.some(cell => {
-            return cell &&
-                   cell.type === 'content' &&
-                   cell.content &&
-                   cell.content.media instanceof HTMLVideoElement;
+            if (cell && cell.type === 'content' && cell.content && cell.content.media instanceof HTMLVideoElement) {
+                const videoSrc = cell.content.media.src;
+                // Only warn about videos that are NOT from Wix CDN (those can be saved)
+                // Wix uses both video.wixstatic.com and static.wixstatic.com
+                return !videoSrc || !videoSrc.includes('.wixstatic.com/');
+            }
+            return false;
         });
     }
 

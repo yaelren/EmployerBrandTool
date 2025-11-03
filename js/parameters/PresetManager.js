@@ -234,9 +234,29 @@ class PresetManager {
                 console.log(`🎥 SAVE: Processing cell ${cellData.id} with video`);
                 console.log('   → Video dimensions:', cellData.content.media.videoWidth, 'x', cellData.content.media.videoHeight);
                 console.log('   → Video duration:', cellData.content.media.duration, 'seconds');
-                console.log('   → mediaUrl:', cellData.content.mediaUrl);
-                content.mediaType = 'video';
-                content.media = null; // Remove actual element (mediaUrl is preserved)
+
+                // Check if video is from CDN (via mediaUrl) - if so, preserve it
+                const videoSrc = cellData.content.media.src;
+                const mediaUrl = cellData.content.mediaUrl;
+
+                // Check for Wix CDN URLs (videos use video.wixstatic.com, images use static.wixstatic.com)
+                const isWixCDN = (url) => url && url.includes('.wixstatic.com/');
+
+                if (isWixCDN(videoSrc) || isWixCDN(mediaUrl)) {
+                    // Already a CDN URL - save it directly, no upload needed
+                    console.log('   ✅ Wix CDN video detected - saving directly');
+                    content.videoURL = mediaUrl || videoSrc;
+                    content.mediaType = 'video';
+                    content.media = null;
+                    // Don't set videoElement - no upload needed
+                } else {
+                    // Local video - needs upload (will fail with 403 due to OAuth limitations)
+                    console.log('   ⚠️ Local video detected - will attempt upload');
+                    content.videoElement = cellData.content.media; // Temp ref for upload
+                    content.videoURL = null; // Will be set during cloud upload
+                    content.mediaType = 'video';
+                    content.media = null; // Remove actual element
+                }
             }
         }
 
@@ -772,14 +792,17 @@ class PresetManager {
 
         allCells.forEach(cell => {
             if (cell && cell.type === 'content' && cell.content) {
-                // Restore images - check both mediaUrl (new format) and imageURL (legacy)
-                if (cell.content.mediaUrl || cell.content.imageURL) {
-                    const url = cell.content.mediaUrl || cell.content.imageURL;
-                    this.restoreImageFromURL(cell, url);
-                }
-                // Restore videos - check both mediaUrl (new format) and videoURL (legacy)
+                // Restore videos first (they have priority)
                 if (cell.content.videoURL) {
                     this.restoreVideoFromURL(cell, cell.content.videoURL);
+                }
+                // Restore images - support both imageURL and mediaUrl for compatibility
+                // Only restore as image if no videoURL exists
+                else {
+                    const imageURL = cell.content.imageURL || cell.content.mediaUrl;
+                    if (imageURL) {
+                        this.restoreImageFromURL(cell, imageURL);
+                    }
                 }
             }
         });
@@ -793,8 +816,6 @@ class PresetManager {
      */
     restoreImageFromURL(cell, imageURL) {
         console.log(`🔄 LOAD: Restoring cell image for ${cell.id}...`);
-        console.log('   → URL type:', imageURL.substring(0, 30));
-        console.log('   → URL length:', imageURL.length, 'characters');
 
         const img = new Image();
         img.crossOrigin = 'anonymous'; // Enable CORS for CDN images
@@ -821,22 +842,29 @@ class PresetManager {
      */
     restoreVideoFromURL(cell, videoURL) {
         console.log(`🔄 LOAD: Restoring cell video for ${cell.id}...`);
-        console.log('   → URL type:', videoURL.substring(0, 30));
-        console.log('   → URL length:', videoURL.length, 'characters');
 
         const video = document.createElement('video');
         video.crossOrigin = 'anonymous';
         video.muted = true; // Required for autoplay
-        video.loop = true;
+        video.loop = true; // Always loop
+        video.autoplay = true; // Always autoplay
         video.playsInline = true;
 
         video.addEventListener('loadedmetadata', () => {
             if (cell.content) {
                 cell.content.media = video; // CellRenderer looks for .media
+                cell.content.autoplay = true; // Store in content
+                cell.content.loop = true; // Store in content
 
-                // Start playing
-                video.play().catch(() => {
-                    console.warn(`Autoplay prevented for cell ${cell.id}`);
+                // Start playing immediately
+                video.play().then(() => {
+                    console.log(`   ✅ Video playing for cell ${cell.id}`);
+                }).catch((error) => {
+                    console.warn(`   ⚠️ Autoplay prevented for cell ${cell.id}:`, error.message);
+                    // Try playing again after user interaction
+                    document.addEventListener('click', () => {
+                        video.play().catch(() => {});
+                    }, { once: true });
                 });
 
                 // Trigger render after video loads so it appears on canvas
@@ -1018,26 +1046,26 @@ class PresetManager {
                         const videoSrc = cellData.content.videoElement.src;
 
                         // Check if this is already a CDN URL - if so, save it directly!
-                        if (videoSrc && videoSrc.startsWith('https://static.wixstatic.com/media/')) {
+                        const isWixCDN = (url) => url && url.includes('.wixstatic.com/');
+                        if (isWixCDN(videoSrc)) {
                             console.log(`🎯 SAVE: Cell ${i + 1} - Detected CDN video URL - saving directly (no upload needed)`);
-                            console.log('   → CDN URL:', videoSrc);
-                            console.log('   → URL length:', videoSrc.length, 'bytes');
 
                             cellData.content.videoURL = videoSrc;
                             delete cellData.content.videoElement; // Remove temp reference
                             delete cellData.content.mediaType;
                         } else {
-                            // Upload to Media Manager
+                            // Upload to Media Manager - use stored mime type or detect from video
                             cellVideoCount++;
                             console.log(`📤 SAVE: Uploading cell video ${i + 1}...`);
-                            console.log('   → Cell index:', i);
-                            console.log('   → Video dimensions:', cellData.content.videoElement.videoWidth, 'x', cellData.content.videoElement.videoHeight);
-                            console.log('   → Video duration:', cellData.content.videoElement.duration, 'seconds');
+
+                            // Determine mime type and file extension
+                            const mimeType = cellData.content.mimeType || 'video/mp4';
+                            const extension = mimeType.split('/')[1] || 'mp4'; // Extract extension from mime type
 
                             cellData.content.videoURL = await this.wixAPI.uploadMedia(
                                 cellData.content.videoElement,
-                                `cell-${presetName}-${i}-${Date.now()}.webm`,
-                                'video/webm'
+                                `cell-${presetName}-${i}-${Date.now()}.${extension}`,
+                                mimeType
                             );
 
                             console.log('   ✅ Cell video uploaded, URL length:', cellData.content.videoURL.length, 'characters');
