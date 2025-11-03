@@ -1,0 +1,335 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>End-User Workflow Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 20px auto;
+            padding: 20px;
+        }
+        .section {
+            margin: 20px 0;
+            padding: 20px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+        }
+        .section h2 {
+            margin-top: 0;
+            color: #333;
+        }
+        button {
+            padding: 10px 20px;
+            margin: 5px;
+            background: #3b82f6;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        button:hover {
+            background: #2563eb;
+        }
+        button.secondary {
+            background: #6b7280;
+        }
+        button.secondary:hover {
+            background: #4b5563;
+        }
+        input, textarea {
+            width: 100%;
+            padding: 8px;
+            margin: 5px 0;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+        textarea {
+            min-height: 60px;
+            font-family: inherit;
+        }
+        .form-group {
+            margin: 10px 0;
+        }
+        .form-group label {
+            display: block;
+            font-weight: bold;
+            margin-bottom: 5px;
+            color: #555;
+        }
+        #canvas-container {
+            border: 2px solid #333;
+            background: #f9fafb;
+            margin: 20px 0;
+        }
+        .log {
+            background: #1f2937;
+            color: #10b981;
+            padding: 15px;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+        .log-entry {
+            margin: 2px 0;
+        }
+        .success { color: #10b981; }
+        .error { color: #ef4444; }
+        .info { color: #60a5fa; }
+    </style>
+</head>
+<body>
+    <h1>🎨 End-User Workflow Test</h1>
+    <p>Test the complete preset save/load workflow with content slots</p>
+
+    <!-- Step 1: Designer creates preset with slots -->
+    <div class="section">
+        <h2>Step 1: Designer - Create Preset with Content Slots</h2>
+        <button onclick="designerCreatePreset()">Create Demo Preset</button>
+        <button onclick="showSlots()" class="secondary">Show Content Slots</button>
+        <div id="designer-log" class="log" style="margin-top: 10px;"></div>
+    </div>
+
+    <!-- Step 2: End-user loads preset -->
+    <div class="section">
+        <h2>Step 2: End-User - Load Preset</h2>
+        <button onclick="loadPreset()">Load Preset</button>
+        <div id="load-log" class="log" style="margin-top: 10px;"></div>
+    </div>
+
+    <!-- Step 3: End-user edits content -->
+    <div class="section">
+        <h2>Step 3: End-User - Edit Content</h2>
+        <div class="form-group">
+            <label for="headline-input">Headline Text:</label>
+            <input type="text" id="headline-input" value="My Custom Headline" />
+        </div>
+        <div class="form-group">
+            <label for="description-input">Description Text:</label>
+            <textarea id="description-input">This is my custom description for the hero section.</textarea>
+        </div>
+        <div class="form-group">
+            <label for="image-url-input">Hero Image URL:</label>
+            <input type="text" id="image-url-input"
+                   value="https://images.unsplash.com/photo-1557683316-973673baf926?w=400" />
+        </div>
+        <button onclick="applyUserContent()">Apply Content</button>
+        <div id="apply-log" class="log" style="margin-top: 10px;"></div>
+    </div>
+
+    <!-- Canvas Display -->
+    <div class="section">
+        <h2>Canvas Preview</h2>
+        <div id="canvas-container"></div>
+    </div>
+
+    <!-- Include all necessary scripts -->
+    <script src="js/utils/ColorUtils.js"></script>
+    <script src="js/utils/FontLoader.js"></script>
+    <script src="js/canvas/CanvasManager.js"></script>
+    <script src="js/canvas/DebugController.js"></script>
+    <script src="js/background/BackgroundController.js"></script>
+    <script src="js/text/TextComponent.js"></script>
+    <script src="js/text/SpotTextComponent.js"></script>
+    <script src="js/text/MainTextController.js"></script>
+    <script src="js/grid/GridCell.js"></script>
+    <script src="js/grid/GridSystem.js"></script>
+    <script src="js/grid/CellRenderer.js"></script>
+    <script src="js/layers/LayerController.js"></script>
+    <script src="js/media/MediaController.js"></script>
+    <script src="js/parameters/PresetManager.js"></script>
+    <script src="js/parameters/ContentSlotTypes.js"></script>
+    <script src="js/parameters/ContentSlotManager.js"></script>
+    <script src="js/parameters/PresetPageManager.js"></script>
+    <script src="js/app.js"></script>
+
+    <script>
+        let app;
+        let presetId = 'test-preset-001';
+
+        // Initialize app
+        window.addEventListener('DOMContentLoaded', () => {
+            const container = document.getElementById('canvas-container');
+            app = new App(container, 1080, 1920);
+            app.initialize();
+            log('designer', '✅ App initialized', 'success');
+        });
+
+        // Logging helper
+        function log(section, message, type = 'info') {
+            const logEl = document.getElementById(`${section}-log`);
+            if (logEl) {
+                const entry = document.createElement('div');
+                entry.className = `log-entry ${type}`;
+                entry.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+                logEl.appendChild(entry);
+                logEl.scrollTop = logEl.scrollHeight;
+            }
+            console.log(`[${section}]`, message);
+        }
+
+        // Step 1: Designer creates preset with slots
+        async function designerCreatePreset() {
+            try {
+                log('designer', 'Creating demo preset with content slots...', 'info');
+
+                // Create some demo content
+                // 1. Set up main text
+                if (app.mainTextController) {
+                    app.mainTextController.mainTextComponent.text = 'HERO HEADLINE';
+                    app.mainTextController.mainTextComponent.fontSize = 72;
+                }
+
+                // 2. Add some text cells to grid
+                const cells = app.grid.getAllCells();
+                const textCell1 = cells.find(c => c.type === 'text' && c.id !== 11);
+                if (textCell1) {
+                    if (textCell1.content) {
+                        textCell1.content.text = 'Description text goes here';
+                        textCell1.content.fontSize = 24;
+                    }
+                }
+
+                // 3. Add image to a content cell
+                const contentCell = cells.find(c => c.type === 'content' && c.id !== 1);
+                if (contentCell) {
+                    const img = new Image();
+                    img.crossOrigin = 'anonymous';
+                    img.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAwIiBoZWlnaHQ9IjMwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iNDAwIiBoZWlnaHQ9IjMwMCIgZmlsbD0iIzNiODJmNiIvPjx0ZXh0IHg9IjUwJSIgeT0iNTAlIiBmb250LXNpemU9IjI0IiBmaWxsPSJ3aGl0ZSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZHk9Ii4zZW0iPkRlZmF1bHQgSW1hZ2U8L3RleHQ+PC9zdmc+';
+
+                    contentCell.content = {
+                        type: 'media',
+                        mediaType: 'image',
+                        media: img,
+                        fillMode: 'fit',
+                        scale: 1.0
+                    };
+                }
+
+                app.render();
+                log('designer', '✅ Demo content created', 'success');
+
+                // Create content slots
+                const mainTextCell = cells.find(c => c.type === 'main-text');
+                if (mainTextCell) {
+                    const slot1 = app.presetPageManager.contentSlotManager.createSlotFromCell(mainTextCell, {
+                        fieldName: 'heroHeadline',
+                        fieldLabel: 'Hero Headline',
+                        required: true
+                    });
+                    app.presetPageManager.contentSlotManager.addSlot(slot1);
+                    log('designer', `✅ Created slot: ${slot1.slotId}`, 'success');
+                }
+
+                if (textCell1) {
+                    const slot2 = app.presetPageManager.contentSlotManager.createSlotFromCell(textCell1, {
+                        fieldName: 'heroDescription',
+                        fieldLabel: 'Hero Description',
+                        required: false
+                    });
+                    app.presetPageManager.contentSlotManager.addSlot(slot2);
+                    log('designer', `✅ Created slot: ${slot2.slotId}`, 'success');
+                }
+
+                if (contentCell) {
+                    const slot3 = app.presetPageManager.contentSlotManager.createSlotFromCell(contentCell, {
+                        fieldName: 'heroImage',
+                        fieldLabel: 'Hero Image',
+                        required: false
+                    });
+                    app.presetPageManager.contentSlotManager.addSlot(slot3);
+                    log('designer', `✅ Created slot: ${slot3.slotId}`, 'success');
+                }
+
+                // Capture page with slots
+                const pageData = app.presetPageManager.captureCurrentPage(1, 'Hero Page');
+                log('designer', `✅ Captured page with ${pageData.contentSlots.length} slots`, 'success');
+
+                // Save preset (localStorage for demo)
+                await app.presetPageManager.savePresetToCMS({
+                    _id: presetId,
+                    presetName: 'Demo Hero Preset',
+                    page1: JSON.stringify(pageData)
+                });
+
+                log('designer', `✅ Preset saved: ${presetId}`, 'success');
+                log('designer', '🎉 Designer workflow complete!', 'success');
+
+            } catch (error) {
+                log('designer', `❌ Error: ${error.message}`, 'error');
+                console.error(error);
+            }
+        }
+
+        function showSlots() {
+            const slots = app.presetPageManager.contentSlotManager.getAllSlots();
+            log('designer', `📋 Content Slots (${slots.length}):`, 'info');
+            slots.forEach(slot => {
+                log('designer', `  - ${slot.fieldLabel} (${slot.type}): ${slot.slotId}`, 'info');
+            });
+        }
+
+        // Step 2: Load preset
+        async function loadPreset() {
+            try {
+                log('load', 'Loading preset...', 'info');
+
+                const pageData = await app.presetPageManager.loadPage(presetId, 1);
+
+                log('load', `✅ Loaded: ${pageData.pageName}`, 'success');
+                log('load', `✅ Restored ${pageData.contentSlots.length} content slots`, 'success');
+
+                const slots = app.presetPageManager.contentSlotManager.getAllSlots();
+                slots.forEach(slot => {
+                    log('load', `  - ${slot.fieldLabel}: ${slot.fieldName}`, 'info');
+                });
+
+                log('load', '🎉 Preset loaded successfully!', 'success');
+
+            } catch (error) {
+                log('load', `❌ Error: ${error.message}`, 'error');
+                console.error(error);
+            }
+        }
+
+        // Step 3: Apply user content
+        function applyUserContent() {
+            try {
+                log('apply', 'Applying user content to slots...', 'info');
+
+                const headline = document.getElementById('headline-input').value;
+                const description = document.getElementById('description-input').value;
+                const imageUrl = document.getElementById('image-url-input').value;
+
+                // Find slot IDs
+                const slots = app.presetPageManager.contentSlotManager.getAllSlots();
+                const headlineSlot = slots.find(s => s.fieldName === 'heroHeadline');
+                const descSlot = slots.find(s => s.fieldName === 'heroDescription');
+                const imageSlot = slots.find(s => s.fieldName === 'heroImage');
+
+                const slotData = {};
+                if (headlineSlot) slotData[headlineSlot.slotId] = headline;
+                if (descSlot) slotData[descSlot.slotId] = description;
+                if (imageSlot) slotData[imageSlot.slotId] = imageUrl;
+
+                log('apply', `Applying content to ${Object.keys(slotData).length} slots...`, 'info');
+
+                const appliedCount = app.presetPageManager.applyContentToSlots(slotData);
+
+                log('apply', `✅ Applied ${appliedCount} content updates`, 'success');
+                log('apply', '🎉 Canvas updated with your content!', 'success');
+
+            } catch (error) {
+                log('apply', `❌ Error: ${error.message}`, 'error');
+                console.error(error);
+            }
+        }
+    </script>
+</body>
+</html>
