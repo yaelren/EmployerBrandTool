@@ -16,6 +16,9 @@ class PresetPageManager {
         this.app = app;
         this.presetManager = app.presetManager;
 
+        // Content Slots Manager (v3)
+        this.contentSlotManager = new ContentSlotManager(app);
+
         // Validation constants
         this.MAX_PAGES = 5;
         this.MAX_PAGE_SIZE = 60000; // 60KB safety margin (Wix Rich Content limit: 64KB)
@@ -45,11 +48,18 @@ class PresetPageManager {
             grid: canvasState.grid,
             layers: canvasState.layers,
 
-            // Export settings
-            exportFormat: this.presetManager.exportFormat || 'png',
-            exportDuration: this.presetManager.exportDuration || null,
+            // Export configuration (v3)
+            exportConfig: {
+                defaultFormat: this.presetManager.exportFormat || 'image',
+                videoDuration: this.presetManager.exportFormat === 'video' ? (this.presetManager.exportDuration || 5) : null,
+                videoFPS: 60,
+                imageFormat: 'png'
+            },
 
-            // Editable fields configuration (initially all locked)
+            // Content Slots (v3) - initially empty, populated by designer
+            contentSlots: [...this.contentSlotManager.getAllSlots()],
+
+            // Editable fields configuration (legacy - kept for backwards compatibility)
             editableFields: {
                 mainText: {
                     editable: false,
@@ -213,6 +223,77 @@ class PresetPageManager {
             exportFormat: pageData.exportFormat,
             exportDuration: pageData.exportDuration
         });
+
+        // Restore content slots (v3)
+        if (pageData.contentSlots && Array.isArray(pageData.contentSlots)) {
+            this.contentSlotManager.clearSlots();
+            pageData.contentSlots.forEach(slot => {
+                this.contentSlotManager.addSlot(slot);
+            });
+            console.log(`✅ Restored ${pageData.contentSlots.length} content slots`);
+        }
+    }
+
+    /**
+     * Apply user-provided content to content slots
+     * This is called by the end-user to fill in editable fields
+     * @param {Object} slotData - Map of {slotId: contentValue}
+     * @example
+     * applyContentToSlots({
+     *   'slot-hero-headline': 'Welcome to Our Company',
+     *   'slot-hero-image': 'https://example.com/image.jpg'
+     * })
+     */
+    applyContentToSlots(slotData) {
+        const slots = this.contentSlotManager.getAllSlots();
+        let appliedCount = 0;
+
+        slots.forEach(slot => {
+            if (slotData.hasOwnProperty(slot.slotId)) {
+                const newContent = slotData[slot.slotId];
+
+                // Find the cell using contentId (UUID - survives rebuilds)
+                const cell = this.contentSlotManager.findCellByContentId(slot.sourceContentId);
+
+                if (!cell) {
+                    console.warn(`Cell not found for slot: ${slot.slotId} (contentId: ${slot.sourceContentId})`);
+                    return;
+                }
+
+                // Apply content based on slot type
+                if (slot.type === 'text') {
+                    // Apply text content
+                    if (cell.type === 'main-text' && cell.mainTextComponent) {
+                        cell.mainTextComponent.text = newContent;
+                    } else if (cell.content) {
+                        cell.content.text = newContent;
+                    }
+                    appliedCount++;
+                } else if (slot.type === 'image') {
+                    // Apply image content
+                    if (cell.content) {
+                        // If newContent is a URL, create an Image element
+                        if (typeof newContent === 'string') {
+                            const img = new Image();
+                            img.crossOrigin = 'anonymous';
+                            img.src = newContent;
+                            cell.content.media = img;
+                            cell.content.mediaUrl = newContent;
+                        } else if (newContent instanceof HTMLImageElement) {
+                            cell.content.media = newContent;
+                            cell.content.mediaUrl = newContent.src;
+                        }
+                        appliedCount++;
+                    }
+                }
+            }
+        });
+
+        // Re-render the canvas with new content
+        this.app.render();
+
+        console.log(`✅ Applied content to ${appliedCount}/${Object.keys(slotData).length} slots`);
+        return appliedCount;
     }
 
     /**
