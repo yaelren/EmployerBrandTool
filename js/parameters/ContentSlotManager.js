@@ -113,8 +113,12 @@ class ContentSlotManager {
         const fontSize = cell.textComponent?.fontSize || cell.content?.fontSize || 16;
         const fontFamily = cell.textComponent?.fontFamily || cell.content?.fontFamily || 'Arial';
         const fontWeight = cell.textComponent?.fontWeight || cell.content?.fontWeight || 'normal';
-        const alignment = cell.textComponent?.alignH || cell.content?.align || 'center';
-        const padding = cell.padding || 0;
+        const textAlign = cell.textComponent?.alignH || cell.content?.textAlign || 'center';
+        const padding = cell.content?.padding || cell.padding || 0;
+
+        // Get positioning properties (where in cell to position text)
+        const positionH = cell.content?.positionH || 'center';
+        const positionV = cell.content?.positionV || 'middle';
 
         // Set font for measurement
         ctx.font = `${fontWeight} ${fontSize}px ${fontFamily}`;
@@ -134,36 +138,84 @@ class ContentSlotManager {
             textHeight = hasCapitals ? fontSize * 0.72 : fontSize * 0.5; // capHeight ≈ 0.72em, xHeight ≈ 0.5em
         }
 
-        // Calculate position based on alignment within cell
+        // Calculate content area (cell minus padding)
         const contentX = cell.bounds.x + padding;
         const contentY = cell.bounds.y + padding;
         const contentWidth = cell.bounds.width - padding * 2;
         const contentHeight = cell.bounds.height - padding * 2;
 
-        let x, y;
+        // Calculate text position based on positionH and positionV
+        let textX, textY;
 
-        // Horizontal positioning
-        switch (alignment) {
+        // Horizontal positioning (where in cell)
+        switch (positionH) {
             case 'left':
-                x = contentX;
+                // Text starts at left edge
+                switch (textAlign) {
+                    case 'left':
+                        textX = contentX;
+                        break;
+                    case 'right':
+                        textX = contentX - textWidth;
+                        break;
+                    case 'center':
+                    default:
+                        textX = contentX - textWidth / 2;
+                        break;
+                }
                 break;
             case 'right':
-                x = contentX + contentWidth - textWidth;
+                // Text aligned to right edge
+                switch (textAlign) {
+                    case 'left':
+                        textX = contentX + contentWidth;
+                        break;
+                    case 'right':
+                        textX = contentX + contentWidth - textWidth;
+                        break;
+                    case 'center':
+                    default:
+                        textX = contentX + contentWidth - textWidth / 2;
+                        break;
+                }
                 break;
             case 'center':
             default:
-                x = contentX + (contentWidth - textWidth) / 2;
+                // Text centered in cell
+                switch (textAlign) {
+                    case 'left':
+                        textX = contentX + (contentWidth - textWidth) / 2;
+                        break;
+                    case 'right':
+                        textX = contentX + (contentWidth + textWidth) / 2 - textWidth;
+                        break;
+                    case 'center':
+                    default:
+                        textX = contentX + (contentWidth - textWidth) / 2;
+                        break;
+                }
                 break;
         }
 
-        // Vertical positioning (center for now)
-        y = contentY + (contentHeight - textHeight) / 2;
+        // Vertical positioning (where in cell)
+        switch (positionV) {
+            case 'top':
+                textY = contentY;
+                break;
+            case 'bottom':
+                textY = contentY + contentHeight - textHeight;
+                break;
+            case 'middle':
+            default:
+                textY = contentY + (contentHeight - textHeight) / 2;
+                break;
+        }
 
         ctx.restore();
 
         return {
-            x: x,
-            y: y,
+            x: textX,
+            y: textY,
             width: textWidth,
             height: textHeight
         };
