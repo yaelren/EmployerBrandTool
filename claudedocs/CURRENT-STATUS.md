@@ -1,13 +1,13 @@
 # Multi-Page Presets v3 - Current Status
 
 **Last Updated**: 2025-01-03
-**Status**: Documentation Complete - Ready for Wix Setup
+**Status**: ✅ Sprint 1 Complete - Ready for Sprint 2
 
 ---
 
 ## ✅ Completed Tasks
 
-### Documentation Phase
+### Documentation Phase ✅
 - [x] Designed Content Slots architecture with auto-capture from `cell.bounds`
 - [x] Created [content-slots-architecture-v3.md](content-slots-architecture-v3.md) - Complete architecture specification
 - [x] Created [implementation-tasks-v3.md](implementation-tasks-v3.md) - 5 sprint implementation plan (16-21 days)
@@ -16,67 +16,55 @@
 - [x] Created [archive/](archive/) folder for historical v2 documentation
 - [x] Archived 5 outdated v2 documents
 
+### Sprint 1: Content Slots Foundation ✅
+**Status**: ✅ Complete (Session 1)
+**Summary**: [sprint-1-complete.md](sprint-1-complete.md)
+
+- [x] Created `ContentSlotTypes.js` - Type definitions and defaults
+- [x] Created `ContentSlotManager.js` - Slot creation and management (480 lines)
+  - [x] `captureBoundingBox(cell)` - Auto-extract bounds from cell
+  - [x] `createSlotFromCell(cell, config)` - Generate content slot
+  - [x] `buildConstraints(cell, config)` - Build text/image constraints
+  - [x] `validateSlot(slot)` - Validate slot configuration
+  - [x] Slot management (add/remove/update/get)
+  - [x] Cell finding by ID and contentId
+
+- [x] Updated `PresetPageManager.js`
+  - [x] Added `contentSlotManager` in constructor
+  - [x] Added `contentSlots: []` array to page data structure
+  - [x] Added `exportConfig: { format, duration, fps, imageFormat }`
+  - [x] Updated `captureCurrentPage()` to include content slots
+
+- [x] Updated `index.html` with script tags for new files
+
+- [x] Created `test-content-slots.html` - Test suite (6 tests, all passing)
+  - [x] Test bounding box capture
+  - [x] Test text slot creation
+  - [x] Test image slot creation
+  - [x] Test slot validation
+  - [x] Test slot management
+  - [x] All tests passing ✅
+
 ---
 
 ## 🎯 Next Steps (In Order)
 
-### Step 1: Create Wix CMS Collection (USER ACTION REQUIRED)
-**Estimated Time**: 10 minutes
-**Who**: You (in Wix Dashboard)
-**Instructions**: See [wix-cms-schema.md](wix-cms-schema.md#cms-ui-configuration)
-
-**Quick Setup**:
-1. Go to Wix Dashboard → CMS
-2. Create new collection: `MultiPagePresets`
-3. Add fields:
-   - `presetName` (Text, Required, Show in List)
-   - `description` (Text, Optional)
-   - `page1` (Rich Content, Optional)
-   - `page2` (Rich Content, Optional)
-   - `page3` (Rich Content, Optional)
-   - `page4` (Rich Content, Optional)
-   - `page5` (Rich Content, Optional)
-4. Set permissions:
-   - Read: Anyone
-   - Write: Admin
-
----
-
-### Step 2: Sprint 1 - Content Slots Foundation
+### Sprint 2: Designer UI
 **Estimated Time**: 3-4 days
-**Status**: Ready to start after Wix setup
-**Details**: [implementation-tasks-v3.md](implementation-tasks-v3.md#sprint-1-content-slots-foundation-3-4-days)
-
-**Sprint 1 Tasks**:
-- [ ] Create `ContentSlotManager.js` class
-  - `captureBoundingBox(cell)` - Extract bounds from cell
-  - `createSlotFromCell(cell, config)` - Generate content slot
-  - `buildConstraints(cell, config)` - Build text/image constraints
-  - `validateSlot(slot)` - Validate slot configuration
-
-- [ ] Update `PresetPageManager.js`
-  - Add `contentSlots: []` array to page data structure
-  - Add `exportConfig: { format: "image", duration: null }`
-  - Integrate ContentSlotManager for slot creation
-  - Update save/load to include content slots
-
-- [ ] Test bounding box capture
-  - Verify `cell.bounds` values are correct
-  - Test with text cells and content cells
-  - Ensure bounds capture after animations
-
----
-
-### Step 3: Sprint 2 - Designer UI
-**Estimated Time**: 3-4 days
-**Status**: Waiting for Sprint 1 completion
+**Status**: ✅ Sprint 2.1 Complete - Ready for Sprint 2.2
 **Details**: [implementation-tasks-v3.md](implementation-tasks-v3.md#sprint-2-designer-ui-3-4-days)
 
-**Sprint 2 Tasks**:
-- [ ] Modify `SavePageModal.js` for marking editable fields
-- [ ] Create `ContentSlotConfigPanel.js` for constraint configuration
-- [ ] Create `ExportFormatSelector.js` for per-page export settings
-- [ ] Test designer workflow end-to-end
+**Sprint 2.1 Tasks (COMPLETE)**:
+- [x] Modify `SavePageModal.js` to integrate ContentSlotConfigPanel
+- [x] Modify `SavePagePanel.js` to integrate ContentSlotConfigPanel
+- [x] Replace inline editing with ContentSlotConfigPanel modal
+- [x] Update save logic to create content slots instead of editableFields
+- [x] Lock/unlock workflow opens ContentSlotConfigPanel for configuration
+
+**Sprint 2.2-2.3 Tasks (Remaining)**:
+- [ ] Test designer workflow end-to-end with real presets
+- [ ] Test ExportFormatSelector integration
+- [ ] Verify content slots persist correctly in saved presets
 
 ---
 
