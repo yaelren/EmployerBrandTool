@@ -899,6 +899,11 @@ class EmployerBrandToolPOC {
                 this.renderHoverOutline(this.canvasManager.ctx, this.hoveredCell);
             }
 
+            // 🎯 Refresh content slot overlay if enabled
+            if (this.contentSlotOverlay) {
+                this.contentSlotOverlay.refresh();
+            }
+
         } catch (error) {
             console.error('❌ Render failed:', error);
         }

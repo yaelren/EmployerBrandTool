@@ -76,10 +76,24 @@ class ContentSlotManager {
      * @private
      */
     _captureTextBounds(cell) {
-        // For main-text cells, use textComponent's typography-aware calculation
-        if (cell.textComponent && cell.textComponent.calculateTextBoundsPerLine) {
+        // 🎯 FIXED: TextComponent container may not be set, use cell bounds directly
+        // For main text cells and content cells with text, calculate tight bounds
+        
+        // First, ensure TextComponent container is synced with cell bounds
+        if (cell.textComponent && cell.bounds) {
+            // Sync container to cell bounds if not already set
+            if (cell.textComponent.containerWidth === 0 || cell.textComponent.containerHeight === 0) {
+                cell.textComponent.setContainer(
+                    cell.bounds.x,
+                    cell.bounds.y,
+                    cell.bounds.width,
+                    cell.bounds.height
+                );
+            }
+            
+            // Now use getTextBounds() with proper container
             const ctx = this.app.canvasManager.ctx;
-            const textBounds = cell.textComponent.calculateTextBoundsPerLine(ctx);
+            const textBounds = cell.textComponent.getTextBounds(ctx);
 
             if (textBounds && textBounds.length > 0) {
                 // Calculate bounding box that encompasses all lines
@@ -270,9 +284,18 @@ class ContentSlotManager {
                 break;
             case 'fit':
             default:
-                // Free mode: scale from natural image dimensions
-                drawWidth = mediaWidth * scale;
-                drawHeight = mediaHeight * scale;
+                // 🎯 FIX: Cell-relative scaling to match CellRenderer behavior
+                // First fit to cell dimensions, THEN apply scale multiplier
+                // This ensures bounding box matches what's actually rendered
+                if (mediaAspect > contentAspect) {
+                    // Media is wider - fit to width, then scale
+                    drawWidth = contentWidth * scale;
+                    drawHeight = (contentWidth / mediaAspect) * scale;
+                } else {
+                    // Media is taller - fit to height, then scale
+                    drawWidth = (contentHeight * mediaAspect) * scale;
+                    drawHeight = contentHeight * scale;
+                }
                 break;
         }
 

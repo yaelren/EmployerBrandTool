@@ -96,6 +96,16 @@ class ContentSlotOverlay {
     }
 
     /**
+     * Refresh overlay (re-render if enabled)
+     * Call this when grid content changes
+     */
+    refresh() {
+        if (this.enabled) {
+            this.render();
+        }
+    }
+
+    /**
      * Clear overlay
      */
     clear() {
@@ -104,6 +114,7 @@ class ContentSlotOverlay {
 
     /**
      * Render all content slots
+     * 🎯 ENHANCED: Shows ALL content in grid (registered and unregistered)
      */
     render() {
         if (!this.enabled) return;
@@ -111,24 +122,145 @@ class ContentSlotOverlay {
         this.clear();
         this.updateSize();
 
-        const slots = this.contentSlotManager.getAllSlots();
+        // Get ALL content bounds from grid (not just registered slots)
+        const allContentBounds = this.getAllContentBounds();
 
-        if (slots.length === 0) {
-            // Show message when no slots
-            this.renderNoSlotsMessage();
+        if (allContentBounds.length === 0) {
+            // Show message when no content
+            this.renderNoContentMessage();
             return;
         }
 
-        // Draw each slot
-        slots.forEach((slot, index) => {
-            this.renderSlot(slot, index);
+        // Draw each content item
+        allContentBounds.forEach((item, index) => {
+            this.renderContentBounds(item, index);
         });
     }
 
     /**
-     * Render "No slots configured" message
+     * Get bounding boxes for ALL content in grid (not just registered slots)
+     * @returns {Array} Array of content bound objects
      */
-    renderNoSlotsMessage() {
+    getAllContentBounds() {
+        const bounds = [];
+        
+        // Get grid directly from app (not gridManager)
+        const grid = this.app.grid;
+        if (!grid || !grid.layerManager) return bounds;
+        
+        // Main text (if exists and has content)
+        // Main text is stored in the 'main-text' layer
+        // 🎯 FIX: Loop through ALL cells in main-text layer, not just first one
+        const mainTextLayer = grid.layerManager.getLayer('main-text');
+        if (mainTextLayer && mainTextLayer.getCellCount() > 0) {
+            const mainTextCells = mainTextLayer.getCells();
+            mainTextCells.forEach((cell, index) => {
+                if (cell && cell.text && cell.text.trim()) {
+                    try {
+                        const bbox = this.contentSlotManager.captureBoundingBox(cell);
+                        bounds.push({
+                            bounds: bbox,
+                            type: 'text',
+                            label: index === 0 ? 'Main Text' : `Main Text Line ${index + 1}`,
+                            isRegistered: this.isRegisteredSlot(cell),
+                            cell: cell
+                        });
+                    } catch (error) {
+                        console.warn(`Failed to capture main text cell ${cell.id} bounds:`, error);
+                    }
+                }
+            });
+        }
+        
+        // All content cells (iterate through all layers except main-text)
+        const allLayers = grid.layerManager.getAllLayers();
+        allLayers.forEach(layer => {
+            // Skip main-text layer (already handled above)
+            if (layer.id === 'main-text') return;
+            
+            // Get cells from layer (cells is a Set, use getCells())
+            const layerCells = layer.getCells();
+            layerCells.forEach(cell => {
+                // Skip empty cells
+                if (cell.contentType === 'empty') return;
+
+                // Skip text cells without actual text
+                // 🎯 FIX: For content cells, text is in cell.content.text, not cell.text
+                if (cell.contentType === 'text' && (!cell.content || !cell.content.text || !cell.content.text.trim())) return;
+
+                // Skip media cells without media
+                if (cell.contentType === 'media' && (!cell.content || !cell.content.media)) return;
+                
+                try {
+                    const bbox = this.contentSlotManager.captureBoundingBox(cell);
+                    bounds.push({
+                        bounds: bbox,
+                        type: cell.contentType,
+                        label: this.getContentLabel(cell),
+                        isRegistered: this.isRegisteredSlot(cell),
+                        cell: cell
+                    });
+                } catch (error) {
+                    console.warn(`Failed to capture bounds for cell ${cell.id}:`, error);
+                }
+            });
+        });
+        
+        return bounds;
+    }
+
+    /**
+     * Check if cell is registered as content slot
+     * @param {GridCell} cell - Cell to check
+     * @returns {boolean} True if registered
+     */
+    isRegisteredSlot(cell) {
+        const slots = this.contentSlotManager.getAllSlots();
+        return slots.some(slot => 
+            slot.sourceContentId === cell.contentId || 
+            slot.sourceElement === cell.id ||
+            (cell.type === 'main-text' && slot.sourceElement === 'main-text')
+        );
+    }
+
+    /**
+     * Get descriptive label for content
+     * @param {GridCell} cell - Cell to get label for
+     * @returns {string} Label text
+     */
+    getContentLabel(cell) {
+        // Check if registered and has field label
+        const slots = this.contentSlotManager.getAllSlots();
+        const registeredSlot = slots.find(slot => 
+            slot.sourceContentId === cell.contentId || 
+            slot.sourceElement === cell.id
+        );
+        
+        if (registeredSlot && registeredSlot.fieldLabel) {
+            return registeredSlot.fieldLabel;
+        }
+        
+        // Default labels based on content type
+        switch (cell.contentType) {
+            case 'text':
+                return `Text Cell ${cell.id || ''}`;
+            case 'media':
+                const mediaType = cell.content?.mediaType || 'media';
+                return `${mediaType} (${cell.id || ''})`;
+            case 'fill':
+                return `Fill (${cell.id || ''})`;
+            case 'mask':
+                return `Mask (${cell.id || ''})`;
+            default:
+                return `Content (${cell.id || ''})`;
+        }
+    }
+
+    /**
+     * Render "No content found" message
+     * 🎯 UPDATED: Changed message to reflect showing all content
+     */
+    renderNoContentMessage() {
         const ctx = this.overlayCtx;
         const canvas = this.overlayCanvas;
 
@@ -157,12 +289,12 @@ class ContentSlotOverlay {
         ctx.fillStyle = '#1e40af';
         ctx.font = 'bold 18px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
         ctx.textAlign = 'center';
-        ctx.fillText('No Content Slots Configured', canvas.width / 2, y + 40);
+        ctx.fillText('No Content Found', canvas.width / 2, y + 40);
 
         ctx.fillStyle = '#6b7280';
         ctx.font = '14px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
-        ctx.fillText('Click on cells and configure them', canvas.width / 2, y + 65);
-        ctx.fillText('as editable content slots', canvas.width / 2, y + 85);
+        ctx.fillText('Add text or media to cells to see', canvas.width / 2, y + 65);
+        ctx.fillText('their tight bounding boxes here', canvas.width / 2, y + 85);
 
         ctx.restore();
     }
@@ -220,6 +352,83 @@ class ContentSlotOverlay {
 
         // Constraints indicator (bottom-right)
         this.drawConstraintsIndicator(slot, bounds, color);
+
+        ctx.restore();
+    }
+
+    /**
+     * Render content bounds (supports both registered and unregistered content)
+     * 🎯 NEW: Renders any content with visual distinction for registration status
+     * @param {Object} item - Content item with bounds, type, label, isRegistered
+     * @param {number} index - Index for color variation
+     */
+    renderContentBounds(item, index) {
+        const ctx = this.overlayCtx;
+        const bounds = item.bounds;
+
+        ctx.save();
+
+        // Color selection
+        const isText = item.type === 'text';
+        const baseColor = isText ? '#3b82f6' : '#8b5cf6'; // Blue for text, Purple for media
+        const color = item.isRegistered ? baseColor : '#94a3b8'; // Gray for unregistered
+
+        // Draw bounding box
+        ctx.strokeStyle = color;
+        ctx.lineWidth = item.isRegistered ? 3 : 2;
+        ctx.setLineDash(item.isRegistered ? [8, 4] : [4, 4]); // Different dash pattern
+
+        // Glow effect only for registered slots
+        if (item.isRegistered) {
+            ctx.shadowColor = color;
+            ctx.shadowBlur = 10;
+        }
+        
+        ctx.strokeRect(bounds.x, bounds.y, bounds.width, bounds.height);
+        ctx.shadowBlur = 0;
+
+        // Label
+        const labelPadding = 8;
+        const labelHeight = 24;
+        const labelPrefix = item.isRegistered ? '✓ ' : '';
+        const labelText = `${labelPrefix}${item.label}`;
+
+        ctx.font = item.isRegistered 
+            ? 'bold 12px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif'
+            : '12px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
+        const labelWidth = ctx.measureText(labelText).width + labelPadding * 2;
+
+        // Position label at top-left of bounds
+        const labelX = bounds.x;
+        const labelY = bounds.y - labelHeight - 4;
+
+        // Label background
+        ctx.fillStyle = color;
+        ctx.fillRect(labelX, labelY, labelWidth, labelHeight);
+
+        // Label text
+        ctx.fillStyle = 'white';
+        ctx.textAlign = 'left';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(labelText, labelX + labelPadding, labelY + labelHeight / 2);
+
+        // Corner indicators (stronger for registered)
+        this.drawCornerIndicators(bounds, color);
+
+        // Constraints indicator only for registered slots
+        if (item.isRegistered) {
+            // Find the registered slot to get constraints
+            const slots = this.contentSlotManager.getAllSlots();
+            const registeredSlot = slots.find(slot => 
+                slot.sourceContentId === item.cell.contentId || 
+                slot.sourceElement === item.cell.id ||
+                (item.cell.type === 'main-text' && slot.sourceElement === 'main-text')
+            );
+            
+            if (registeredSlot) {
+                this.drawConstraintsIndicator(registeredSlot, bounds, color);
+            }
+        }
 
         ctx.restore();
     }
