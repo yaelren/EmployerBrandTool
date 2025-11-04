@@ -45,7 +45,8 @@ class ContentSlotManager {
                     return this._captureTextBounds(cell);
                 }
                 // Image/media content
-                if (cell.content.type === 'media' || cell.content.mediaType) {
+                // 🎯 FIX: Old presets don't set content.type or content.mediaType, only content.media
+                if (cell.content.type === 'media' || cell.content.mediaType || cell.content.media) {
                     return this._captureMediaBounds(cell);
                 }
             }
