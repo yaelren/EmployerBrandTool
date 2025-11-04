@@ -229,9 +229,17 @@ class CellRenderer {
                 
             case 'fit':
             default:
-                // Free mode: scale from natural image dimensions (can exceed cell boundaries)
-                drawWidth = mediaWidth * scale;
-                drawHeight = mediaHeight * scale;
+                // Free: Maintain aspect ratio, fit within spot (scale can exceed boundaries)
+                // Cell-relative scaling: scale is relative to cell dimensions
+                if (mediaAspect > contentAspect) {
+                    // Media is wider than content area
+                    drawWidth = contentWidth * scale;
+                    drawHeight = (contentWidth / mediaAspect) * scale;
+                } else {
+                    // Media is taller than content area
+                    drawWidth = (contentHeight * mediaAspect) * scale;
+                    drawHeight = contentHeight * scale;
+                }
                 break;
         }
 
