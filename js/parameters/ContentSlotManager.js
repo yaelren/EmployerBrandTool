@@ -118,7 +118,44 @@ class ContentSlotManager {
             }
         }
 
-        // For content cells with text, calculate accurate bounds using Canvas text metrics
+        // 🎯 FIX: For content cells, try to use textComponent if available (like renderer does)
+        // If textComponent exists and has getTextBounds, use it for accurate positioning
+        if (cell.textComponent && cell.textComponent.getTextBounds) {
+            // Ensure container is synced
+            if (cell.textComponent.containerWidth === 0 || cell.textComponent.containerHeight === 0) {
+                cell.textComponent.setContainer(
+                    cell.bounds.x,
+                    cell.bounds.y,
+                    cell.bounds.width,
+                    cell.bounds.height
+                );
+            }
+
+            const ctx = this.app.canvasManager.ctx;
+            const textBounds = cell.textComponent.getTextBounds(ctx);
+
+            if (textBounds && textBounds.length > 0) {
+                // Calculate encompassing box for all lines
+                let minX = Infinity, minY = Infinity;
+                let maxX = -Infinity, maxY = -Infinity;
+
+                textBounds.forEach(lineBounds => {
+                    minX = Math.min(minX, lineBounds.x);
+                    minY = Math.min(minY, lineBounds.y);
+                    maxX = Math.max(maxX, lineBounds.x + lineBounds.width);
+                    maxY = Math.max(maxY, lineBounds.y + lineBounds.height);
+                });
+
+                return {
+                    x: minX,
+                    y: minY,
+                    width: maxX - minX,
+                    height: maxY - minY
+                };
+            }
+        }
+
+        // Fallback: For content cells without textComponent, calculate bounds manually
         const ctx = this.app.canvasManager.ctx;
         ctx.save();
 
@@ -244,7 +281,8 @@ class ContentSlotManager {
         if (!content) return this._copyBounds(cell.bounds);
 
         // Get padding and content area
-        const padding = cell.padding || 0;
+        // 🎯 FIX: Padding is stored in cell.content.padding for content cells
+        const padding = content.padding || cell.padding || 0;
         const contentX = cell.bounds.x + padding;
         const contentY = cell.bounds.y + padding;
         const contentWidth = cell.bounds.width - padding * 2;
@@ -343,6 +381,26 @@ class ContentSlotManager {
             finalY = Math.max(finalY, contentY);
             finalWidth = right - finalX;
             finalHeight = bottom - finalY;
+        }
+
+        // 🎯 FIX: Account for rotation - transform bounding box
+        const rotation = content.rotation || 0;
+        if (rotation !== 0) {
+            // Calculate rotated bounding box
+            // Rotation happens around the center point (anchorX, anchorY)
+            const angle = (rotation * Math.PI) / 180;
+            const cos = Math.abs(Math.cos(angle));
+            const sin = Math.abs(Math.sin(angle));
+
+            // Rotated bounds width/height (axis-aligned bounding box)
+            const rotatedWidth = finalWidth * cos + finalHeight * sin;
+            const rotatedHeight = finalWidth * sin + finalHeight * cos;
+
+            // Update bounds to encompass rotated rectangle
+            finalX = anchorX - rotatedWidth / 2;
+            finalY = anchorY - rotatedHeight / 2;
+            finalWidth = rotatedWidth;
+            finalHeight = rotatedHeight;
         }
 
         return {
