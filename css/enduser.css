@@ -191,6 +191,7 @@ body {
     align-items: center;
     justify-content: center;
     overflow: hidden; /* Prevent container from overflowing */
+    min-height: 0; /* Allow flex item to shrink below content size */
 }
 
 /* Constrain Chatooly container to fit within canvas area */

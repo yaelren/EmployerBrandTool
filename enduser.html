@@ -1,66 +1,48 @@
 <!DOCTYPE html>
+<!--
+    Chatooly Tool Template - End User Interface
+    Author: Yael Renous - Studio Video
+    Sprint 4: End-User Interface
+
+    This is the simplified end-user interface for filling content slots.
+    Designer controls have been removed - users can only:
+    1. Select a preset
+    2. Fill content slots via forms
+    3. Navigate between pages
+    4. Preview and export
+-->
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Employee Spotlight - Employer Brand Tool</title>
 
-    <!-- Google Fonts -->
+    <title>Employer Brand Tool - Fill Content</title>
+
+    <!-- ========== Import Map for Wix SDK (Cloud Presets) ========== -->
+    <script type="importmap">
+    {
+        "imports": {
+            "@wix/sdk": "https://cdn.jsdelivr.net/npm/@wix/sdk@1.17.1/+esm",
+            "@wix/data": "https://cdn.jsdelivr.net/npm/@wix/data@1.0.306/+esm",
+            "@wix/media": "https://cdn.jsdelivr.net/npm/@wix/media@1.0.195/+esm"
+        }
+    }
+    </script>
+
+    <!-- ========== Google Fonts ========== -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Wix+Madefor+Display:wght@400..800&family=Wix+Madefor+Text:ital,wght@0,400..800;1,400..800&display=swap" rel="stylesheet">
 
-    <!-- Chatooly CDN Styles -->
+    <!-- ========== Required CDN Styles ========== -->
     <link rel="stylesheet" href="https://yaelren.github.io/chatooly-cdn/css/unified.min.css">
 
-    <!-- End-User Custom Styles -->
+    <!-- Custom styles -->
     <link rel="stylesheet" href="css/enduser.css">
-
-    <!-- Chatooly App Scripts -->
-    <script src="js/utils/ColorUtils.js"></script>
-    <script src="js/utils/FontLoader.js"></script>
-    <script src="js/canvas/CanvasManager.js"></script>
-    <script src="js/canvas/DebugController.js"></script>
-    <script src="js/background/BackgroundController.js"></script>
-    <script src="js/text/TextComponent.js"></script>
-    <script src="js/text/SpotTextComponent.js"></script>
-    <script src="js/text/MainTextController.js"></script>
-    <script src="js/grid/GridCell.js"></script>
-    <script src="js/grid/GridSystem.js"></script>
-    <script src="js/grid/CellRenderer.js"></script>
-    <script src="js/layers/LayerController.js"></script>
-    <script src="js/media/MediaController.js"></script>
-    <script src="js/parameters/PresetManager.js"></script>
-    <script src="js/parameters/ContentSlotTypes.js"></script>
-    <script src="js/parameters/ContentSlotManager.js"></script>
-    <script src="js/parameters/PresetPageManager.js"></script>
-    <script src="js/app.js"></script>
+    <link rel="stylesheet" href="css/load-page-modal.css">
 </head>
 <body>
-    <!-- Preset Selector Modal -->
-    <div class="preset-selector-overlay" id="presetSelector">
-        <div class="preset-selector-modal">
-            <div class="preset-selector-header">
-                <h2 class="preset-selector-title">Choose Your Preset</h2>
-            </div>
-            <div class="preset-selector-body">
-                <label class="modal-preset-label">Select a preset to get started:</label>
-                <select class="modal-preset-dropdown" id="modalPresetDropdown">
-                    <option value="">-- Select Preset --</option>
-                    <option value="employee-spotlight">Employee Spotlight (3 pages)</option>
-                    <option value="tour-promo">Tour Promo (3 pages)</option>
-                    <option value="early-talent">Early Talent Program (4 pages)</option>
-                    <option value="city-guides">City Guides (5 pages)</option>
-                </select>
-                <button class="modal-load-btn" onclick="loadPresetFromModal()">
-                    Load Preset
-                </button>
-            </div>
-        </div>
-    </div>
-
-    <!-- Main End-User Interface -->
-    <div class="enduser-container" id="mainInterface">
+    <div class="enduser-container">
         <!-- Header -->
         <div class="enduser-header">
             <div class="header-left">
@@ -68,15 +50,13 @@
                 <span class="header-subtitle">End User</span>
             </div>
             <div class="header-right">
-                <span class="preset-loaded-name" id="presetLoadedName">Employee Spotlight</span>
+                <span class="preset-loaded-name" id="presetName" style="display: none;">No preset loaded</span>
             </div>
         </div>
 
         <!-- Export Bar (below header) -->
         <div class="export-bar" id="exportBar">
-            <button class="export-bar-btn" onclick="exportAllPages()">
-                Export
-            </button>
+            <button class="export-bar-btn" id="exportBtn" disabled>Export</button>
         </div>
 
         <!-- Main Content Area -->
@@ -84,105 +64,51 @@
             <!-- Left Sidebar: Form -->
             <div class="enduser-sidebar">
                 <div class="sidebar-header" id="sidebarHeader">
-                    <h2 class="sidebar-title" id="sidebarTitle">Employee Spotlight</h2>
+                    <h2 class="sidebar-title" id="sidebarTitle">Select a Preset</h2>
                 </div>
 
                 <div class="sidebar-content" id="sidebarContent">
-                    <!-- Page 1 Section (Opening Page - No editable fields) -->
-                    <div class="enduser-page-section no-fields">
-                        <div class="page-section-header-static">
-                            <span class="section-title">Page 1: Opening Page</span>
-                            <span class="section-badge">No editable fields</span>
-                        </div>
+                    <!-- Preset Selector (shown initially) -->
+                    <div id="presetSelector" style="text-align: center; padding: 48px 0; display: block;">
+                        <button id="browsePresetsBtn" class="modal-load-btn">Browse Presets</button>
                     </div>
 
-                    <!-- Page 2 Section (Employee Spotlight - has editable fields) -->
-                    <div class="enduser-page-section">
-                        <button class="page-section-header" onclick="toggleSection(this)">
-                            <span class="section-toggle">▼</span>
-                            <span class="section-title">Page 2: Employee Spotlight</span>
-                            <span class="section-badge">3 fields</span>
-                        </button>
-                        <div class="page-section-content">
-                            <!-- Employee Photo Field -->
-                            <div class="enduser-form-field">
-                                <label class="field-label">
-                                    Employee Photo
-                                    <span class="field-required">*</span>
-                                </label>
-                                <input
-                                    type="file"
-                                    class="field-file-input"
-                                    accept="image/*"
-                                    data-field-name="employeePhoto"
-                                    style="display: none;"
-                                    id="employeePhotoInput">
-                                <button class="field-file-btn" onclick="document.getElementById('employeePhotoInput').click()">
-                                    📁 Choose File
-                                </button>
-                                <span class="field-hint">Upload employee photo (recommended: 800x800px)</span>
-                                <div class="field-image-preview" style="display: none;">
-                                    <img src="" alt="Preview">
-                                    <button class="field-image-remove" onclick="removeImage()">×</button>
-                                </div>
-                            </div>
-
-                            <!-- Employee Name Field -->
-                            <div class="enduser-form-field">
-                                <label class="field-label">
-                                    Employee Name
-                                    <span class="field-required">*</span>
-                                </label>
-                                <input
-                                    type="text"
-                                    class="field-input"
-                                    placeholder="Enter employee name..."
-                                    value="DANI SHTEINBER"
-                                    data-field-name="employeeName">
-                                <span class="field-hint">Full name of the featured employee</span>
-                            </div>
-
-                            <!-- Employee Quote Field -->
-                            <div class="enduser-form-field">
-                                <label class="field-label">
-                                    Employee Quote
-                                    <span class="field-required">*</span>
-                                </label>
-                                <textarea
-                                    class="field-textarea"
-                                    placeholder="Enter employee quote..."
-                                    data-field-name="employeeQuote">I will always choose design over anything else - you can only find that on the wix platforms Thats why i love working with all of the super taleted people eveyday thats what i think and thanks to everyone who taught me to type look how well im typing now and designing and creating and yay</textarea>
-                                <span class="field-hint">Employee's testimonial or quote about their experience</span>
+                    <!-- Page Sections Container (populated dynamically by FormGenerator) -->
+                    <!-- Each page will be a collapsible section with its content slots -->
+                    <div id="pageSectionsContainer">
+                        <!-- Page sections will be generated here by FormGenerator -->
+                        <!-- Example structure:
+                        <div class="enduser-page-section">
+                            <button class="page-section-header">
+                                <span class="section-toggle">▼</span>
+                                <span class="section-title">Page 1: Title</span>
+                                <span class="section-badge">3 fields</span>
+                            </button>
+                            <div class="page-section-content">
+                                [form fields]
                             </div>
                         </div>
-                    </div>
-
-                    <!-- Page 3 Section (Closing Page - No editable fields) -->
-                    <div class="enduser-page-section no-fields">
-                        <div class="page-section-header-static">
-                            <span class="section-title">Page 3: Closing Page</span>
-                            <span class="section-badge">No editable fields</span>
-                        </div>
+                        -->
                     </div>
                 </div>
             </div>
 
-            <!-- Center: Real Canvas Preview -->
+            <!-- Center: Canvas Preview -->
             <div class="enduser-canvas-area">
-                <div class="canvas-wrapper">
-                    <div id="canvasContainer" style="display: flex; justify-content: center; align-items: center;">
-                        <!-- Canvas will be injected here by App -->
-                    </div>
+                <!-- Chatooly Canvas Container (CDN handles styling) -->
+                <div id="chatooly-container">
+                    <canvas id="chatooly-canvas"></canvas>
                 </div>
             </div>
         </div>
 
-        <!-- Bottom: Page Navigation -->
-        <div class="enduser-page-nav" id="pageNav">
+        <!-- Bottom: Page Navigation with Thumbnails -->
+        <div class="enduser-page-nav" id="pageNav" style="display: none;">
             <div class="page-nav-left">
-                <div class="enduser-page-thumbs">
-                    <!-- Page 1 Thumbnail -->
-                    <div class="enduser-page-thumb" onclick="switchPage(1)">
+                <div class="enduser-page-thumbs" id="pageThumbs">
+                    <!-- Page thumbnails will be generated here by EndUserController -->
+                    <!-- Example:
+                    <div class="enduser-page-thumb active" data-page-index="0">
                         <div class="thumb-preview">
                             <div class="thumb-placeholder">
                                 <span class="thumb-number">1</span>
@@ -190,301 +116,88 @@
                         </div>
                         <span class="thumb-label">Opening Page</span>
                     </div>
-
-                    <!-- Page 2 Thumbnail (Active by default) -->
-                    <div class="enduser-page-thumb active" onclick="switchPage(2)">
-                        <div class="thumb-preview">
-                            <div class="thumb-placeholder">
-                                <span class="thumb-number">2</span>
-                            </div>
-                        </div>
-                        <span class="thumb-label">Employee Spotlight</span>
-                        <span class="thumb-indicator">●</span>
-                    </div>
-
-                    <!-- Page 3 Thumbnail -->
-                    <div class="enduser-page-thumb" onclick="switchPage(3)">
-                        <div class="thumb-preview">
-                            <div class="thumb-placeholder">
-                                <span class="thumb-number">3</span>
-                            </div>
-                        </div>
-                        <span class="thumb-label">Closing Page</span>
-                    </div>
+                    -->
                 </div>
-            </div>
-
-            <div class="page-nav-right">
-                <span class="page-indicator">Page 2 of 3</span>
             </div>
         </div>
     </div>
 
-    <!-- JavaScript for Employee Spotlight -->
-    <script>
-        let app;
-        let currentPresetId = null;
-        let currentPage = 1;
-        let loadedPages = {}; // Store loaded page data
+    <!-- Preset Selection Modal -->
+    <div id="presetModal" class="modal" style="display: none;">
+        <div class="modal-overlay"></div>
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Select a Preset</h3>
+                <button id="closePresetModal" class="modal-close">×</button>
+            </div>
+            <div class="modal-body">
+                <div id="presetList" class="preset-list">
+                    <!-- Presets will be populated here -->
+                </div>
+            </div>
+        </div>
+    </div>
 
-        // Initialize app and show preset selector
-        window.addEventListener('DOMContentLoaded', () => {
-            // Initialize canvas app
-            const container = document.getElementById('canvasContainer');
-            app = new App(container, 1080, 1920);
-            app.initialize();
-            console.log('✅ App initialized');
+    <!-- ========== Lottie Animation Library ========== -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/lottie-web/5.12.2/lottie.min.js"></script>
 
-            // Show preset selector
-            document.getElementById('presetSelector').style.display = 'flex';
-            // Hide content that should only appear after preset selection
-            document.getElementById('sidebarContent').style.display = 'none';
-            document.getElementById('pageNav').style.display = 'none';
-            document.getElementById('exportBar').style.display = 'none';
-        });
+    <!-- ========== GIF Animation Library for Canvas ========== -->
+    <script src="https://cdn.jsdelivr.net/npm/gifler@0.1.0/gifler.min.js"></script>
 
-        // Load preset from modal dropdown
-        function loadPresetFromModal() {
-            const dropdown = document.getElementById('modalPresetDropdown');
-            const presetId = dropdown.value;
+    <!-- ========== Chatooly CDN v2.0 Integration ========== -->
+    <script src="https://yaelren.github.io/chatooly-cdn/js/core.min.js"></script>
 
-            if (!presetId) {
-                alert('Please select a preset first');
-                return;
-            }
+    <!-- ========== Chatooly Configuration ========== -->
+    <script src="js/chatooly-config.js"></script>
 
-            loadPreset(presetId);
-        }
+    <!-- ========== Shared Components (from designer) ========== -->
 
-        // Load preset (shows content and closes modal)
-        async function loadPreset(presetId) {
-            if (!presetId) return;
+    <!-- Text System -->
+    <script src="js/text/FontMetrics.js"></script>
+    <script src="js/text/TextComponent.js"></script>
+    <script src="js/text/FontManager.js"></script>
 
-            console.log('Loading preset:', presetId);
-            currentPresetId = presetId;
+    <!-- Canvas & Rendering -->
+    <script src="js/background/BackgroundManager.js"></script>
+    <script src="js/canvas/CanvasManager.js"></script>
 
-            try {
-                // Update preset name mapping
-                const presetNames = {
-                    'employee-spotlight': 'Employee Spotlight',
-                    'tour-promo': 'Tour Promo',
-                    'early-talent': 'Early Talent Program',
-                    'city-guides': 'City Guides'
-                };
+    <!-- Grid System (for rendering only, not editing) -->
+    <script src="js/grid/GridDetector.js"></script>
+    <script src="js/grid/Layer.js"></script>
+    <script src="js/grid/LayerManager.js"></script>
+    <script src="js/grid/GridCell.js"></script>
+    <script src="js/grid/MainTextCell.js"></script>
+    <script src="js/grid/ContentCell.js"></script>
+    <script src="js/grid/CellRenderer.js"></script>
+    <script src="js/grid/GridBuilder.js"></script>
+    <script src="js/grid/GridSnapshot.js"></script>
+    <script src="js/grid/Grid.js"></script>
 
-                const selectedPresetName = presetNames[presetId] || 'Unknown Preset';
+    <!-- Content Controllers -->
+    <script src="js/content/ContentController.js"></script>
+    <script src="js/content/EmptyContentController.js"></script>
+    <script src="js/content/TextContentController.js"></script>
+    <script src="js/content/ImageContentController.js"></script>
+    <script src="js/content/FillContentController.js"></script>
 
-                // Update sidebar title
-                document.getElementById('sidebarTitle').textContent = selectedPresetName;
+    <!-- Animation System -->
+    <script src="js/animations/CellAnimation.js"></script>
 
-                // Update header preset name and show it
-                const presetLoadedName = document.getElementById('presetLoadedName');
-                presetLoadedName.textContent = selectedPresetName;
-                presetLoadedName.style.display = 'inline';
+    <!-- Preset System -->
+    <script src="js/parameters/ContentSlotTypes.js"></script>
+    <script src="js/parameters/ContentSlotManager.js"></script>
 
-                // Show all hidden elements
-                document.getElementById('sidebarContent').style.display = 'block';
-                document.getElementById('pageNav').style.display = 'flex';
-                document.getElementById('exportBar').style.display = 'flex';
+    <!-- Wix CMS Integration -->
+    <script type="module" src="js/api/WixPresetAPI.js"></script>
+    <script type="module" src="js/api/WixMultiPagePresetAdapter.js"></script>
+    <script src="js/parameters/PresetPageManager.js"></script>
 
-                // Close modal
-                document.getElementById('presetSelector').style.display = 'none';
+    <!-- ========== End-User Components (Sprint 4) ========== -->
+    <script src="js/enduser/FormGenerator.js"></script>
+    <script src="js/enduser/ContentSlotRenderer.js"></script>
+    <script src="js/enduser/EndUserController.js"></script>
 
-                // Load page 2 (employee spotlight page with editable fields)
-                await loadPageData(2);
-
-                // Start on Page 2 for employee-spotlight
-                switchPage(2);
-
-                console.log('✅ Preset loaded:', selectedPresetName);
-
-            } catch (error) {
-                console.error('❌ Error loading preset:', error);
-                alert('Failed to load preset: ' + error.message);
-            }
-        }
-
-        // Load page data from preset
-        async function loadPageData(pageNumber) {
-            try {
-                console.log(`Loading page ${pageNumber}...`);
-
-                // Load page from PresetPageManager
-                const pageData = await app.presetPageManager.loadPage(currentPresetId, pageNumber);
-
-                // Store loaded page data
-                loadedPages[pageNumber] = pageData;
-
-                // Render the page
-                app.render();
-
-                console.log(`✅ Page ${pageNumber} loaded with ${pageData.contentSlots?.length || 0} slots`);
-
-                // Build form fields from content slots
-                buildFormFromSlots();
-
-            } catch (error) {
-                console.error(`❌ Error loading page ${pageNumber}:`, error);
-                throw error;
-            }
-        }
-
-        // Build form fields dynamically from content slots
-        function buildFormFromSlots() {
-            const slots = app.presetPageManager.contentSlotManager.getAllSlots();
-
-            if (slots.length === 0) {
-                console.warn('No content slots found for this page');
-                return;
-            }
-
-            console.log(`Building form from ${slots.length} content slots`);
-
-            // For now, just map to existing fields by fieldName
-            // Later we can dynamically generate the form
-            slots.forEach(slot => {
-                const input = document.querySelector(`[data-field-name="${slot.fieldName}"]`);
-                if (input) {
-                    // Set up live update
-                    input.addEventListener('input', () => {
-                        applyFieldUpdate(slot.slotId, input.value || input.files?.[0]);
-                    });
-                    console.log(`✅ Connected field: ${slot.fieldLabel}`);
-                }
-            });
-        }
-
-        // Apply single field update to canvas
-        function applyFieldUpdate(slotId, value) {
-            try {
-                const slotData = { [slotId]: value };
-                app.presetPageManager.applyContentToSlots(slotData);
-            } catch (error) {
-                console.error('Error applying field update:', error);
-            }
-        }
-
-        // Toggle page section expand/collapse
-        function toggleSection(button) {
-            const content = button.nextElementSibling;
-            const toggle = button.querySelector('.section-toggle');
-
-            if (button.classList.contains('collapsed')) {
-                button.classList.remove('collapsed');
-                content.classList.remove('collapsed');
-                toggle.textContent = '▼';
-            } else {
-                button.classList.add('collapsed');
-                content.classList.add('collapsed');
-                toggle.textContent = '▶';
-            }
-        }
-
-        // Switch page
-        async function switchPage(pageNumber) {
-            currentPage = pageNumber;
-
-            // Update active thumbnail
-            document.querySelectorAll('.enduser-page-thumb').forEach((thumb, index) => {
-                if (index + 1 === pageNumber) {
-                    thumb.classList.add('active');
-                } else {
-                    thumb.classList.remove('active');
-                }
-            });
-
-            // Update page indicator
-            const totalPages = document.querySelectorAll('.enduser-page-thumb').length;
-            document.querySelector('.page-indicator').textContent = `Page ${pageNumber} of ${totalPages}`;
-
-            // Load page if not already loaded
-            if (!loadedPages[pageNumber] && currentPresetId) {
-                try {
-                    await loadPageData(pageNumber);
-                } catch (error) {
-                    console.error(`Failed to load page ${pageNumber}:`, error);
-                }
-            } else if (loadedPages[pageNumber]) {
-                // Page already loaded, just apply it
-                await app.presetPageManager.applyPageToCanvas(loadedPages[pageNumber]);
-                app.render();
-            }
-
-            console.log('✅ Switched to page:', pageNumber);
-        }
-
-        // Remove uploaded image
-        function removeImage() {
-            const preview = document.querySelector('.field-image-preview');
-            preview.style.display = 'none';
-            document.getElementById('employeePhotoInput').value = '';
-            console.log('Image removed');
-        }
-
-        // Export all pages
-        async function exportAllPages() {
-            try {
-                console.log('Starting export of all pages...');
-
-                const totalPages = document.querySelectorAll('.enduser-page-thumb').length;
-                const exportedImages = [];
-
-                for (let pageNum = 1; pageNum <= totalPages; pageNum++) {
-                    // Load and render page
-                    if (!loadedPages[pageNum]) {
-                        await loadPageData(pageNum);
-                    } else {
-                        await app.presetPageManager.applyPageToCanvas(loadedPages[pageNum]);
-                        app.render();
-                    }
-
-                    // Wait for render to complete
-                    await new Promise(resolve => setTimeout(resolve, 500));
-
-                    // Export page as PNG
-                    const dataUrl = app.canvasManager.canvas.toDataURL('image/png');
-                    exportedImages.push({
-                        pageNumber: pageNum,
-                        dataUrl: dataUrl
-                    });
-
-                    console.log(`✅ Exported page ${pageNum}`);
-                }
-
-                // Download each image
-                exportedImages.forEach(({pageNumber, dataUrl}) => {
-                    const link = document.createElement('a');
-                    link.download = `${currentPresetId}-page-${pageNumber}.png`;
-                    link.href = dataUrl;
-                    link.click();
-                });
-
-                // Return to current page
-                await switchPage(currentPage);
-
-                alert(`✅ Successfully exported ${totalPages} pages!`);
-                console.log('✅ Export complete');
-
-            } catch (error) {
-                console.error('❌ Export failed:', error);
-                alert('Export failed: ' + error.message);
-            }
-        }
-
-        // Image upload preview
-        document.getElementById('employeePhotoInput')?.addEventListener('change', function(e) {
-            const file = e.target.files[0];
-            if (file) {
-                const reader = new FileReader();
-                reader.onload = function(event) {
-                    const preview = document.querySelector('.field-image-preview');
-                    const img = preview.querySelector('img');
-                    img.src = event.target.result;
-                    preview.style.display = 'block';
-                };
-                reader.readAsDataURL(file);
-            }
-        });
-    </script>
+    <!-- ========== End-User Application Entry Point ========== -->
+    <script src="js/enduser-app.js"></script>
 </body>
 </html>

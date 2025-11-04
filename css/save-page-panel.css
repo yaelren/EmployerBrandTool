@@ -131,19 +131,22 @@
     gap: 6px;
 }
 
-.editable-field-list-item {
+.editable-field-list-item,
+.configured-slot-item {
     background: rgba(255, 255, 255, 0.03);
     border: 1px solid rgba(255, 255, 255, 0.05);
     border-radius: 3px;
     transition: all 0.2s ease;
 }
 
-.editable-field-list-item:hover {
+.editable-field-list-item:hover,
+.configured-slot-item:hover {
     background: rgba(255, 255, 255, 0.05);
     border-color: rgba(255, 255, 255, 0.1);
 }
 
-.editable-field-list-item.expanded {
+.editable-field-list-item.expanded,
+.configured-slot-item.expanded {
     background: rgba(255, 255, 255, 0.05);
     border-color: rgba(76, 175, 80, 0.3);
 }

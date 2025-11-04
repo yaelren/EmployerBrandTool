@@ -1,184 +1,164 @@
-# Multi-Page Presets v3 - Current Status
+# Current Status: Lock Icons & Content Slots Debugging
 
-**Last Updated**: 2025-01-03
-**Status**: ✅ Sprint 1 Complete - Ready for Sprint 2
+## What Was Done
 
----
+### 1. Added Comprehensive Debugging (✅ Complete)
 
-## ✅ Completed Tasks
+**File**: [SavePagePanel.js](../js/ui/SavePagePanel.js)
 
-### Documentation Phase ✅
-- [x] Designed Content Slots architecture with auto-capture from `cell.bounds`
-- [x] Created [content-slots-architecture-v3.md](content-slots-architecture-v3.md) - Complete architecture specification
-- [x] Created [implementation-tasks-v3.md](implementation-tasks-v3.md) - 5 sprint implementation plan (16-21 days)
-- [x] Created [README-v3.md](README-v3.md) - Documentation index and quick start guide
-- [x] Updated [wix-cms-schema.md](wix-cms-schema.md) for v3 with Content Slots
-- [x] Created [archive/](archive/) folder for historical v2 documentation
-- [x] Archived 5 outdated v2 documents
+#### Lock Icon Update Debugging (Lines 439-458)
+- Logs when `updateLockIcon()` is called
+- Shows if overlay exists
+- Reports if lock icon element is found
+- Lists all available lock icons if element not found
+- Confirms successful icon update
 
-### Sprint 1: Content Slots Foundation ✅
-**Status**: ✅ Complete (Session 1)
-**Summary**: [sprint-1-complete.md](sprint-1-complete.md)
+#### ContentSlotManager Verification (Lines 1032-1041)
+- Logs when adding slot to ContentSlotManager
+- Verifies slot was actually added
+- Shows total slot count
+- Lists all slot IDs in manager
 
-- [x] Created `ContentSlotTypes.js` - Type definitions and defaults
-- [x] Created `ContentSlotManager.js` - Slot creation and management (480 lines)
-  - [x] `captureBoundingBox(cell)` - Auto-extract bounds from cell
-  - [x] `createSlotFromCell(cell, config)` - Generate content slot
-  - [x] `buildConstraints(cell, config)` - Build text/image constraints
-  - [x] `validateSlot(slot)` - Validate slot configuration
-  - [x] Slot management (add/remove/update/get)
-  - [x] Cell finding by ID and contentId
+### 2. Fixed Code Issues (✅ Complete)
 
-- [x] Updated `PresetPageManager.js`
-  - [x] Added `contentSlotManager` in constructor
-  - [x] Added `contentSlots: []` array to page data structure
-  - [x] Added `exportConfig: { format, duration, fps, imageFormat }`
-  - [x] Updated `captureCurrentPage()` to include content slots
+- **Removed duplicate lock icon update calls** (was calling twice)
+- **Fixed `getSlot()` method call** (doesn't exist, use `getAllSlots().find()` instead)
+- **Added proper verification** for ContentSlotManager operations
 
-- [x] Updated `index.html` with script tags for new files
+### 3. Created Testing Documentation (✅ Complete)
 
-- [x] Created `test-content-slots.html` - Test suite (6 tests, all passing)
-  - [x] Test bounding box capture
-  - [x] Test text slot creation
-  - [x] Test image slot creation
-  - [x] Test slot validation
-  - [x] Test slot management
-  - [x] All tests passing ✅
+**Files Created**:
+- [testing-instructions.md](./testing-instructions.md) - Step-by-step testing guide
+- [debugging-lock-icons-and-content-slots.md](./debugging-lock-icons-and-content-slots.md) - Debug scenarios
 
----
+## Current Situation
 
-## 🎯 Next Steps (In Order)
+### What We Know ✅
 
-### Sprint 2: Designer UI
-**Estimated Time**: 3-4 days
-**Status**: ✅ Sprint 2.1 Complete - Ready for Sprint 2.2
-**Details**: [implementation-tasks-v3.md](implementation-tasks-v3.md#sprint-2-designer-ui-3-4-days)
+1. **Slot creation code exists** and should work
+2. **Lock icons have correct attributes** (`data-element-id`)
+3. **ContentSlotManager.addSlot()** is being called
+4. **User sees "✅ Slot updated"** logs - but these are from EDITING, not creation
 
-**Sprint 2.1 Tasks (COMPLETE)**:
-- [x] Modify `SavePageModal.js` to integrate ContentSlotConfigPanel
-- [x] Modify `SavePagePanel.js` to integrate ContentSlotConfigPanel
-- [x] Replace inline editing with ContentSlotConfigPanel modal
-- [x] Update save logic to create content slots instead of editableFields
-- [x] Lock/unlock workflow opens ContentSlotConfigPanel for configuration
+### What We Don't Know Yet ❓
 
-**Sprint 2.2-2.3 Tasks (Ready for Testing)**:
-- [x] Created comprehensive test suite: [test-sprint-2-workflow.html](../test-sprint-2-workflow.html)
-- [x] Test 1: Background image save/load with data URLs
-- [x] Test 2: Text content slot creation and persistence
-- [x] Test 3: Image content slot with bounding box
-- [x] Test 4: Multi-page preset with mixed slot configurations
-- [ ] Manual verification in index.html with SavePagePanel
-- [ ] Test ExportFormatSelector integration (Sprint 2.3)
+1. **Are lock icons updating for NEW slots?**
+   - Console logs from user show EDITING path (line 1104)
+   - No logs from NEW slot creation path (lines 1032-1070)
+   - User may be testing with already-configured slots
 
----
+2. **Are slots being added to ContentSlotManager?**
+   - Need console output to verify
+   - Should see "📝 Adding slot..." logs
 
-### Step 4: Sprint 3 - Wix Backend Integration
-**Estimated Time**: 2-3 days
-**Status**: ✅ Complete
-**Details**: [implementation-tasks-v3.md](implementation-tasks-v3.md#sprint-3-wix-backend-integration-2-3-days)
+3. **What elementId values are being used?**
+   - Need to verify they match overlay's `data-element-id`
+   - Debug logs will show this
 
-**Sprint 3 Tasks**:
-- [x] Create `WixMultiPagePresetAdapter.js` - Full adapter implementation (467 lines)
-- [x] Connect PresetPageManager to Wix CMS - Integration with fallback to localStorage
-- [x] Updated index.html with Wix API script tags
-- [x] Created comprehensive test suite: `test-wix-integration.html`
-  - Test 1: Save single page to Wix CMS
-  - Test 2: Save multi-page preset (3 pages)
-  - Test 3: Load and verify preset data
-  - Test 4: Content slots persistence verification
-- [ ] Manual testing with real Wix credentials required
+## Next Steps for User
 
-**Key Files Created/Updated**:
-- [js/api/WixMultiPagePresetAdapter.js](../js/api/WixMultiPagePresetAdapter.js) - NEW
-- [js/parameters/PresetPageManager.js](../js/parameters/PresetPageManager.js) - UPDATED
-- [index.html](../index.html) - UPDATED (script tags)
-- [test-wix-integration.html](../test-wix-integration.html) - NEW
+### Required: Manual Testing
 
----
+Follow [testing-instructions.md](./testing-instructions.md) exactly:
 
-### Step 5: Sprint 4 - End-User Interface
-**Estimated Time**: 4-5 days
-**Status**: Waiting for Sprint 3 completion
-**Details**: [implementation-tasks-v3.md](implementation-tasks-v3.md#sprint-4-end-user-interface-4-5-days)
+1. **Load a preset** (important!)
+2. **Open console** (F12)
+3. **Click an UNCONFIGURED lock icon** (🔒, not 🔓)
+4. **Fill the form** and wait 500ms
+5. **Copy ALL console output** with emoji prefixes
 
-**Sprint 4 Tasks**:
-- [ ] Create `enduser.html` interface
-- [ ] Build `EndUserController.js`
-- [ ] Build `FormGenerator.js` for content slot forms
-- [ ] Build `ContentSlotRenderer.js` for locked layout
-- [ ] Test locked layout with text auto-fit
-- [ ] Test image rendering with crop/scale modes
+### What to Look For
 
----
-
-### Step 6: Sprint 5 - Export System
-**Estimated Time**: 4-5 days
-**Status**: Waiting for Sprint 4 completion
-**Details**: [implementation-tasks-v3.md](implementation-tasks-v3.md#sprint-5-export-system-4-5-days)
-
-**Sprint 5 Tasks**:
-- [ ] Build `PageExporter.js` with Wix CDN integration
-- [ ] Build `ExportConfigUI.js` for export controls
-- [ ] Implement individual page export (image/video)
-- [ ] Implement bulk export (all as images/videos)
-- [ ] Implement mixed export (respects per-page settings)
-- [ ] Test Wix CDN uploads
-- [ ] Test ZIP file generation
-
----
-
-## 📋 Project Timeline
-
-**Total Estimated Time**: 16-21 days implementation + Wix setup
-
+**Success Indicators**:
 ```
-Week 1:  Sprint 1 (3-4 days) + Sprint 2 start
-Week 2:  Sprint 2 complete + Sprint 3 (2-3 days)
-Week 3:  Sprint 4 (4-5 days)
-Week 4:  Sprint 5 (4-5 days) + Testing
+📝 Adding slot to ContentSlotManager: ...
+✅ Slot added to ContentSlotManager: YES
+🔍 updateLockIcon called: {...}
+🔍 Lock icon found: YES
+✅ Lock icon updated to: 🔓
 ```
 
----
+**Failure Indicators**:
+```
+❌ No overlay found!
+❌ Lock icon not found in overlay
+✅ Slot added to ContentSlotManager: NO
+```
 
-## 🔑 Key Architecture Decisions Made
+## Potential Root Causes
 
-### Content Slots System
-- **Auto-capture bounding boxes** from existing `cell.bounds` property
-- **Single source of truth**: Designer data compiled at runtime for end-users
-- **Text auto-fit**: Font size adjusts within min/max range to fit content
-- **Image fit modes**: "cover" (crop) and "free" (scale proportionally)
-- **One slot per element**: Each editable field gets its own content slot
+### Hypothesis 1: Testing Wrong Scenario (High Probability)
+**Evidence**: User's console shows "Slot updated" (line 1104, editing path), not "New slot created" (line 1070, creation path)
 
-### Export System
-- **Per-page format**: Each page can be image or video
-- **Bulk options**: Export all as images, all as videos, or mixed
-- **Wix CDN storage**: All exports upload to Wix Media Manager
-- **ZIP packaging**: Multiple exports bundled in ZIP files
+**Test**: Click on 🔒 (unconfigured), not 🔓 (already configured)
 
-### Data Architecture
-- **Collection**: `MultiPagePresets` in Wix CMS
-- **Fields**: `presetName`, `description`, `page1-5` (Rich Content)
-- **Page structure**: Includes `contentSlots[]` and `exportConfig{}`
-- **Backwards compatible**: Still includes `editableFields` for reference
+### Hypothesis 2: elementId Mismatch (Medium Probability)
+**Evidence**: Lock icons not updating despite code execution
 
----
+**Test**: Check console logs for "Available lock icons" array vs requested elementId
 
-## 📚 Documentation References
+**Fix**: Adjust `_getElementIdForSlot()` method if mismatch found
 
-- **Architecture**: [content-slots-architecture-v3.md](content-slots-architecture-v3.md)
-- **Implementation Plan**: [implementation-tasks-v3.md](implementation-tasks-v3.md)
-- **Wix CMS Schema**: [wix-cms-schema.md](wix-cms-schema.md)
-- **Documentation Index**: [README-v3.md](README-v3.md)
-- **Historical Docs**: [archive/](archive/)
+### Hypothesis 3: Overlay Reference Stale (Low Probability)
+**Evidence**: None yet
 
----
+**Test**: Check "overlayExists: false" in console logs
 
-## 🚀 Ready to Continue?
+**Fix**: Ensure overlay created before `updateLockIcon()` called
 
-**Next Action**: Create Wix CMS collection `MultiPagePresets`
+### Hypothesis 4: ContentSlotManager Not Persisting (Low Probability)
+**Evidence**: "Show Content Slots" shows nothing
 
-Then come back and say: **"Ready to start Sprint 1"**
+**Test**: Check slot count in console: "📊 Total slots: 0" vs "📊 Total slots: 1+"
 
----
+**Fix**: Investigate `addSlot()` validation or storage issue
 
-**Status**: Waiting for Wix CMS setup ⏳
+## Code Flow Analysis
+
+### Creating a New Slot (The Path We're Testing)
+
+```
+1. User clicks 🔒 lock icon
+   → toggleCellLock(elementId, cellId, cellType)
+
+2. Not configured → Create new slot
+   → showInlineEditorForNewSlot(newSlot, elementId, cellId)
+
+3. User fills form → Auto-save after 300ms
+   → _saveInlineEditorChangesInternal()
+
+4. NEW SLOT CREATION branch (line 991-1070)
+   → contentSlotManager.addSlot(slot)          [Line 1034]
+   → this.configuredSlots.push(slot)            [Line 1042]
+   → this.updateLockIcon(elementId, true)       [Line 1052]
+   → this.refreshOverlayLockIcons()             [Line 1057]
+   → this.updateEditableFieldsList()            [Line 1068]
+```
+
+### Editing Existing Slot (What User's Console Shows)
+
+```
+1. User clicks 🔓 already-unlocked icon
+   → toggleCellLock(elementId, cellId, cellType)
+
+2. Already configured → Edit existing
+   → showInlineEditor(slot, slotIndex)
+
+3. User changes form → Auto-save
+   → _saveInlineEditorChangesInternal()
+
+4. EDITING EXISTING branch (line 1072-1104)
+   → Update slot properties                     [Lines 1078-1091]
+   → console.log('✅ Slot updated:', ...)       [Line 1104]
+   → (No lock icon update needed - already 🔓)
+```
+
+## Summary
+
+**Status**: Debugging code ready, waiting for user test results
+
+**Blocker**: Need console output from NEW slot creation (not editing)
+
+**Next Action**: User to follow [testing-instructions.md](./testing-instructions.md) and provide console logs
+
+**ETA to Resolution**: Should know root cause within 5 minutes of receiving console output

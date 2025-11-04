@@ -233,6 +233,10 @@ class ContentSlotConfigPanel {
      * @param {Function} onCancel - Callback when configuration is cancelled
      */
     show(cell, onSave = null, onCancel = null) {
+        console.log('📥 ContentSlotConfigPanel.show() received:');
+        console.log('   → cell:', cell);
+        console.log('   → onSave type:', typeof onSave);
+        console.log('   → onCancel type:', typeof onCancel);
         this.currentCell = cell;
         this.onSaveCallback = onSave;
         this.onCancelCallback = onCancel;
@@ -458,13 +462,18 @@ class ContentSlotConfigPanel {
 
             console.log('✅ Content slot created:', slot);
 
-            // Hide panel
-            this.hide();
-
-            // Call save callback with slot
+            // Call save callback with slot BEFORE hiding (hide() clears callbacks!)
+            console.log('🔍 Checking callback:', typeof this.onSaveCallback);
             if (this.onSaveCallback) {
+                console.log('📞 Calling onSaveCallback...');
                 this.onSaveCallback(slot);
+                console.log('✅ onSaveCallback completed');
+            } else {
+                console.warn('⚠️ No onSaveCallback registered!');
             }
+
+            // Hide panel (this clears callbacks)
+            this.hide();
 
         } catch (error) {
             console.error('❌ Failed to create content slot:', error);

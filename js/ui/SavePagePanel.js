@@ -75,12 +75,14 @@ class SavePagePanel {
                     </div>
                 </div>
 
-                <!-- Editable Fields List -->
-                <div class="save-page-editable-list">
-                    <h4>Editable Fields</h4>
-                    <div id="save-editable-fields-list" class="editable-fields-container">
-                        <p class="no-fields-message">No editable fields yet</p>
-                    </div>
+                <!-- Editable Slots List -->
+            <div class="save-page-editable-list">
+                <h4>Editable Slots</h4>
+                <div id="save-editable-fields-list" class="editable-fields-container">
+                    <!-- Slots will be dynamically populated -->
+                </div>
+
+        
                 </div>
 
                 <!-- Page Settings -->
@@ -176,6 +178,39 @@ class SavePagePanel {
         if (cancelBtn) {
             cancelBtn.addEventListener('click', () => this.hide());
         }
+
+        // Inline editor header click to collapse/expand
+        const inlineHeader = this.container.querySelector('.inline-editor-header');
+        if (inlineHeader) {
+            inlineHeader.addEventListener('click', (e) => {
+                // Don't collapse if clicking remove button
+                if (e.target.classList.contains('inline-remove-btn')) return;
+                this.toggleInlineEditor();
+            });
+        }
+
+        // Inline editor remove button
+        const inlineRemoveBtn = this.container.querySelector('.inline-remove-btn');
+        if (inlineRemoveBtn) {
+            inlineRemoveBtn.addEventListener('click', (e) => {
+                e.stopPropagation(); // Prevent header click
+                this.removeSlotFromInlineEditor();
+            });
+        }
+
+        // Auto-save on input changes
+        this.container.addEventListener('input', (e) => {
+            if (e.target.closest('#inline-editor-content')) {
+                this.autoSaveInlineEditor();
+            }
+        });
+
+        // Auto-save on select changes
+        this.container.addEventListener('change', (e) => {
+            if (e.target.closest('#inline-editor-content')) {
+                this.autoSaveInlineEditor();
+            }
+        });
     }
 
     /**
@@ -402,13 +437,52 @@ class SavePagePanel {
      * Update a single lock icon
      */
     updateLockIcon(elementId, isEditable) {
-        if (!this.overlay) return;
-        
+        console.log('🔍 updateLockIcon called:', { elementId, isEditable, overlayExists: !!this.overlay });
+
+        if (!this.overlay) {
+            console.error('❌ No overlay found!');
+            return;
+        }
+
         const lockIcon = this.overlay.querySelector(`[data-element-id="${elementId}"]`);
+        console.log('🔍 Lock icon found:', lockIcon ? 'YES' : 'NO', 'for elementId:', elementId);
+
         if (lockIcon) {
             lockIcon.innerHTML = isEditable ? '🔓' : '🔒';
             lockIcon.classList.toggle('unlocked', isEditable);
+            console.log('✅ Lock icon updated to:', lockIcon.innerHTML);
+        } else {
+            console.error('❌ Lock icon not found in overlay for:', elementId);
+            console.log('Available lock icons:', Array.from(this.overlay.querySelectorAll('[data-element-id]')).map(el => el.dataset.elementId));
         }
+    }
+
+    /**
+     * Refresh all lock icons in the overlay
+     */
+    refreshOverlayLockIcons() {
+        if (!this.overlay) return;
+
+        // Update all lock icons based on configured state
+        const allLockIcons = this.overlay.querySelectorAll('[data-element-id]');
+        allLockIcons.forEach(lockIcon => {
+            const elementId = lockIcon.dataset.elementId;
+            
+            // Check if this element is configured
+            let isConfigured = false;
+            
+            for (const slot of this.configuredSlots) {
+                const slotElementId = this._getElementIdForSlot(slot);
+                if (slotElementId === elementId) {
+                    isConfigured = true;
+                    break;
+                }
+            }
+            
+            // Update icon
+            lockIcon.innerHTML = isConfigured ? '🔓' : '🔒';
+            lockIcon.classList.toggle('unlocked', isConfigured);
+        });
     }
 
     /**
@@ -451,40 +525,106 @@ class SavePagePanel {
     }
 
     toggleCellLock(elementId, cellId, cellType) {
+        console.log('🔒 toggleCellLock called:', { elementId, cellId, cellType });
+
         // Check if already configured
         const alreadyConfigured = this.configuredCellIds.has(cellId);
-        
+        console.log('🔍 Already configured?', alreadyConfigured);
+        console.log('📋 Configured cell IDs:', Array.from(this.configuredCellIds));
+
         if (alreadyConfigured) {
-            // Remove slot
-            this.configuredSlots = this.configuredSlots.filter(slot => 
-                !slot.sourceContentId || slot.sourceContentId !== cellId
+            console.log('✏️ Opening EDITING mode for existing slot');
+            // Find and edit existing slot
+            const slot = this.configuredSlots.find(s =>
+                s.sourceContentId === cellId || s.sourceElement === cellId
             );
-            this.configuredCellIds.delete(cellId);
-            this.updateLockIcon(elementId, false);
-            this.updateEditableFieldsList();
+            if (slot) {
+                const slotIndex = this.configuredSlots.indexOf(slot);
+                this.showInlineEditor(slot, slotIndex);
+            }
         } else {
-            // Find the cell and open config panel
+            console.log('✨ Opening CREATION mode for new slot');
+            // Find the cell and show inline editor for new slot
             const cell = this._findCellByElementId(elementId);
             if (!cell) {
                 console.error('Cell not found:', elementId);
                 return;
             }
 
-            // Open config panel
-            this.configPanel.show(cell,
-                (slot) => {
-                    // On save: add slot to configured list
-                    this.configuredSlots.push(slot);
-                    this.configuredCellIds.add(cellId);
-                    this.updateLockIcon(elementId, true);
-                    this.updateEditableFieldsList();
-                    console.log('✅ Slot configured:', slot.slotId);
-                },
-                () => {
-                    // On cancel: do nothing, leave unlocked
-                    console.log('❌ Slot configuration cancelled');
-                }
-            );
+            // Create a new temporary slot object with defaults
+            const newSlot = this._createDefaultSlot(cell, elementId);
+
+            // Show inline editor for creation
+            this.showInlineEditorForNewSlot(newSlot, elementId, cellId);
+        }
+    }
+
+    /**
+     * Create default slot configuration for a cell
+     */
+    _createDefaultSlot(cell, elementId) {
+        const cellType = cell.type || 'content';
+        const isText = cellType === 'main-text' || cellType === 'text';
+
+        // Generate unique slot ID using timestamp to prevent duplicates
+        const timestamp = Date.now();
+        const uniqueId = `${cell.id}-${timestamp}`;
+
+        return {
+            slotId: `${uniqueId}-slot`,
+            sourceElement: cell.id,
+            sourceContentId: cell.contentId || `${cellType}-${cell.row}-${cell.col}`,
+            type: isText ? 'text' : 'image',
+            boundingBox: this.app.presetPageManager.contentSlotManager.captureBoundingBox(cell),
+            fieldName: isText ? 'headline' : 'image1',
+            fieldLabel: isText ? 'Headline' : 'Image 1',
+            fieldDescription: '',
+            required: true,
+            constraints: isText ? {
+                maxCharacters: 100,
+                minFontSize: 50,
+                maxFontSize: 100,
+                alignment: 'center'
+            } : {
+                fitMode: 'cover',
+                maxFileSize: 10485760,
+                allowedFormats: ['jpg', 'png', 'webp', 'gif']
+            },
+            styling: isText ? {
+                fontFamily: cell.content?.fontFamily || 'Inter',
+                fontWeight: cell.content?.fontWeight || 'normal',
+                color: cell.content?.color || '#000000'
+            } : {}
+        };
+    }
+
+    /**
+     * Show inline editor for creating a new slot
+     */
+    showInlineEditorForNewSlot(slot, elementId, cellId) {
+        // Store info for new slot creation
+        this.currentEditingSlotIndex = -1; // -1 indicates new slot
+        this.newSlotData = { slot, elementId, cellId };
+
+        // Add temporary slot to list for inline editing
+        this.configuredSlots.push(slot);
+        const tempIndex = this.configuredSlots.length - 1;
+        
+        // Refresh list to show new slot
+        this.updateEditableFieldsList();
+        
+        // Find the newly added slot item and expand it
+        const slotItems = this.container.querySelectorAll('.configured-slot-item');
+        if (slotItems[tempIndex]) {
+            const contentSection = slotItems[tempIndex].querySelector('.slot-edit-content');
+            const icon = slotItems[tempIndex].querySelector('.collapse-icon');
+            if (contentSection && icon) {
+                contentSection.style.display = 'block';
+                icon.textContent = '▼';
+            }
+            
+            // Scroll to it
+            slotItems[tempIndex].scrollIntoView({ behavior: 'smooth', block: 'nearest' });
         }
     }
 
@@ -652,29 +792,447 @@ class SavePagePanel {
         listContainer.innerHTML = '';
 
         if (this.configuredSlots.length === 0) {
-            listContainer.innerHTML = '<p class="no-fields-message">No editable fields yet</p>';
+            listContainer.innerHTML = '<p class="no-fields-message">No editable slots yet</p>';
             return;
         }
 
         // Show configured slots
-        this.configuredSlots.forEach(slot => {
+        this.configuredSlots.forEach((slot, index) => {
             const item = document.createElement('div');
             item.className = 'configured-slot-item';
-            item.innerHTML = `
-                <div class="field-list-header">
-                    <div class="field-list-label">
-                        <strong>${slot.fieldLabel}</strong>
-                        <span class="slot-type-badge">${slot.type}</span>
-                    </div>
-                    <div class="field-list-details">
-                        <span class="field-detail-name">${slot.fieldName}</span>
-                        ${slot.required ? '<span class="slot-required">Required</span>' : ''}
-                    </div>
+            item.dataset.slotIndex = index;
+            
+            // Create header with collapse/expand
+            const header = document.createElement('div');
+            header.className = 'field-list-header';
+            header.style.cursor = 'pointer';
+            header.innerHTML = `
+                <div class="field-list-label">
+                    <span class="collapse-icon" style="margin-right: 8px; display: inline-block; width: 12px;">▼</span>
+                    <strong>${slot.fieldName}</strong>
+                    <span class="slot-type-badge">${slot.type}</span>
                 </div>
-                ${slot.fieldDescription ? `<div class="slot-description">${slot.fieldDescription}</div>` : ''}
+                <div class="field-list-details">
+                    <span class="field-detail-name">${slot.fieldDescription || 'No description'}</span>
+                    <button class="slot-delete-btn" data-slot-index="${index}" style="margin-left: 10px; padding: 2px 6px; background: #e74c3c; color: white; border: none; border-radius: 3px; cursor: pointer;">×</button>
+                </div>
             `;
+            
+            // Create expandable content section
+            const contentSection = document.createElement('div');
+            contentSection.className = 'slot-edit-content';
+            contentSection.style.display = 'none';
+            contentSection.style.padding = '12px 10px';
+            contentSection.style.background = 'transparent';
+            contentSection.style.borderTop = '1px solid rgba(255, 255, 255, 0.05)';
+            contentSection.style.marginTop = '8px';
+            
+            // Build form based on slot type
+            if (slot.type === 'text') {
+                contentSection.innerHTML = this._buildTextSlotForm(slot);
+            } else {
+                contentSection.innerHTML = this._buildImageSlotForm(slot);
+            }
+            
+            // Toggle expand/collapse on header click
+            header.addEventListener('click', (e) => {
+                // Don't toggle if clicking delete button
+                if (e.target.classList.contains('slot-delete-btn')) return;
+                
+                const icon = header.querySelector('.collapse-icon');
+                if (contentSection.style.display === 'none') {
+                    contentSection.style.display = 'block';
+                    icon.textContent = '▼';
+                    this.currentEditingSlotIndex = index;
+                } else {
+                    contentSection.style.display = 'none';
+                    icon.textContent = '▶';
+                }
+            });
+            
+            // Delete button handler
+            const deleteBtn = header.querySelector('.slot-delete-btn');
+            deleteBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                this.deleteSlotFromList(index);
+            });
+            
+            // Auto-save on input changes within this slot
+            contentSection.addEventListener('input', (e) => {
+                // Only update currentEditingSlotIndex if not in NEW SLOT mode (-1)
+                if (this.currentEditingSlotIndex !== -1) {
+                    this.currentEditingSlotIndex = index;
+                }
+                this.autoSaveInlineEditor();
+
+                // Update header if field name or description changed
+                if (e.target.id === 'inline-field-name' || e.target.id === 'inline-field-description') {
+                    const fieldName = contentSection.querySelector('#inline-field-name')?.value || slot.fieldName;
+                    const fieldDescription = contentSection.querySelector('#inline-field-description')?.value || 'No description';
+                    header.querySelector('.field-list-label strong').textContent = fieldName;
+                    header.querySelector('.field-detail-name').textContent = fieldDescription;
+                }
+            });
+
+            contentSection.addEventListener('change', (e) => {
+                // Only update currentEditingSlotIndex if not in NEW SLOT mode (-1)
+                if (this.currentEditingSlotIndex !== -1) {
+                    this.currentEditingSlotIndex = index;
+                }
+                this.autoSaveInlineEditor();
+            });
+            
+            item.appendChild(header);
+            item.appendChild(contentSection);
             listContainer.appendChild(item);
         });
+    }
+
+    /**
+     * Show inline editor for a slot (now handled by list expansion)
+     */
+    showInlineEditor(slot, slotIndex) {
+        // Find the slot item in the list and expand it
+        const slotItems = this.container.querySelectorAll('.configured-slot-item');
+        if (slotItems[slotIndex]) {
+            const contentSection = slotItems[slotIndex].querySelector('.slot-edit-content');
+            const icon = slotItems[slotIndex].querySelector('.collapse-icon');
+            if (contentSection && icon) {
+                contentSection.style.display = 'block';
+                icon.textContent = '▼';
+            }
+            
+            // Scroll to it
+            slotItems[slotIndex].scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }
+    }
+
+    /**
+     * Build form for text slot
+     */
+    _buildTextSlotForm(slot) {
+        const inputStyle = 'background: transparent; border: 1px solid #d1d5db; padding: 8px; border-radius: 4px; width: 100%; box-sizing: border-box;';
+        return `
+            <div class="inline-form-group" style="margin-bottom: 12px;">
+                <label style="display: block; margin-bottom: 4px; font-size: 13px; color: #374151;">Field Name *</label>
+                <input type="text" id="inline-field-name" value="${slot.fieldName || ''}" placeholder="e.g., headline" style="${inputStyle}" />
+                <small style="display: block; margin-top: 4px; font-size: 11px; color: #6b7280;">Used internally (letters, numbers, underscores)</small>
+            </div>
+            <div class="inline-form-group" style="margin-bottom: 12px;">
+                <label style="display: block; margin-bottom: 4px; font-size: 13px; color: #374151;">Field Label *</label>
+                <input type="text" id="inline-field-label" value="${slot.fieldLabel || ''}" placeholder="e.g., Main Headline" style="${inputStyle}" />
+                <small style="display: block; margin-top: 4px; font-size: 11px; color: #6b7280;">Shown to end-users in form</small>
+            </div>
+            <div class="inline-form-group" style="margin-bottom: 12px;">
+                <label style="display: block; margin-bottom: 4px; font-size: 13px; color: #374151;">Description</label>
+                <textarea id="inline-field-description" placeholder="Help text for end-users" style="${inputStyle} min-height: 60px; resize: vertical;">${slot.fieldDescription || ''}</textarea>
+            </div>
+            <div class="inline-form-group" style="margin-bottom: 12px;">
+                <label style="display: block; margin-bottom: 4px; font-size: 13px; color: #374151;">Max Characters</label>
+                <input type="number" id="inline-max-chars" value="${slot.constraints?.maxCharacters || 100}" min="1" style="${inputStyle}" />
+            </div>
+            <div class="inline-form-group" style="margin-bottom: 12px;">
+                <label style="display: block; margin-bottom: 4px; font-size: 13px; color: #374151;">Min Font Size (px)</label>
+                <input type="number" id="inline-min-font" value="${slot.constraints?.minFontSize || 50}" min="1" style="${inputStyle}" />
+            </div>
+            <div class="inline-form-group" style="margin-bottom: 12px;">
+                <label style="display: block; margin-bottom: 4px; font-size: 13px; color: #374151;">Max Font Size (px)</label>
+                <input type="number" id="inline-max-font" value="${slot.constraints?.maxFontSize || 100}" min="1" style="${inputStyle}" />
+            </div>
+        `;
+    }
+
+    /**
+     * Build form for image slot
+     */
+    _buildImageSlotForm(slot) {
+        const inputStyle = 'background: transparent; border: 1px solid #d1d5db; padding: 8px; border-radius: 4px; width: 100%; box-sizing: border-box;';
+        return `
+            <div class="inline-form-group" style="margin-bottom: 12px;">
+                <label style="display: block; margin-bottom: 4px; font-size: 13px; color: #374151;">Field Name *</label>
+                <input type="text" id="inline-field-name" value="${slot.fieldName || ''}" placeholder="e.g., companyLogo" style="${inputStyle}" />
+                <small style="display: block; margin-top: 4px; font-size: 11px; color: #6b7280;">Used internally (letters, numbers, underscores)</small>
+            </div>
+            <div class="inline-form-group" style="margin-bottom: 12px;">
+                <label style="display: block; margin-bottom: 4px; font-size: 13px; color: #374151;">Field Label *</label>
+                <input type="text" id="inline-field-label" value="${slot.fieldLabel || ''}" placeholder="e.g., Company Logo" style="${inputStyle}" />
+                <small style="display: block; margin-top: 4px; font-size: 11px; color: #6b7280;">Shown to end-users in form</small>
+            </div>
+            <div class="inline-form-group" style="margin-bottom: 12px;">
+                <label style="display: block; margin-bottom: 4px; font-size: 13px; color: #374151;">Description</label>
+                <textarea id="inline-field-description" placeholder="Help text for end-users" style="${inputStyle} min-height: 60px; resize: vertical;">${slot.fieldDescription || ''}</textarea>
+            </div>
+            <div class="inline-form-group" style="margin-bottom: 12px;">
+                <label style="display: block; margin-bottom: 4px; font-size: 13px; color: #374151;">Fit Mode</label>
+                <select id="inline-fit-mode" style="${inputStyle}">
+                    <option value="cover" ${slot.constraints?.fitMode === 'cover' ? 'selected' : ''}>Cover (crop to fill)</option>
+                    <option value="free" ${slot.constraints?.fitMode === 'free' ? 'selected' : ''}>Free (scale proportionally)</option>
+                </select>
+            </div>
+        `;
+    }
+
+    /**
+     * Hide inline editor (no longer used - slots expand inline)
+     */
+    hideInlineEditor() {
+        this.currentEditingSlotIndex = null;
+        this.newSlotData = null;
+    }
+
+
+
+    /**
+     * Auto-save inline editor changes as user types
+     */
+    autoSaveInlineEditor() {
+        // Debounce to avoid too many updates
+        clearTimeout(this._autoSaveTimeout);
+        this._autoSaveTimeout = setTimeout(() => {
+            this._saveInlineEditorChangesInternal(false); // false = no UI refresh
+        }, 300);
+    }
+
+
+
+    /**
+     * Save changes from inline editor (internal version)
+     * @param {boolean} refreshUI - Whether to refresh the UI after saving
+     */
+    _saveInlineEditorChangesInternal(refreshUI = true) {
+        console.log('💾 _saveInlineEditorChangesInternal called');
+        console.log('📍 currentEditingSlotIndex:', this.currentEditingSlotIndex);
+        console.log('📦 newSlotData exists:', !!this.newSlotData);
+
+        // Get form values
+        const fieldName = this.container.querySelector('#inline-field-name')?.value;
+        const fieldLabel = this.container.querySelector('#inline-field-label')?.value;
+        const fieldDescription = this.container.querySelector('#inline-field-description')?.value;
+
+        // Validate
+        if (!fieldName || !fieldLabel) {
+            alert('Field Name and Field Label are required');
+            return;
+        }
+
+        // Check if creating new slot or editing existing
+        if (this.currentEditingSlotIndex === -1) {
+            console.log('🆕 Entering NEW SLOT CREATION branch');
+            // NEW SLOT CREATION
+            if (!this.newSlotData) {
+                console.error('No newSlotData available for new slot');
+                return;
+            }
+
+            const { slot, elementId, cellId } = this.newSlotData;
+
+            // Update slot with form values
+            slot.fieldName = fieldName;
+            slot.fieldLabel = fieldLabel;
+            slot.fieldDescription = fieldDescription;
+            slot.required = true; // Always required
+
+            // Update type-specific constraints
+            if (slot.type === 'text') {
+                const maxChars = this.container.querySelector('#inline-max-chars')?.value;
+                const minFont = this.container.querySelector('#inline-min-font')?.value;
+                const maxFont = this.container.querySelector('#inline-max-font')?.value;
+                if (!slot.constraints) slot.constraints = {};
+                slot.constraints.maxCharacters = parseInt(maxChars) || 100;
+                slot.constraints.minFontSize = parseInt(minFont) || 50;
+                slot.constraints.maxFontSize = parseInt(maxFont) || 100;
+            } else if (slot.type === 'image' || slot.type === 'media') {
+                const fitMode = this.container.querySelector('#inline-fit-mode')?.value;
+                if (!slot.constraints) slot.constraints = {};
+                slot.constraints.fitMode = fitMode || 'cover';
+            }
+
+            // Add to content slot manager
+            console.log('📝 Adding slot to ContentSlotManager:', slot.slotId);
+            this.app.presetPageManager.contentSlotManager.addSlot(slot);
+
+            // Verify it was added
+            const allSlots = this.app.presetPageManager.contentSlotManager.getAllSlots();
+            const verifySlot = allSlots.find(s => s.slotId === slot.slotId);
+            console.log('✅ Slot added to ContentSlotManager:', verifySlot ? 'YES' : 'NO');
+            console.log('📊 Total slots in ContentSlotManager:', allSlots.length);
+            console.log('📋 All slot IDs:', allSlots.map(s => s.slotId));
+
+            // NOTE: Slot already added to configuredSlots in showInlineEditorForNewSlot (line 610)
+            // So we DON'T push it again here, just find its index
+            const slotIndex = this.configuredSlots.findIndex(s => s.slotId === slot.slotId);
+            console.log('📍 Slot found at index:', slotIndex);
+
+            // Track as configured
+            this.configuredCellIds.add(cellId);
+            if (slot.sourceContentId) {
+                this.configuredCellIds.add(slot.sourceContentId);
+            }
+
+            // Update lock icon to unlocked
+            console.log('🔓 About to update lock icon for:', elementId);
+            this.updateLockIcon(elementId, true);
+
+            // Force refresh overlay to ensure icon updates
+            if (this.overlay && this.overlay.parentElement) {
+                console.log('🔄 Refreshing all overlay lock icons');
+                this.refreshOverlayLockIcons();
+            }
+
+            // Switch to edit mode for this slot (so auto-save works on subsequent changes)
+            this.currentEditingSlotIndex = slotIndex;
+
+            // Clear newSlotData
+            this.newSlotData = null;
+
+            // ALWAYS refresh UI for new slots (even during auto-save)
+            this.updateEditableFieldsList();
+
+            console.log('✅ New slot created:', slot.slotId, 'elementId:', elementId);
+        } else {
+            console.log('✏️ Entering EDITING EXISTING SLOT branch');
+            console.log('📍 currentEditingSlotIndex value:', this.currentEditingSlotIndex);
+
+            // EDITING EXISTING SLOT
+            if (this.currentEditingSlotIndex === null) return;
+
+            const slot = this.configuredSlots[this.currentEditingSlotIndex];
+            if (!slot) {
+                console.error('❌ No slot found at index:', this.currentEditingSlotIndex);
+                return;
+            }
+
+            console.log('✏️ Updating existing slot:', slot.slotId);
+
+            // Update slot
+            slot.fieldName = fieldName;
+            slot.fieldLabel = fieldLabel;
+            slot.fieldDescription = fieldDescription;
+            slot.required = true; // Always required
+
+            // Update type-specific constraints
+            if (slot.type === 'text') {
+                const maxChars = this.container.querySelector('#inline-max-chars')?.value;
+                const minFont = this.container.querySelector('#inline-min-font')?.value;
+                const maxFont = this.container.querySelector('#inline-max-font')?.value;
+                if (!slot.constraints) slot.constraints = {};
+                slot.constraints.maxCharacters = parseInt(maxChars) || 100;
+                slot.constraints.minFontSize = parseInt(minFont) || 50;
+                slot.constraints.maxFontSize = parseInt(maxFont) || 100;
+            } else if (slot.type === 'image' || slot.type === 'media') {
+                const fitMode = this.container.querySelector('#inline-fit-mode')?.value;
+                if (!slot.constraints) slot.constraints = {};
+                slot.constraints.fitMode = fitMode || 'cover';
+            }
+
+            // Update in content slot manager
+            this.app.presetPageManager.contentSlotManager.updateSlot(slot.slotId, slot);
+
+            console.log('✅ Slot updated:', slot.slotId);
+        }
+
+        // Refresh UI if requested
+        if (refreshUI) {
+            this.updateEditableFieldsList();
+        }
+    }
+
+    /**
+     * Remove slot from inline editor
+     */
+    removeSlotFromInlineEditor() {
+        // Can't remove a slot that hasn't been created yet
+        if (this.currentEditingSlotIndex === -1) {
+            this.hideInlineEditor();
+            return;
+        }
+
+        if (this.currentEditingSlotIndex === null) return;
+
+        const slot = this.configuredSlots[this.currentEditingSlotIndex];
+        if (!slot) return;
+
+        // Confirm removal
+        if (!confirm(`Remove slot "${slot.fieldLabel}"?`)) {
+            return;
+        }
+
+        // Remove from array
+        this.configuredSlots.splice(this.currentEditingSlotIndex, 1);
+
+        // Remove from content slot manager
+        this.app.presetPageManager.contentSlotManager.removeSlot(slot.slotId);
+
+        // Update lock icon
+        const elementId = this._getElementIdForSlot(slot);
+        if (elementId) {
+            this.updateLockIcon(elementId, false);
+            this.configuredCellIds.delete(slot.sourceElement);
+            if (slot.sourceContentId) {
+                this.configuredCellIds.delete(slot.sourceContentId);
+            }
+        }
+
+        // Refresh UI
+        this.updateEditableFieldsList();
+        this.hideInlineEditor();
+
+        console.log('🗑️ Slot removed:', slot.slotId);
+    }
+
+    /**
+     * Delete slot from list (via × button)
+     */
+    deleteSlotFromList(slotIndex) {
+        const slot = this.configuredSlots[slotIndex];
+        if (!slot) return;
+
+        // Confirm removal
+        if (!confirm(`Remove slot "${slot.fieldLabel}"?`)) {
+            return;
+        }
+
+        // Remove from array
+        this.configuredSlots.splice(slotIndex, 1);
+
+        // Remove from content slot manager
+        this.app.presetPageManager.contentSlotManager.removeSlot(slot.slotId);
+
+        // Update lock icon
+        const elementId = this._getElementIdForSlot(slot);
+        if (elementId) {
+            this.updateLockIcon(elementId, false);
+            this.configuredCellIds.delete(slot.sourceElement);
+            if (slot.sourceContentId) {
+                this.configuredCellIds.delete(slot.sourceContentId);
+            }
+        }
+
+        // If this was the slot being edited, hide editor
+        if (this.currentEditingSlotIndex === slotIndex) {
+            this.hideInlineEditor();
+        } else if (this.currentEditingSlotIndex > slotIndex) {
+            // Adjust index if we removed an earlier slot
+            this.currentEditingSlotIndex--;
+        }
+
+        // Refresh UI
+        this.updateEditableFieldsList();
+
+        console.log('🗑️ Slot removed:', slot.slotId);
+    }
+
+    /**
+     * Get element ID for a slot (to update lock icon)
+     */
+    _getElementIdForSlot(slot) {
+        if (slot.type === 'main-text') {
+            return 'mainText';
+        } else if (slot.type === 'text') {
+            return `textCell-${slot.sourceElement}`;
+        } else {
+            return `contentCell-${slot.sourceElement}`;
+        }
     }
 
     /**
