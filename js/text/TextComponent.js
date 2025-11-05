@@ -237,6 +237,20 @@ class TextComponent {
         const availableWidth = this.getAvailableWidth();
         const lines = this.wrapTextToLines(ctx, this.text, availableWidth, fontSize);
 
+        console.log(`🔤 getTextBounds() text wrapping:`);
+        console.log(`   → Original text: "${this.text}"`);
+        console.log(`   → Available width: ${availableWidth}px`);
+        console.log(`   → Wrapped into ${lines.length} lines:`, lines);
+
+        // 🔧 FIX: Measure full original text width (including all spaces)
+        // This captures the true width even if text wraps to multiple lines
+        const fullTextWidth = ctx.measureText(this.text).width;
+        console.log(`   → Full text width (with all spaces): ${fullTextWidth}px`);
+
+        // Check if text contains spaces but no newlines (single logical line)
+        const isSingleLogicalLine = !this.text.includes('\n') && this.text.includes(' ');
+        console.log(`   → Is single logical line (has spaces, no newlines): ${isSingleLogicalLine}`);
+
         // Calculate total text height using typography-aware heights
         let totalHeight = 0;
         lines.forEach((line, index) => {
@@ -353,6 +367,87 @@ class TextComponent {
             // Move to next line position
             currentY += lineHeight + this.lineSpacing;
         });
+
+        // 🔧 FIX: For single logical lines that wrapped, use full text width AND single line height
+        // This ensures spaces between words are included in the bounding box
+        if (isSingleLogicalLine && textBounds.length > 0) {
+            console.log(`   🔧 Applying full text width fix for single logical line`);
+            console.log(`      Before: widest line = ${Math.max(...textBounds.map(b => b.width))}px`);
+            console.log(`      After: full text width = ${fullTextWidth}px`);
+            console.log(`      Lines wrapped: ${textBounds.length} (treating as single line)`);
+
+            // Find the leftmost X position and topmost Y position
+            const minX = Math.min(...textBounds.map(b => b.x));
+            const minY = Math.min(...textBounds.map(b => b.y));
+            const singleLineHeight = textBounds[0].height; // Use first line's height
+
+            console.log(`      Original line positions:`);
+            textBounds.forEach((b, i) => {
+                console.log(`         Line ${i}: x=${b.x}, y=${b.y}, width=${b.width}, height=${b.height}`);
+            });
+
+            console.log(`      Collapsing height: ${textBounds.length} lines → single line height: ${singleLineHeight}px`);
+
+            // Calculate the vertical center of all wrapped lines
+            const maxY = Math.max(...textBounds.map(b => b.y + b.height));
+            const totalWrappedHeight = maxY - minY;
+            const verticalCenter = minY + (totalWrappedHeight / 2);
+            console.log(`      Vertical span: minY=${minY}, maxY=${maxY}, totalHeight=${totalWrappedHeight}`);
+            console.log(`      Vertical center of wrapped text: ${verticalCenter}`);
+
+            // 🎯 ISSUE: When lines wrap, each line is positioned based on alignment
+            // For center-aligned text, each line is centered individually
+            // We need to calculate where the full-width line SHOULD be positioned
+
+            // Get the first line's alignment and position
+            const firstLineX = textBounds[0].x;
+            const firstLineWidth = textBounds[0].width;
+            const firstLineAlign = this.alignH || 'center';
+
+            console.log(`      First line alignment: ${firstLineAlign}`);
+            console.log(`      First line: x=${firstLineX}, width=${firstLineWidth}`);
+            console.log(`      Full text width: ${fullTextWidth}`);
+
+            // Calculate the correct X position for the full-width text
+            let correctedX = minX;
+
+            if (firstLineAlign === 'center') {
+                // For center-aligned, we need to shift left by the width difference / 2
+                const widthDiff = fullTextWidth - firstLineWidth;
+                correctedX = firstLineX - (widthDiff / 2);
+                console.log(`      Center alignment: shifting left by ${widthDiff / 2}px`);
+            } else if (firstLineAlign === 'right') {
+                // For right-aligned, shift left by the full width difference
+                const widthDiff = fullTextWidth - firstLineWidth;
+                correctedX = firstLineX - widthDiff;
+                console.log(`      Right alignment: shifting left by ${widthDiff}px`);
+            }
+            // For left-aligned, use minX as-is
+
+            console.log(`      Corrected X: ${correctedX}`);
+
+            // 🎯 ISSUE: Y position should be centered vertically around the wrapped text's center
+            // The wrapped text has a center at verticalCenter
+            // The single line should be positioned so its center aligns with that
+            const correctedY = verticalCenter - (singleLineHeight / 2);
+            console.log(`      Y position adjustment:`);
+            console.log(`         Wrapped text center: ${verticalCenter}`);
+            console.log(`         Single line height: ${singleLineHeight}`);
+            console.log(`         Corrected Y (center - height/2): ${correctedY}`);
+            console.log(`         Original minY: ${minY} → Corrected Y: ${correctedY}`);
+
+            // Return a single bounds object for the entire logical line
+            // This treats "WIX STUDIO" as one line even though it wrapped
+            textBounds.length = 0; // Clear array
+            textBounds.push({
+                x: correctedX,
+                y: correctedY,
+                width: fullTextWidth,
+                height: singleLineHeight,
+                text: this.text,
+                line: this.text
+            });
+        }
 
         ctx.restore();
         return textBounds;
@@ -525,14 +620,23 @@ class TextComponent {
     getTightTextWidth(ctx, text) {
         const metrics = ctx.measureText(text);
         
+        // 🐛 DEBUG: Log width calculation details
+        console.log(`📏 getTightTextWidth() called for: "${text}"`);
+        console.log(`   → metrics.width: ${metrics.width}`);
+        console.log(`   → actualBoundingBoxLeft: ${metrics.actualBoundingBoxLeft}`);
+        console.log(`   → actualBoundingBoxRight: ${metrics.actualBoundingBoxRight}`);
+        
         // Use actualBoundingBox if available (modern browsers)
         if (metrics.actualBoundingBoxLeft !== undefined && 
             metrics.actualBoundingBoxRight !== undefined) {
             const tightWidth = metrics.actualBoundingBoxRight; // Distance from origin to right edge
+            console.log(`   → Using actualBoundingBoxRight: ${tightWidth}`);
+            console.log(`   → Difference from metrics.width: ${Math.abs(tightWidth - metrics.width)} px`);
             return tightWidth;
         }
         
         // Fallback to standard width
+        console.log(`   → Fallback to metrics.width: ${metrics.width}`);
         return metrics.width;
     }
     
