@@ -77,17 +77,11 @@ class ContentSlotManager {
      * @private
      */
     _captureTextBounds(cell) {
-        console.log(`\n📝 _captureTextBounds() called for cell ${cell.id}`);
-        console.log(`   → Cell type: ${cell.type}`);
-        console.log(`   → Has textComponent: ${!!cell.textComponent}`);
-        console.log(`   → Text preview: "${(cell.text || cell.content?.text || '').substring(0, 50)}..."`);
-
         // 🎯 FIXED: TextComponent container may not be set, use cell bounds directly
         // For main text cells and content cells with text, calculate tight bounds
 
         // First, ensure TextComponent container is synced with cell bounds
         if (cell.textComponent && cell.bounds) {
-            console.log(`   → Taking TEXTCOMPONENT path (has textComponent + bounds)`);
             // Sync container to cell bounds if not already set
             if (cell.textComponent.containerWidth === 0 || cell.textComponent.containerHeight === 0) {
                 cell.textComponent.setContainer(
@@ -100,40 +94,28 @@ class ContentSlotManager {
 
             // Now use getTextBounds() with proper container
             const ctx = this.app.canvasManager.ctx;
-            console.log(`   → Calling cell.textComponent.getTextBounds()`);
             const textBounds = cell.textComponent.getTextBounds(ctx);
 
             if (textBounds && textBounds.length > 0) {
-                console.log(`   → textBounds returned ${textBounds.length} lines`);
-
                 // Calculate bounding box that encompasses all lines
                 let minX = Infinity;
                 let minY = Infinity;
                 let maxX = -Infinity;
                 let maxY = -Infinity;
 
-                textBounds.forEach((lineBounds, i) => {
-                    console.log(`   → Line ${i}: "${lineBounds.text}"`);
-                    console.log(`      x: ${lineBounds.x}, y: ${lineBounds.y}, width: ${lineBounds.width}, height: ${lineBounds.height}`);
-
+                textBounds.forEach(lineBounds => {
                     minX = Math.min(minX, lineBounds.x);
                     minY = Math.min(minY, lineBounds.y);
                     maxX = Math.max(maxX, lineBounds.x + lineBounds.width);
                     maxY = Math.max(maxY, lineBounds.y + lineBounds.height);
                 });
 
-                const finalBounds = {
+                return {
                     x: minX,
                     y: minY,
                     width: maxX - minX,
                     height: maxY - minY
                 };
-
-                console.log(`   ✅ Final combined bounds:`, finalBounds);
-                console.log(`      minY: ${minY}, maxY: ${maxY}, height calculation: ${maxY} - ${minY} = ${maxY - minY}px`);
-                console.log(`      Number of lines: ${textBounds.length}`);
-
-                return finalBounds;
             }
         }
 
@@ -175,7 +157,6 @@ class ContentSlotManager {
         }
 
         // Fallback: For content cells without textComponent, calculate bounds manually
-        console.log(`   → Taking FALLBACK path (manual calculation)`);
         const ctx = this.app.canvasManager.ctx;
         ctx.save();
 
@@ -197,10 +178,6 @@ class ContentSlotManager {
         // Measure text
         const metrics = ctx.measureText(text);
         const textWidth = metrics.width;
-
-        console.log(`   → Fallback width calculation for: "${text}"`);
-        console.log(`      metrics.width: ${metrics.width}`);
-        console.log(`      Using textWidth: ${textWidth}`);
 
         // Use actualBoundingBox for accurate height if available
         let textHeight;
