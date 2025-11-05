@@ -264,6 +264,11 @@ class TextComponent {
 
         const position = this.calculateTextPosition(totalHeight);
 
+        console.log(`   📍 Position calculation:`);
+        console.log(`      positionH: ${this.positionH}, positionV: ${this.positionV}`);
+        console.log(`      alignH: ${this.alignH}, alignV: ${this.alignV}`);
+        console.log(`      Anchor position: x=${position.x}, y=${position.y}`);
+
         // Create bounds for each line
         const textBounds = [];
         let currentY = position.y;
@@ -276,20 +281,24 @@ class TextComponent {
             const lineY = currentY;
             const lineAlign = this.getLineAlignment ? this.getLineAlignment(index) : this.alignH;
 
-            // Calculate line X based on alignment
+            // 🔧 FIX: Calculate line X based on BOTH positionH (from position.x) and textAlign
+            // position.x already accounts for positionH (left/center/right in container)
+            // lineAlign (textAlign) determines how text aligns relative to that anchor
             let lineX;
-            const contentX = this.containerX + this.paddingLeft;
 
             switch (lineAlign) {
                 case 'left':
-                    lineX = contentX;
+                    // Text starts at anchor position
+                    lineX = position.x;
                     break;
                 case 'right':
-                    lineX = contentX + availableWidth;
+                    // Text ends at anchor position (need full width)
+                    lineX = position.x;
                     break;
                 case 'center':
                 default:
-                    lineX = contentX + availableWidth / 2;
+                    // Text centers on anchor position
+                    lineX = position.x;
                     break;
             }
 
