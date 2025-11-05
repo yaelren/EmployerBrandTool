@@ -459,9 +459,9 @@ class TextComponent {
             const verticalCenter = minY + (totalWrappedHeight / 2);
 
             // Calculate correct X position and width using same logic as line calculation
-            // Use maxLineWidth (already calculated) as the text block width
+            // Use fullTextWidth to include all spaces between words
             let correctedX;
-            let textBlockWidth = maxLineWidth;
+            let textBlockWidth = fullTextWidth;
 
             if (this.alignToTextBox) {
                 // CONTENT CELL MODE: use position-aware calculation with text box width
@@ -470,10 +470,10 @@ class TextComponent {
                     correctedX = position.x;
                 } else if (this.positionH === 'right') {
                     // Text block anchored at RIGHT
-                    correctedX = position.x - maxLineWidth;
+                    correctedX = position.x - fullTextWidth;
                 } else {
                     // Text block CENTERED
-                    correctedX = position.x - maxLineWidth / 2;
+                    correctedX = position.x - fullTextWidth / 2;
                 }
             } else {
                 // MAIN TEXT MODE: use canvas width calculation
@@ -481,9 +481,9 @@ class TextComponent {
                 const firstLineAlign = this.alignH || 'center';
 
                 if (firstLineAlign === 'center') {
-                    correctedX = contentX + availableWidth / 2 - maxLineWidth / 2;
+                    correctedX = contentX + availableWidth / 2 - fullTextWidth / 2;
                 } else if (firstLineAlign === 'right') {
-                    correctedX = contentX + availableWidth - maxLineWidth;
+                    correctedX = contentX + availableWidth - fullTextWidth;
                 } else {
                     correctedX = contentX;
                 }
