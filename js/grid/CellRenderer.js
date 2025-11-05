@@ -439,6 +439,9 @@ class CellRenderer {
         cell.textComponent.positionH = cell.content.positionH || 'center';
         cell.textComponent.positionV = cell.content.positionV || 'middle';
 
+        // Set alignment mode: CONTENT CELLS align to text box (longest line width)
+        cell.textComponent.alignToTextBox = true;
+
         // Set padding
         const padding = cell.content.padding || 1;
         cell.textComponent.setPadding(padding);

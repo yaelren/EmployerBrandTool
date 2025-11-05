@@ -33,7 +33,12 @@ class TextComponent {
         // ========== POSITION ALIGNMENT ========== \n        // Where the entire text block is positioned within the container (9-position grid)
         this.positionH = 'center'; // 'left', 'center', 'right' - where text block sits in container
         this.positionV = 'middle'; // 'top', 'middle', 'bottom' - where text block sits in container
-        
+
+        // ========== ALIGNMENT MODE ========== \n        // Determines how text positioning and alignment work together
+        // - alignToTextBox=true: CONTENT CELLS - text block width = longest line, positionH places that block, alignH aligns lines within block
+        // - alignToTextBox=false: MAIN TEXT - text uses full canvas width, alignH directly positions text
+        this.alignToTextBox = false; // Default to main text behavior
+
         // Padding (space between text and container edges)
         this.paddingTop = 20;
         this.paddingRight = 20;
@@ -257,6 +262,23 @@ class TextComponent {
 
         const position = this.calculateTextPosition(totalHeight);
 
+        // Calculate the width of the longest line (text block width)
+        let maxLineWidth = 0;
+        lines.forEach(line => {
+            if (line.trim()) {
+                const lineWidth = ctx.measureText(line).width;
+                maxLineWidth = Math.max(maxLineWidth, lineWidth);
+            }
+        });
+
+        console.log(`🔍 getTextBounds() called:`);
+        console.log(`   Text: "${this.text.substring(0, 30)}..."`);
+        console.log(`   alignToTextBox: ${this.alignToTextBox} (${this.alignToTextBox ? 'CONTENT CELL' : 'MAIN TEXT'})`);
+        console.log(`   positionH: ${this.positionH}, positionV: ${this.positionV}`);
+        console.log(`   alignH: ${this.alignH}, alignV: ${this.alignV}`);
+        console.log(`   maxLineWidth: ${maxLineWidth}`);
+        console.log(`   position.x: ${position.x}`);
+
         // Create bounds for each line
         const textBounds = [];
         let currentY = position.y;
@@ -269,25 +291,76 @@ class TextComponent {
             const lineY = currentY;
             const lineAlign = this.getLineAlignment ? this.getLineAlignment(index) : this.alignH;
 
-            // 🔧 FIX: Calculate line X based on BOTH positionH (from position.x) and textAlign
-            // position.x already accounts for positionH (left/center/right in container)
-            // lineAlign (textAlign) determines how text aligns relative to that anchor
+            // Calculate line X position
+            // TWO MODES:
+            // 1. alignToTextBox=true (CONTENT CELLS): text block width = longest line, positionH places block, alignH aligns within
+            // 2. alignToTextBox=false (MAIN TEXT): text uses full canvas width, alignH directly positions text
+            const contentX = this.containerX + this.paddingLeft;
+
             let lineX;
 
-            switch (lineAlign) {
-                case 'left':
-                    // Text starts at anchor position
-                    lineX = position.x;
-                    break;
-                case 'right':
-                    // Text ends at anchor position (need full width)
-                    lineX = position.x;
-                    break;
-                case 'center':
-                default:
-                    // Text centers on anchor position
-                    lineX = position.x;
-                    break;
+            if (this.alignToTextBox) {
+                // CONTENT CELL MODE: Align to text box (longest line width)
+                if (this.positionH === 'left') {
+                    // Text block anchored at LEFT of cell
+                    // position.x = left edge of text block
+                    switch (lineAlign) {
+                        case 'left':
+                            lineX = position.x;
+                            break;
+                        case 'right':
+                            lineX = position.x + maxLineWidth;
+                            break;
+                        case 'center':
+                        default:
+                            lineX = position.x + maxLineWidth / 2;
+                            break;
+                    }
+                } else if (this.positionH === 'right') {
+                    // Text block anchored at RIGHT of cell
+                    // position.x = right edge of text block
+                    switch (lineAlign) {
+                        case 'left':
+                            lineX = position.x - maxLineWidth;
+                            break;
+                        case 'right':
+                            lineX = position.x;
+                            break;
+                        case 'center':
+                        default:
+                            lineX = position.x - maxLineWidth / 2;
+                            break;
+                    }
+                } else {
+                    // Text block CENTERED in cell
+                    // position.x = center of text block
+                    switch (lineAlign) {
+                        case 'left':
+                            lineX = position.x - maxLineWidth / 2;
+                            break;
+                        case 'right':
+                            lineX = position.x + maxLineWidth / 2;
+                            break;
+                        case 'center':
+                        default:
+                            lineX = position.x;
+                            break;
+                    }
+                }
+            } else {
+                // MAIN TEXT MODE: Align to canvas (full available width)
+                switch (lineAlign) {
+                    case 'left':
+                        lineX = contentX;
+                        break;
+                    case 'right':
+                        lineX = contentX + availableWidth;
+                        break;
+                    case 'center':
+                    default:
+                        lineX = contentX + availableWidth / 2;
+                        break;
+                }
             }
 
             // Measure the line
@@ -307,6 +380,15 @@ class TextComponent {
                 default:
                     boundX = lineX - tightWidth / 2;
                     break;
+            }
+
+            // Debug logging for first line
+            if (index === 0) {
+                console.log(`📐 Line bounds calculation (line 0):`);
+                console.log(`   mode: ${this.alignToTextBox ? 'CONTENT CELL' : 'MAIN TEXT'}`);
+                console.log(`   positionH: ${this.positionH}, alignH: ${lineAlign}`);
+                console.log(`   lineX: ${lineX}, boundX: ${boundX}`);
+                console.log(`   tightWidth: ${tightWidth}`);
             }
 
             // Calculate typography-aligned bounds
@@ -365,11 +447,9 @@ class TextComponent {
             currentY += lineHeight + this.lineSpacing;
         });
 
-        // 🔧 FIX: For single logical lines that wrapped, use full text width AND single line height
+        // 🔧 FIX: For single logical lines that wrapped, use proper text block width AND single line height
         // This ensures spaces between words are included in the bounding box
         if (isSingleLogicalLine && textBounds.length > 0) {
-            // Find the leftmost X position and topmost Y position
-            const minX = Math.min(...textBounds.map(b => b.x));
             const minY = Math.min(...textBounds.map(b => b.y));
             const singleLineHeight = textBounds[0].height; // Use first line's height
 
@@ -378,28 +458,36 @@ class TextComponent {
             const totalWrappedHeight = maxY - minY;
             const verticalCenter = minY + (totalWrappedHeight / 2);
 
-            // 🎯 ISSUE: When lines wrap, each line is positioned based on alignment
-            // For center-aligned text, each line is centered individually
-            // We need to calculate where the full-width line SHOULD be positioned
+            // Calculate correct X position and width using same logic as line calculation
+            // Use maxLineWidth (already calculated) as the text block width
+            let correctedX;
+            let textBlockWidth = maxLineWidth;
 
-            // Get the first line's alignment and position
-            const firstLineX = textBounds[0].x;
-            const firstLineWidth = textBounds[0].width;
-            const firstLineAlign = this.alignH || 'center';
+            if (this.alignToTextBox) {
+                // CONTENT CELL MODE: use position-aware calculation with text box width
+                if (this.positionH === 'left') {
+                    // Text block anchored at LEFT
+                    correctedX = position.x;
+                } else if (this.positionH === 'right') {
+                    // Text block anchored at RIGHT
+                    correctedX = position.x - maxLineWidth;
+                } else {
+                    // Text block CENTERED
+                    correctedX = position.x - maxLineWidth / 2;
+                }
+            } else {
+                // MAIN TEXT MODE: use canvas width calculation
+                const contentX = this.containerX + this.paddingLeft;
+                const firstLineAlign = this.alignH || 'center';
 
-            // Calculate the correct X position for the full-width text
-            let correctedX = minX;
-
-            if (firstLineAlign === 'center') {
-                // For center-aligned, we need to shift left by the width difference / 2
-                const widthDiff = fullTextWidth - firstLineWidth;
-                correctedX = firstLineX - (widthDiff / 2);
-            } else if (firstLineAlign === 'right') {
-                // For right-aligned, shift left by the full width difference
-                const widthDiff = fullTextWidth - firstLineWidth;
-                correctedX = firstLineX - widthDiff;
+                if (firstLineAlign === 'center') {
+                    correctedX = contentX + availableWidth / 2 - maxLineWidth / 2;
+                } else if (firstLineAlign === 'right') {
+                    correctedX = contentX + availableWidth - maxLineWidth;
+                } else {
+                    correctedX = contentX;
+                }
             }
-            // For left-aligned, use minX as-is
 
             // Calculate Y position centered vertically around the wrapped text's center
             const correctedY = verticalCenter - (singleLineHeight / 2);
@@ -410,7 +498,7 @@ class TextComponent {
             textBounds.push({
                 x: correctedX,
                 y: correctedY,
-                width: fullTextWidth,
+                width: textBlockWidth,
                 height: singleLineHeight,
                 text: this.text,
                 line: this.text
@@ -826,7 +914,16 @@ class TextComponent {
         
         // Calculate starting position for the entire text block
         const position = this.calculateTextPosition(totalHeight);
-        
+
+        // Calculate the width of the longest line (text block width)
+        let maxLineWidth = 0;
+        lines.forEach(line => {
+            if (line.trim()) {
+                const lineWidth = ctx.measureText(line).width;
+                maxLineWidth = Math.max(maxLineWidth, lineWidth);
+            }
+        });
+
         // Render each line
         let currentY = position.y;
         lines.forEach((line, index) => {
@@ -834,25 +931,71 @@ class TextComponent {
 
             const lineHeight = this.getLineHeight(line, fontSize);
             const lineY = currentY;
-            
-            // Calculate line X position based on line alignment within the text block
-            // Use the calculated position.x as the anchor point for the text block
+
+            // Calculate line X position
+            // positionH determines where the text BLOCK sits (using longest line width)
+            // alignH determines how each line aligns within that text block
             let lineX;
-            
-            switch (this.alignH) {
-                case 'left':
-                    lineX = position.x;
-                    ctx.textAlign = 'left';
-                    break;
-                case 'right':
-                    lineX = position.x;
-                    ctx.textAlign = 'right';
-                    break;
-                case 'center':
-                default:
-                    lineX = position.x;
-                    ctx.textAlign = 'center';
-                    break;
+
+            // position.x from calculateTextPosition() represents:
+            // - positionH='left': left edge of cell content area
+            // - positionH='right': right edge of cell content area
+            // - positionH='center': center of cell content area
+
+            if (this.positionH === 'left') {
+                // Text block anchored at LEFT of cell
+                // position.x = left edge of text block
+                switch (this.alignH) {
+                    case 'left':
+                        lineX = position.x;
+                        ctx.textAlign = 'left';
+                        break;
+                    case 'right':
+                        lineX = position.x + maxLineWidth;
+                        ctx.textAlign = 'right';
+                        break;
+                    case 'center':
+                    default:
+                        lineX = position.x + maxLineWidth / 2;
+                        ctx.textAlign = 'center';
+                        break;
+                }
+            } else if (this.positionH === 'right') {
+                // Text block anchored at RIGHT of cell
+                // position.x = right edge of text block
+                switch (this.alignH) {
+                    case 'left':
+                        lineX = position.x - maxLineWidth;
+                        ctx.textAlign = 'left';
+                        break;
+                    case 'right':
+                        lineX = position.x;
+                        ctx.textAlign = 'right';
+                        break;
+                    case 'center':
+                    default:
+                        lineX = position.x - maxLineWidth / 2;
+                        ctx.textAlign = 'center';
+                        break;
+                }
+            } else {
+                // Text block CENTERED in cell
+                // position.x = center of text block
+                switch (this.alignH) {
+                    case 'left':
+                        lineX = position.x - maxLineWidth / 2;
+                        ctx.textAlign = 'left';
+                        break;
+                    case 'right':
+                        lineX = position.x + maxLineWidth / 2;
+                        ctx.textAlign = 'right';
+                        break;
+                    case 'center':
+                    default:
+                        lineX = position.x;
+                        ctx.textAlign = 'center';
+                        break;
+                }
             }
             
             // Measure line for decorations
