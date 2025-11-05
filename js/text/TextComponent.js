@@ -246,8 +246,19 @@ class TextComponent {
         // This captures the true width even if text wraps to multiple lines
         const fullTextWidth = ctx.measureText(this.text).width;
 
-        // Check if text contains spaces but no newlines (single logical line)
-        const isSingleLogicalLine = !this.text.includes('\n') && this.text.includes(' ');
+        // Check if text is a single logical line that wrapped due to container width
+        // Single logical line: has spaces, no newlines, AND fullTextWidth is reasonable (not a paragraph)
+        // Heuristic: If fullTextWidth > availableWidth * 2, it's probably a paragraph, not a wrapped single line
+        const hasSpaces = this.text.includes(' ');
+        const hasNewlines = this.text.includes('\n');
+        const isReasonablyShort = fullTextWidth <= availableWidth * 2;
+        const isSingleLogicalLine = !hasNewlines && hasSpaces && isReasonablyShort;
+
+        console.log(`🔍 Single logical line detection:`);
+        console.log(`   hasSpaces: ${hasSpaces}, hasNewlines: ${hasNewlines}`);
+        console.log(`   fullTextWidth: ${fullTextWidth}, availableWidth: ${availableWidth}`);
+        console.log(`   isReasonablyShort: ${isReasonablyShort} (fullTextWidth <= availableWidth * 2)`);
+        console.log(`   isSingleLogicalLine: ${isSingleLogicalLine}`);
 
         // Calculate total text height using typography-aware heights
         let totalHeight = 0;
