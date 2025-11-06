@@ -755,6 +755,11 @@ class EmployerBrandToolPOC {
      * @param {MouseEvent} event - Mouse move event
      */
     onCanvasHover(event) {
+        // Skip hover effects if in save page mode
+        if (this.savePageModeActive) {
+            return;
+        }
+        
         const canvasCoords = this.canvasManager.screenToCanvas(event.clientX, event.clientY);
         
         // Find hovered cell using grid system
@@ -787,6 +792,11 @@ class EmployerBrandToolPOC {
      * @param {MouseEvent} event - Mouse leave event
      */
     onCanvasLeave(event) {
+        // Skip if in save page mode
+        if (this.savePageModeActive) {
+            return;
+        }
+        
         // Clear hover state
         this.hoveredCell = null;
         this.showHoverOutline = false;

@@ -217,9 +217,20 @@ class SavePagePanel {
      * Show/expand the panel
      */
     async show() {
-        // Reset content slots
-        this.configuredSlots = [];
+        // 🎯 UPDATED: Load existing content slots from ContentSlotManager
+        this.configuredSlots = [...this.contentSlotManager.getAllSlots()];
+        
+        // Keep configuredCellIds for backward compatibility (will be deprecated)
         this.configuredCellIds.clear();
+        this.configuredSlots.forEach(slot => {
+            if (slot.sourceContentId) {
+                this.configuredCellIds.add(slot.sourceContentId);
+            }
+            if (slot.sourceElement) {
+                this.configuredCellIds.add(slot.sourceElement);
+            }
+        });
+        
         this.selectedCellId = null;
 
         // Load existing presets for dropdown
@@ -241,6 +252,11 @@ class SavePagePanel {
 
         // Enable canvas overlay mode (visual indicator)
         this.enableCanvasOverlayMode();
+        
+        // Auto-enable content slot overlay
+        if (this.app.contentSlotOverlay && !this.app.contentSlotOverlay.enabled) {
+            this.app.contentSlotOverlay.show();
+        }
 
         // Update editable fields list
         this.updateEditableFieldsList();
@@ -259,6 +275,13 @@ class SavePagePanel {
 
         // Disable canvas overlay mode
         this.disableCanvasOverlayMode();
+        
+        // Hide content slot overlay (optional - could leave it on)
+        // User might want to keep it visible after closing save panel
+        // Uncomment if you want to auto-hide:
+        // if (this.app.contentSlotOverlay && this.app.contentSlotOverlay.enabled) {
+        //     this.app.contentSlotOverlay.hide();
+        // }
 
         // Clear selection
         this.selectedCellId = null;
@@ -357,23 +380,36 @@ class SavePagePanel {
     renderCellLockIcons() {
         if (!this.app || !this.app.grid) return;
 
-        const allCells = this.app.grid.getAllCells();
+        // 🎯 NEW APPROACH: Use content slot bounds instead of cell bounds
+        // Get all content bounds from grid (same logic as ContentSlotOverlay)
+        const allContentBounds = this.getAllContentBounds();
         
+        if (allContentBounds.length === 0) {
+            console.log('⚠️ No content bounds found for lock icons');
+            return;
+        }
+
         let renderedCount = 0;
-        allCells.forEach((cell, index) => {
-            // Skip cells that don't exist
-            if (!cell) return;
+        allContentBounds.forEach((item) => {
+            const { cell, bounds: bbox, type } = item;
             
-            // Skip empty cells
-            if (typeof cell.isEmpty === 'function' && cell.isEmpty()) {
+            // Skip if no bounding box
+            if (!bbox || bbox.width === 0 || bbox.height === 0) {
                 return;
             }
 
             const cellId = cell.id !== undefined ? cell.id : `${cell.row}-${cell.col}`;
             const elementId = cell.type === 'main-text' ? `textCell-${cellId}` : `contentCell-${cellId}`;
             
-            // Check if cell is editable
-            const isEditable = this.isCellEditable(elementId);
+            // Check if cell is editable (registered as content slot)
+            const isEditable = this.isSlotRegistered(cell);
+            
+            console.log(`🔍 Lock icon for cell ${cellId}:`, {
+                elementId,
+                cellType: cell.type,
+                isEditable,
+                emoji: isEditable ? '🔓' : '🔒'
+            });
             
             // Create lock icon element
             const lockIcon = document.createElement('div');
@@ -396,13 +432,12 @@ class SavePagePanel {
             const scaleX = canvasRect.width / canvas.width;
             const scaleY = canvasRect.height / canvas.height;
             
-            // Position relative to canvas (canvas coordinates → screen coordinates)
-            // Account for canvas offset within its container
+            // 🎯 CHANGED: Position using content slot bounds instead of cell bounds
             const canvasOffsetX = canvasRect.left - containerRect.left;
             const canvasOffsetY = canvasRect.top - containerRect.top;
             
-            const iconX = canvasOffsetX + (cell.bounds.x * scaleX) + 8;
-            const iconY = canvasOffsetY + (cell.bounds.y * scaleY) + 8;
+            const iconX = canvasOffsetX + (bbox.x * scaleX) + 8;
+            const iconY = canvasOffsetY + (bbox.y * scaleY) + 8;
             
             lockIcon.style.left = iconX + 'px';
             lockIcon.style.top = iconY + 'px';
@@ -421,6 +456,8 @@ class SavePagePanel {
                 renderedCount++;
             }
         });
+        
+        console.log(`🔒 Rendered ${renderedCount} lock icons based on content slot bounds`);
     }
 
     /**
@@ -463,25 +500,31 @@ class SavePagePanel {
     refreshOverlayLockIcons() {
         if (!this.overlay) return;
 
-        // Update all lock icons based on configured state
+        console.log('🔄 refreshOverlayLockIcons called');
+        
+        // 🎯 UPDATED: Check against content slot manager's registered slots
         const allLockIcons = this.overlay.querySelectorAll('[data-element-id]');
+        console.log(`📊 Found ${allLockIcons.length} lock icons to refresh`);
         allLockIcons.forEach(lockIcon => {
             const elementId = lockIcon.dataset.elementId;
+            const cellId = lockIcon.dataset.cellId;
             
-            // Check if this element is configured
-            let isConfigured = false;
+            // Find the cell to check if it's registered
+            const cell = this._findCellByElementId(elementId);
+            if (!cell) return;
             
-            for (const slot of this.configuredSlots) {
-                const slotElementId = this._getElementIdForSlot(slot);
-                if (slotElementId === elementId) {
-                    isConfigured = true;
-                    break;
-                }
-            }
+            // Check if this cell is registered as a content slot
+            const isRegistered = this.isSlotRegistered(cell);
+            
+            console.log(`  🔄 Refreshing icon for ${elementId}:`, {
+                isRegistered,
+                emoji: isRegistered ? '🔓' : '🔒',
+                hadUnlockedClass: lockIcon.classList.contains('unlocked')
+            });
             
             // Update icon
-            lockIcon.innerHTML = isConfigured ? '🔓' : '🔒';
-            lockIcon.classList.toggle('unlocked', isConfigured);
+            lockIcon.innerHTML = isRegistered ? '🔓' : '🔒';
+            lockIcon.classList.toggle('unlocked', isRegistered);
         });
     }
 
@@ -489,13 +532,97 @@ class SavePagePanel {
      * Check if cell is editable
      */
     isCellEditable(elementId) {
-        // Parse cell ID from elementId
-        if (elementId.startsWith('textCell-') || elementId.startsWith('contentCell-')) {
-            const cellIdStr = elementId.replace('textCell-', '').replace('contentCell-', '');
-            const cellId = parseInt(cellIdStr);
-            return this.configuredCellIds.has(cellId);
+        // 🎯 UPDATED: Check if cell is registered as content slot
+        const cell = this._findCellByElementId(elementId);
+        if (!cell) return false;
+        
+        return this.isSlotRegistered(cell);
+    }
+
+    /**
+     * Get all content bounds from grid (similar to ContentSlotOverlay)
+     * @returns {Array} Array of content bound objects with {cell, bounds, type}
+     */
+    getAllContentBounds() {
+        const bounds = [];
+        
+        const grid = this.app.grid;
+        if (!grid || !grid.layerManager) return bounds;
+        
+        // Main text cells
+        const mainTextLayer = grid.layerManager.getLayer('main-text');
+        if (mainTextLayer && mainTextLayer.getCellCount() > 0) {
+            const mainTextCells = mainTextLayer.getCells();
+            mainTextCells.forEach((cell) => {
+                if (cell && cell.text && cell.text.trim()) {
+                    try {
+                        const bbox = this.contentSlotManager.captureBoundingBox(cell);
+                        bounds.push({
+                            cell: cell,
+                            bounds: bbox,
+                            type: 'text'
+                        });
+                    } catch (error) {
+                        console.warn(`Failed to capture main text cell ${cell.id} bounds:`, error);
+                    }
+                }
+            });
         }
-        return false;
+        
+        // All content cells
+        const allLayers = grid.layerManager.getAllLayers();
+        allLayers.forEach(layer => {
+            if (layer.id === 'main-text') return;
+            
+            const layerCells = layer.getCells();
+            layerCells.forEach(cell => {
+                if (cell.contentType === 'empty') return;
+                if (cell.contentType === 'text' && (!cell.content || !cell.content.text || !cell.content.text.trim())) return;
+                if (cell.contentType === 'media' && (!cell.content || !cell.content.media)) return;
+                
+                try {
+                    const bbox = this.contentSlotManager.captureBoundingBox(cell);
+                    bounds.push({
+                        cell: cell,
+                        bounds: bbox,
+                        type: cell.contentType
+                    });
+                } catch (error) {
+                    console.warn(`Failed to capture bounds for cell ${cell.id}:`, error);
+                }
+            });
+        });
+        
+        return bounds;
+    }
+
+    /**
+     * Check if cell is registered as a content slot
+     * @param {GridCell} cell - Cell to check
+     * @returns {boolean} True if registered
+     */
+    isSlotRegistered(cell) {
+        const slots = this.contentSlotManager.getAllSlots();
+        const isRegistered = slots.some(slot => 
+            slot.sourceContentId === cell.contentId || 
+            slot.sourceElement === cell.id ||
+            (cell.type === 'main-text' && slot.sourceElement === 'main-text')
+        );
+        
+        console.log('🔍 isSlotRegistered check:', {
+            cellId: cell.id,
+            cellContentId: cell.contentId,
+            cellType: cell.type,
+            isRegistered,
+            totalSlots: slots.length,
+            matchingSlots: slots.filter(s => 
+                s.sourceContentId === cell.contentId || 
+                s.sourceElement === cell.id ||
+                (cell.type === 'main-text' && s.sourceElement === 'main-text')
+            ).map(s => s.slotId)
+        });
+        
+        return isRegistered;
     }
 
     /**
@@ -527,35 +654,58 @@ class SavePagePanel {
     toggleCellLock(elementId, cellId, cellType) {
         console.log('🔒 toggleCellLock called:', { elementId, cellId, cellType });
 
-        // Check if already configured
-        const alreadyConfigured = this.configuredCellIds.has(cellId);
+        // Get the cell
+        const cell = this._findCellByElementId(elementId);
+        if (!cell) {
+            console.error('Cell not found:', elementId);
+            return;
+        }
+
+        // Check if cell is already registered as content slot
+        const alreadyConfigured = this.isSlotRegistered(cell);
         console.log('🔍 Already configured?', alreadyConfigured);
-        console.log('📋 Configured cell IDs:', Array.from(this.configuredCellIds));
 
         if (alreadyConfigured) {
-            console.log('✏️ Opening EDITING mode for existing slot');
+            console.log('✏️ Cell already unlocked, opening editor for existing slot');
             // Find and edit existing slot
-            const slot = this.configuredSlots.find(s =>
-                s.sourceContentId === cellId || s.sourceElement === cellId
+            const slots = this.contentSlotManager.getAllSlots();
+            const slot = slots.find(s =>
+                s.sourceContentId === cell.contentId ||
+                s.sourceElement === cell.id ||
+                (cell.type === 'main-text' && s.sourceElement === 'main-text')
             );
             if (slot) {
-                const slotIndex = this.configuredSlots.indexOf(slot);
-                this.showInlineEditor(slot, slotIndex);
+                // Find slot in configuredSlots for inline editor
+                const slotIndex = this.configuredSlots.findIndex(s => s.slotId === slot.slotId);
+                if (slotIndex >= 0) {
+                    this.showInlineEditor(this.configuredSlots[slotIndex], slotIndex);
+                } else {
+                    // If not in configuredSlots, add it from contentSlotManager
+                    this.configuredSlots.push(slot);
+                    this.showInlineEditor(slot, this.configuredSlots.length - 1);
+                }
             }
         } else {
-            console.log('✨ Opening CREATION mode for new slot');
-            // Find the cell and show inline editor for new slot
-            const cell = this._findCellByElementId(elementId);
-            if (!cell) {
-                console.error('Cell not found:', elementId);
-                return;
-            }
-
-            // Create a new temporary slot object with defaults
+            console.log('✨ Cell is locked, creating slot and unlocking immediately');
+            // Create a new slot with defaults
             const newSlot = this._createDefaultSlot(cell, elementId);
 
-            // Show inline editor for creation
-            this.showInlineEditorForNewSlot(newSlot, elementId, cellId);
+            // ✅ IMMEDIATELY add to configuredSlots
+            this.configuredSlots.push(newSlot);
+
+            // ✅ IMMEDIATELY add to ContentSlotManager
+            this.app.presetPageManager.contentSlotManager.addSlot(newSlot);
+
+            // ✅ IMMEDIATELY update lock icon to unlocked
+            this.updateLockIcon(elementId, true);
+
+            // ✅ IMMEDIATELY refresh all lock icons
+            this.refreshOverlayLockIcons();
+
+            // ✅ Update the editable fields list
+            this.updateEditableFieldsList();
+
+            console.log('✅ Slot created and cell unlocked:', newSlot.slotId);
         }
     }
 
@@ -564,11 +714,23 @@ class SavePagePanel {
      */
     _createDefaultSlot(cell, elementId) {
         const cellType = cell.type || 'content';
-        const isText = cellType === 'main-text' || cellType === 'text';
+        // Check both cell.type for main-text AND cell.contentType for content cells with text
+        const isText = cellType === 'main-text' || cell.contentType === 'text';
 
         // Generate unique slot ID using timestamp to prevent duplicates
         const timestamp = Date.now();
         const uniqueId = `${cell.id}-${timestamp}`;
+        
+        // Generate unique field name based on type and existing slots
+        const existingSlots = this.configuredSlots || [];
+        const typePrefix = isText ? 'text' : 'media';
+        
+        // Count existing slots of this type
+        const sameTypeCount = existingSlots.filter(s => s.type === (isText ? 'text' : 'image')).length;
+        const fieldNumber = sameTypeCount + 1;
+        
+        const fieldName = `${typePrefix}${fieldNumber}`;
+        const fieldLabel = isText ? `Text ${fieldNumber}` : `Media ${fieldNumber}`;
 
         return {
             slotId: `${uniqueId}-slot`,
@@ -576,8 +738,8 @@ class SavePagePanel {
             sourceContentId: cell.contentId || `${cellType}-${cell.row}-${cell.col}`,
             type: isText ? 'text' : 'image',
             boundingBox: this.app.presetPageManager.contentSlotManager.captureBoundingBox(cell),
-            fieldName: isText ? 'headline' : 'image1',
-            fieldLabel: isText ? 'Headline' : 'Image 1',
+            fieldName: fieldName,
+            fieldLabel: fieldLabel,
             fieldDescription: '',
             required: true,
             constraints: isText ? {
@@ -809,10 +971,12 @@ class SavePagePanel {
             header.innerHTML = `
                 <div class="field-list-label">
                     <span class="collapse-icon" style="margin-right: 8px; display: inline-block; width: 12px;">▼</span>
-                    <strong>${slot.fieldName}</strong>
+                    <strong>${slot.fieldLabel}</strong>
                     <span class="slot-type-badge">${slot.type}</span>
                 </div>
                 <div class="field-list-details">
+                    <span class="field-detail-id" style="font-family: monospace; font-size: 11px; color: #9ca3af;">${slot.fieldName}</span>
+                    <span style="margin: 0 6px; color: #d1d5db;">•</span>
                     <span class="field-detail-name">${slot.fieldDescription || 'No description'}</span>
                     <button class="slot-delete-btn" data-slot-index="${index}" style="margin-left: 10px; padding: 2px 6px; background: #e74c3c; color: white; border: none; border-radius: 3px; cursor: pointer;">×</button>
                 </div>
@@ -866,10 +1030,13 @@ class SavePagePanel {
                 this.autoSaveInlineEditor();
 
                 // Update header if field name or description changed
-                if (e.target.id === 'inline-field-name' || e.target.id === 'inline-field-description') {
-                    const fieldName = contentSection.querySelector('#inline-field-name')?.value || slot.fieldName;
+                if (e.target.id === 'inline-field-label' || e.target.id === 'inline-field-description') {
+                    const fieldLabel = contentSection.querySelector('#inline-field-label')?.value || slot.fieldLabel;
                     const fieldDescription = contentSection.querySelector('#inline-field-description')?.value || 'No description';
-                    header.querySelector('.field-list-label strong').textContent = fieldName;
+                    const fieldName = this._generateFieldId(fieldLabel);
+                    
+                    header.querySelector('.field-list-label strong').textContent = fieldLabel;
+                    header.querySelector('.field-detail-id').textContent = fieldName;
                     header.querySelector('.field-detail-name').textContent = fieldDescription;
                 }
             });
@@ -913,15 +1080,14 @@ class SavePagePanel {
     _buildTextSlotForm(slot) {
         const inputStyle = 'background: transparent; border: 1px solid #d1d5db; padding: 8px; border-radius: 4px; width: 100%; box-sizing: border-box;';
         return `
-            <div class="inline-form-group" style="margin-bottom: 12px;">
-                <label style="display: block; margin-bottom: 4px; font-size: 13px; color: #374151;">Field Name *</label>
-                <input type="text" id="inline-field-name" value="${slot.fieldName || ''}" placeholder="e.g., headline" style="${inputStyle}" />
-                <small style="display: block; margin-top: 4px; font-size: 11px; color: #6b7280;">Used internally (letters, numbers, underscores)</small>
+            <div class="inline-form-group" style="margin-bottom: 16px;">
+                <label style="display: block; margin-bottom: 6px; font-size: 14px; font-weight: 600; color: #111827;">Field Label *</label>
+                <input type="text" id="inline-field-label" value="${slot.fieldLabel || ''}" placeholder="e.g., Main Headline" style="${inputStyle}" />
+                <small style="display: block; margin-top: 4px; font-size: 11px; color: #6b7280;">Displayed to end-users filling the form</small>
             </div>
             <div class="inline-form-group" style="margin-bottom: 12px;">
-                <label style="display: block; margin-bottom: 4px; font-size: 13px; color: #374151;">Field Label *</label>
-                <input type="text" id="inline-field-label" value="${slot.fieldLabel || ''}" placeholder="e.g., Main Headline" style="${inputStyle}" />
-                <small style="display: block; margin-top: 4px; font-size: 11px; color: #6b7280;">Shown to end-users in form</small>
+                <label style="display: block; margin-bottom: 4px; font-size: 12px; color: #6b7280;">Field ID: <code style="background: #f3f4f6; padding: 2px 6px; border-radius: 3px; font-size: 11px;">${slot.fieldName || 'auto-generated'}</code></label>
+                <small style="display: block; font-size: 10px; color: #9ca3af;">Auto-generated from label (used internally)</small>
             </div>
             <div class="inline-form-group" style="margin-bottom: 12px;">
                 <label style="display: block; margin-bottom: 4px; font-size: 13px; color: #374151;">Description</label>
@@ -948,15 +1114,14 @@ class SavePagePanel {
     _buildImageSlotForm(slot) {
         const inputStyle = 'background: transparent; border: 1px solid #d1d5db; padding: 8px; border-radius: 4px; width: 100%; box-sizing: border-box;';
         return `
-            <div class="inline-form-group" style="margin-bottom: 12px;">
-                <label style="display: block; margin-bottom: 4px; font-size: 13px; color: #374151;">Field Name *</label>
-                <input type="text" id="inline-field-name" value="${slot.fieldName || ''}" placeholder="e.g., companyLogo" style="${inputStyle}" />
-                <small style="display: block; margin-top: 4px; font-size: 11px; color: #6b7280;">Used internally (letters, numbers, underscores)</small>
+            <div class="inline-form-group" style="margin-bottom: 16px;">
+                <label style="display: block; margin-bottom: 6px; font-size: 14px; font-weight: 600; color: #111827;">Field Label *</label>
+                <input type="text" id="inline-field-label" value="${slot.fieldLabel || ''}" placeholder="e.g., Company Logo" style="${inputStyle}" />
+                <small style="display: block; margin-top: 4px; font-size: 11px; color: #6b7280;">Displayed to end-users filling the form</small>
             </div>
             <div class="inline-form-group" style="margin-bottom: 12px;">
-                <label style="display: block; margin-bottom: 4px; font-size: 13px; color: #374151;">Field Label *</label>
-                <input type="text" id="inline-field-label" value="${slot.fieldLabel || ''}" placeholder="e.g., Company Logo" style="${inputStyle}" />
-                <small style="display: block; margin-top: 4px; font-size: 11px; color: #6b7280;">Shown to end-users in form</small>
+                <label style="display: block; margin-bottom: 4px; font-size: 12px; color: #6b7280;">Field ID: <code style="background: #f3f4f6; padding: 2px 6px; border-radius: 3px; font-size: 11px;">${slot.fieldName || 'auto-generated'}</code></label>
+                <small style="display: block; font-size: 10px; color: #9ca3af;">Auto-generated from label (used internally)</small>
             </div>
             <div class="inline-form-group" style="margin-bottom: 12px;">
                 <label style="display: block; margin-bottom: 4px; font-size: 13px; color: #374151;">Description</label>
@@ -999,24 +1164,48 @@ class SavePagePanel {
      * Save changes from inline editor (internal version)
      * @param {boolean} refreshUI - Whether to refresh the UI after saving
      */
+    /**
+     * Generate field ID from field label
+     * @param {string} label - Field label (e.g., "Company Logo")
+     * @returns {string} Field ID (e.g., "companyLogo")
+     */
+    _generateFieldId(label) {
+        if (!label) return '';
+        
+        // Convert to camelCase
+        return label
+            .trim()
+            .toLowerCase()
+            .replace(/[^a-z0-9\s]/g, '') // Remove special chars
+            .split(/\s+/) // Split on whitespace
+            .map((word, index) => {
+                if (index === 0) return word; // First word lowercase
+                return word.charAt(0).toUpperCase() + word.slice(1); // Capitalize rest
+            })
+            .join('');
+    }
+
     _saveInlineEditorChangesInternal(refreshUI = true) {
         console.log('💾 _saveInlineEditorChangesInternal called');
         console.log('📍 currentEditingSlotIndex:', this.currentEditingSlotIndex);
         console.log('📦 newSlotData exists:', !!this.newSlotData);
 
         // Get form values
-        const fieldName = this.container.querySelector('#inline-field-name')?.value;
         const fieldLabel = this.container.querySelector('#inline-field-label')?.value;
         const fieldDescription = this.container.querySelector('#inline-field-description')?.value;
+        
+        // Auto-generate fieldName from fieldLabel
+        const fieldName = this._generateFieldId(fieldLabel);
 
         // Validate
-        if (!fieldName || !fieldLabel) {
-            alert('Field Name and Field Label are required');
+        if (!fieldLabel || !fieldName) {
+            alert('Field Label is required');
             return;
         }
 
         // Check if creating new slot or editing existing
-        if (this.currentEditingSlotIndex === -1) {
+        // Use newSlotData as primary indicator of new slot creation
+        if (this.newSlotData && this.currentEditingSlotIndex === -1) {
             console.log('🆕 Entering NEW SLOT CREATION branch');
             // NEW SLOT CREATION
             if (!this.newSlotData) {
