@@ -23,6 +23,12 @@ class EndUserController {
         this.loadedPages = []; // Array of page data objects
         this.contentData = {}; // { slotId: value } for all slots across all pages
 
+        // ✅ Phase 1A: Debounce timer for canvas re-rendering
+        this.renderDebounceTimer = null;
+
+        // ✅ Phase 1A: LocalStorage key for auto-save
+        this.localStorageKey = 'chatooly-enduser-content-data';
+
         // Components
         this.formGenerator = null;
         this.contentSlotRenderer = null;
@@ -43,7 +49,56 @@ class EndUserController {
             canvas: document.getElementById('chatooly-canvas')
         };
 
+        // ✅ Phase 1A: Load saved content data from localStorage
+        this.loadContentDataFromLocalStorage();
+
         this.initializeEventListeners();
+    }
+
+    /**
+     * ✅ Phase 1A: Load content data from localStorage
+     */
+    loadContentDataFromLocalStorage() {
+        try {
+            const saved = localStorage.getItem(this.localStorageKey);
+            if (saved) {
+                this.contentData = JSON.parse(saved);
+                console.log('✅ Loaded saved content data from localStorage');
+            }
+        } catch (error) {
+            console.warn('⚠️ Failed to load from localStorage:', error);
+        }
+    }
+
+    /**
+     * ✅ Phase 1A: Save content data to localStorage
+     */
+    saveContentDataToLocalStorage() {
+        try {
+            localStorage.setItem(this.localStorageKey, JSON.stringify(this.contentData));
+            console.log('💾 Auto-saved to localStorage');
+        } catch (error) {
+            console.error('❌ Failed to save to localStorage:', error);
+        }
+    }
+
+    /**
+     * ✅ Phase 1B: Create debounced render function
+     */
+    debouncedRender() {
+        // Clear existing timer
+        if (this.renderDebounceTimer) {
+            clearTimeout(this.renderDebounceTimer);
+        }
+
+        // Set new timer (300ms delay)
+        this.renderDebounceTimer = setTimeout(() => {
+            const pageData = this.loadedPages[this.currentPageIndex];
+            if (pageData) {
+                this.contentSlotRenderer.renderLockedLayout(pageData, this.contentData);
+                console.log('🎨 Canvas re-rendered (debounced)');
+            }
+        }, 300);
     }
 
     /**
@@ -178,13 +233,24 @@ class EndUserController {
             this.currentPresetData = await this.presetPageManager.getPresetFromCMS(presetId);
             this.currentPresetId = presetId;
 
-            // Parse all pages
+            // Parse all pages and namespace slotIds
             this.loadedPages = [];
             for (let i = 1; i <= 5; i++) {
                 const pageField = `page${i}`;
                 if (this.currentPresetData[pageField]) {
                     try {
                         const pageData = JSON.parse(this.currentPresetData[pageField]);
+
+                        // ✅ Phase 1A: NAMESPACE slotIds by page number
+                        if (pageData.contentSlots && Array.isArray(pageData.contentSlots)) {
+                            pageData.contentSlots = pageData.contentSlots.map(slot => ({
+                                ...slot,
+                                originalSlotId: slot.slotId,  // Keep original for reference
+                                slotId: `page${i}-${slot.slotId}`  // Add page prefix
+                            }));
+                            console.log(`✅ Namespaced ${pageData.contentSlots.length} slots for page ${i}`);
+                        }
+
                         this.loadedPages.push(pageData);
                     } catch (e) {
                         console.warn(`⚠️ Could not parse ${pageField}:`, e);
@@ -192,7 +258,7 @@ class EndUserController {
                 }
             }
 
-            console.log(`✅ Loaded ${this.loadedPages.length} pages`);
+            console.log(`✅ Loaded ${this.loadedPages.length} pages with namespaced slotIds`);
 
             // Update UI
             this.elements.presetName.textContent = this.currentPresetData.presetName;
@@ -242,11 +308,54 @@ class EndUserController {
             this.handleContentUpdate(slotId, value);
         });
 
+        // ✅ Phase 1C: PRE-POPULATE form with saved data
+        this.prePopulateForm(pageData.contentSlots);
+
         console.log('✅ Page rendered');
     }
 
     /**
+     * ✅ Phase 1C: Pre-populate form with saved data and defaults
+     * @param {Array} contentSlots - Array of content slot definitions
+     */
+    prePopulateForm(contentSlots) {
+        if (!contentSlots || contentSlots.length === 0) {
+            return;
+        }
+
+        // Build values object for pre-population
+        const valuesToSet = {};
+
+        contentSlots.forEach(slot => {
+            const slotId = slot.slotId;
+
+            // Priority 1: Use saved user data from localStorage/contentData
+            if (this.contentData[slotId] !== undefined && this.contentData[slotId] !== null && this.contentData[slotId] !== '') {
+                valuesToSet[slotId] = this.contentData[slotId];
+                console.log(`📝 Pre-populating ${slotId} with saved data`);
+            }
+            // Priority 2: Use designer defaults from slot definition
+            else if (slot.defaultContent) {
+                if (slot.type === 'text' && slot.defaultContent.text) {
+                    valuesToSet[slotId] = slot.defaultContent.text;
+                    console.log(`📝 Pre-populating ${slotId} with default: "${slot.defaultContent.text}"`);
+                } else if (slot.type === 'image' && slot.defaultContent.src) {
+                    valuesToSet[slotId] = slot.defaultContent.src;
+                    console.log(`📝 Pre-populating ${slotId} with default image`);
+                }
+            }
+        });
+
+        // Apply values to form
+        if (Object.keys(valuesToSet).length > 0) {
+            this.formGenerator.setValues(valuesToSet);
+            console.log(`✅ Pre-populated ${Object.keys(valuesToSet).length} field(s)`);
+        }
+    }
+
+    /**
      * Handle content update from form
+     * ✅ Phase 1A & 1B: Auto-save + Debounced rendering
      */
     handleContentUpdate(slotId, value) {
         console.log(`📝 Content update: ${slotId}`, value);
@@ -254,9 +363,11 @@ class EndUserController {
         // Store content data
         this.contentData[slotId] = value;
 
-        // Re-render canvas with updated data
-        const pageData = this.loadedPages[this.currentPageIndex];
-        this.contentSlotRenderer.renderLockedLayout(pageData, this.contentData);
+        // ✅ Phase 1A: AUTO-SAVE to localStorage
+        this.saveContentDataToLocalStorage();
+
+        // ✅ Phase 1B: Re-render canvas with DEBOUNCE (300ms)
+        this.debouncedRender();
     }
 
     /**

@@ -22,17 +22,64 @@ class ContentSlotRenderer {
     }
 
     /**
+     * ✅ Phase 1D: Build content slot → cell mapping
+     * Maps sourceContentId to slot for efficient lookup
+     */
+    buildContentSlotCellMap(contentSlots) {
+        const map = new Map();
+        for (const slot of contentSlots) {
+            const sourceContentId = slot.sourceContentId;
+            if (sourceContentId) {
+                map.set(sourceContentId, slot);
+            }
+        }
+        return map;
+    }
+
+    /**
      * Render locked layout with user content
+     * ✅ Phase 1D: FIXED to prevent double rendering
      * @param {Object} pageData - Complete page data from preset
      * @param {Object} contentData - User-provided content { slotId: value }
      */
     async renderLockedLayout(pageData, contentData) {
         console.log(`🎨 Rendering locked layout for: ${pageData.pageName}`);
 
-        // Apply page state to canvas (background, main text, grid)
-        await this.applyPageStateToCanvas(pageData);
+        // Set canvas dimensions and render background
+        await this.applyCanvasAndBackground(pageData);
 
-        // Render content slots on top
+        // ✅ Phase 1D: Build content slot → cell mapping
+        const contentSlotMap = this.buildContentSlotCellMap(pageData.contentSlots || []);
+
+        // ✅ Phase 1D: Render grid cells (SKIP cells with filled content slots)
+        if (pageData.grid?.snapshot?.layout?.cells) {
+            const cells = pageData.grid.snapshot.layout.cells;
+            console.log(`📦 Rendering ${cells.length} grid cells`);
+
+            const cellRenderer = new CellRenderer(this.ctx);
+
+            for (const cell of cells) {
+                // ✅ Check if this cell has a content slot with user data
+                const slot = contentSlotMap.get(cell.contentId);
+
+                if (slot && contentData[slot.slotId]) {
+                    // User provided content for this slot → SKIP cell rendering
+                    console.log(`⏭️  Skipping cell ${cell.id} (has filled content slot: ${slot.slotId})`);
+                    continue;
+                }
+
+                // Render cell (either no slot, or no user data yet)
+                try {
+                    await this.renderCell(cell, cellRenderer, this.canvasManager);
+                } catch (error) {
+                    console.warn(`⚠️ Failed to render cell ${cell.id}:`, error);
+                }
+            }
+
+            console.log('✅ Grid cells rendered');
+        }
+
+        // ✅ Render content slots with user data ON TOP
         if (pageData.contentSlots && pageData.contentSlots.length > 0) {
             await this.renderContentSlots(pageData.contentSlots, contentData);
         }
@@ -41,16 +88,14 @@ class ContentSlotRenderer {
     }
 
     /**
-     * Apply page state directly to canvas (end-user mode)
-     * Renders complete preset design using grid cells from snapshot
+     * ✅ Phase 1D: Apply canvas dimensions and background only
+     * (Grid cells are now rendered separately with skip logic)
      */
-    async applyPageStateToCanvas(pageData) {
+    async applyCanvasAndBackground(pageData) {
         const { canvasManager } = this;
 
-        console.log('📋 Applying page state:', {
+        console.log('📋 Applying canvas and background:', {
             hasBackground: !!pageData.background,
-            hasMainText: !!pageData.mainText,
-            hasGrid: !!pageData.grid,
             hasCanvas: !!pageData.canvas
         });
 
@@ -77,25 +122,6 @@ class ContentSlotRenderer {
 
         // 3. Render background
         canvasManager.backgroundManager.renderBackground(canvasManager.ctx, canvasManager.canvas);
-
-        // 4. Render grid cells from snapshot
-        if (pageData.grid?.snapshot?.layout?.cells) {
-            const cells = pageData.grid.snapshot.layout.cells;
-            console.log(`📦 Rendering ${cells.length} grid cells`);
-
-            // Use CellRenderer to render each cell
-            const cellRenderer = new CellRenderer(canvasManager.ctx);
-
-            for (const cell of cells) {
-                try {
-                    await this.renderCell(cell, cellRenderer, canvasManager);
-                } catch (error) {
-                    console.warn(`⚠️ Failed to render cell ${cell.id}:`, error);
-                }
-            }
-
-            console.log('✅ Grid cells rendered');
-        }
     }
 
     /**

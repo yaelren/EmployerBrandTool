@@ -263,7 +263,7 @@ body {
     border-top: 1px solid var(--chatooly-color-border, #3a3a3a);
     display: flex;
     align-items: center;
-    justify-content: space-between;
+    justify-content: center; /* ✅ Phase 2: CHANGED from space-between to center thumbnails */
     padding: 0 24px;
     flex-shrink: 0;
     overflow: hidden;
