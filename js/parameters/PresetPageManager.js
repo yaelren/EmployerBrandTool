@@ -144,6 +144,12 @@ class PresetPageManager {
             throw new Error('Editable fields configuration is required');
         }
 
+        // CRITICAL: Require at least one content slot
+        // Without content slots, the page data is essentially empty and Wix will reject it
+        if (!pageData.contentSlots || pageData.contentSlots.length === 0) {
+            throw new Error('At least one content slot is required. Please unlock a cell to create a content slot before saving.');
+        }
+
         // Size check
         const jsonString = JSON.stringify(pageData);
         if (jsonString.length > this.MAX_PAGE_SIZE) {
@@ -203,10 +209,14 @@ class PresetPageManager {
 
         // Update the specific page field
         const fieldName = `page${pageNumber}`;
-        preset[fieldName] = JSON.stringify(pageData);
 
-        // Update in CMS
-        await this.updatePresetInCMS(presetId, preset);
+        // Only send the modified field to Wix, not the entire preset
+        const updates = {
+            [fieldName]: JSON.stringify(pageData)
+        };
+
+        // Update in CMS with only the changed field
+        await this.updatePresetInCMS(presetId, updates);
 
         console.log(`✅ Added page ${pageNumber} to preset: ${preset.presetName} (ID: ${presetId})`);
     }

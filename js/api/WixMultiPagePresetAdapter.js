@@ -109,29 +109,54 @@ export class WixMultiPagePresetAdapter {
             // Ensure token is valid
             await this.wixAPI.ensureValidToken();
 
-            // Build update data
-            const updateData = { _id: presetId };
-            if (updates.presetName) updateData.presetName = updates.presetName;
-            if (updates.description !== undefined) updateData.description = updates.description;
+            // Build fieldModifications array for PATCH request
+            // Wix PATCH API requires fieldModifications structure, not dataItem.data
+            const excludeFields = ['_id', '_owner', '_createdDate', '_updatedDate'];
+            const fieldModifications = [];
 
-            // Update pages
-            for (let i = 1; i <= this.MAX_PAGES; i++) {
-                const pageKey = `page${i}`;
-                if (updates[pageKey] !== undefined) {
-                    updateData[pageKey] = updates[pageKey];
+            for (const key in updates) {
+                if (!excludeFields.includes(key) && updates.hasOwnProperty(key)) {
+                    // Only include fields with actual values (not null/undefined)
+                    if (updates[key] !== null && updates[key] !== undefined) {
+                        fieldModifications.push({
+                            fieldPath: key,
+                            action: 'SET_FIELD',
+                            setFieldOptions: {
+                                value: updates[key]
+                            }
+                        });
+
+                        console.log(`🔧 Field modification: ${key} (${String(updates[key]).length} chars)`);
+                    }
                 }
             }
 
-            // Update in Wix Data Collections
-            const response = await fetch(`${this.wixAPI.baseURL}/wix-data/v2/items/${presetId}?dataCollectionId=${this.collectionName}`, {
+            console.log(`🔍 DEBUG: ${fieldModifications.length} field modifications prepared`);
+
+            // Validate that we have at least one field to update
+            if (fieldModifications.length === 0) {
+                console.log(`ℹ️ No fields to update - skipping update for preset: ${presetId}`);
+                return; // Success - nothing to update
+            }
+
+            // Use correct Wix PATCH API structure with fieldModifications
+            const updateBody = {
+                dataCollectionId: this.collectionName,
+                patch: {
+                    dataItemId: presetId,
+                    fieldModifications: fieldModifications
+                }
+            };
+
+            console.log('📤 Sending PATCH request with', fieldModifications.length, 'modifications');
+
+            const response = await fetch(`${this.wixAPI.baseURL}/wix-data/v2/items/${presetId}`, {
                 method: 'PATCH',
                 headers: {
                     'Authorization': `Bearer ${this.wixAPI.accessToken}`,
                     'Content-Type': 'application/json'
                 },
-                body: JSON.stringify({
-                    dataItem: { data: updateData }
-                })
+                body: JSON.stringify(updateBody)
             });
 
             if (!response.ok) {
