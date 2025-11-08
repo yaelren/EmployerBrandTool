@@ -67,6 +67,22 @@ class ContentSlotManager {
             throw new Error('Invalid cell: missing bounds property');
         }
 
+        // ✅ CRITICAL FIX: Get TIGHT content bounds first (not grid cell bounds)
+        // Determine cell type and get tight content bounds
+        let tightBounds;
+
+        if (cell.type === 'main-text' || cell.type === 'text' ||
+            (cell.type === 'content' && cell.content && (cell.content.type === 'text' || cell.content.text !== undefined))) {
+            // Text content - get tight text bounds
+            tightBounds = this._captureTextBounds(cell);
+        } else if (cell.type === 'content' || cell.type === 'spot') {
+            // Media content - get tight media bounds
+            tightBounds = this._captureMediaBounds(cell);
+        } else {
+            // Fallback to cell bounds
+            tightBounds = this._copyBounds(cell.bounds);
+        }
+
         // ✅ CRITICAL FIX: Scale bounds from display size to actual canvas size
         // The canvas may be scaled down for display (e.g., 528x660) but actual size is 1080x1350
         const canvas = this.app.canvasManager.canvas;
@@ -83,14 +99,14 @@ class ContentSlotManager {
         // Get canvas padding (cells are positioned relative to padding area, not canvas edges)
         const padding = this.app.canvasManager.backgroundManager.padding || { top: 0, bottom: 0, left: 0, right: 0 };
 
-        // Scale the bounds to actual canvas size AND account for padding
+        // Scale the TIGHT bounds to actual canvas size AND account for padding
         // Cell coordinates are relative to the padding-adjusted content area
-        // So we need to subtract padding first (to get canvas-relative coords), then scale
+        // So we need to add padding first (to get canvas-relative coords), then scale
         const scaledBounds = {
-            x: (cell.bounds.x + padding.left) * scaleX,
-            y: (cell.bounds.y + padding.top) * scaleY,
-            width: cell.bounds.width * scaleX,
-            height: cell.bounds.height * scaleY
+            x: (tightBounds.x + padding.left) * scaleX,
+            y: (tightBounds.y + padding.top) * scaleY,
+            width: tightBounds.width * scaleX,
+            height: tightBounds.height * scaleY
         };
 
         // Debug logging
@@ -100,7 +116,8 @@ class ContentSlotManager {
         console.log('  Scale factors:', scaleX.toFixed(2), 'x', scaleY.toFixed(2));
         console.log('  Canvas padding:', padding);
         console.log('  Cell bounds (display):', cell.bounds);
-        console.log('  Cell bounds (scaled + padding):', scaledBounds);
+        console.log('  Tight content bounds (display):', tightBounds);
+        console.log('  Tight content bounds (scaled + padding):', scaledBounds);
         console.log('  Cell fontSize:', cell.fontSize || cell.textComponent?.fontSize);
 
         return scaledBounds;

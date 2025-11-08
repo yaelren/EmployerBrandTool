@@ -450,29 +450,31 @@ class EndUserController {
         const allCells = this.app.grid.getAllCells();
 
         contentSlots.forEach(slot => {
-            // Only hide if user has provided content for this slot
-            const userValue = this.contentData[slot.slotId];
-            if (!userValue) {
-                return; // No user data, keep designer default visible
-            }
-
             // Find cell by sourceContentId
             const cell = allCells.find(c => c.contentId === slot.sourceContentId);
-            if (cell) {
-                // Make cell invisible (creates a "hole")
-                cell.visible = false;
-                console.log(`👻 Hidden cell with contentId: ${slot.sourceContentId} for slot: ${slot.slotId}`);
+            if (!cell) {
+                return; // Cell not found
+            }
 
-                // ✅ SPECIAL CASE: If this is a MainTextCell, hide ALL MainTextCell instances
-                // because main text is split across multiple cells ("WIX", "CITY", "GUIDES")
-                if (cell.constructor.name === 'MainTextCell') {
-                    console.log('👻 Detected MainTextCell - hiding ALL main text cells');
-                    allCells.forEach(c => {
-                        if (c.constructor.name === 'MainTextCell') {
-                            c.visible = false;
-                            console.log(`   👻 Hidden MainTextCell: "${c.text}" (${c.contentId})`);
-                        }
-                    });
+            // ✅ CRITICAL FIX: Different hiding logic for main text vs content cells
+            const isMainTextCell = cell.constructor.name === 'MainTextCell';
+            const userValue = this.contentData[slot.slotId];
+
+            if (isMainTextCell) {
+                // Main text cells: ALWAYS hide if marked editable (user replaces, not adds to)
+                // Hide ALL main text cells because they're split ("WIX", "CITY", "GUIDES")
+                console.log('👻 Detected MainTextCell - hiding ALL main text cells');
+                allCells.forEach(c => {
+                    if (c.constructor.name === 'MainTextCell') {
+                        c.visible = false;
+                        console.log(`   👻 Hidden MainTextCell: "${c.text}" (${c.contentId})`);
+                    }
+                });
+            } else {
+                // Content cells: Only hide if user has provided content
+                if (userValue) {
+                    cell.visible = false;
+                    console.log(`👻 Hidden cell with contentId: ${slot.sourceContentId} for slot: ${slot.slotId}`);
                 }
             }
         });
@@ -685,5 +687,32 @@ class EndUserController {
      */
     getAllContentData() {
         return this.contentData;
+    }
+
+    /**
+     * Clear all saved content data (for debugging)
+     */
+    clearContentData() {
+        this.contentData = {};
+        localStorage.removeItem(this.localStorageKey);
+        console.log('🗑️ Cleared all content data and localStorage');
+
+        // Clear all form inputs
+        const textInputs = document.querySelectorAll('.slot-input-text');
+        textInputs.forEach(input => {
+            input.value = '';
+        });
+
+        const textareas = document.querySelectorAll('.slot-input-textarea');
+        textareas.forEach(textarea => {
+            textarea.value = '';
+        });
+
+        console.log('🗑️ Cleared all form inputs');
+
+        // Re-render current page
+        if (this.loadedPages.length > 0) {
+            this.debouncedRender();
+        }
     }
 }
