@@ -755,7 +755,10 @@ class SavePagePanel {
             styling: isText ? {
                 fontFamily: cell.content?.fontFamily || 'Inter',
                 fontWeight: cell.content?.fontWeight || 'normal',
-                color: cell.content?.color || '#000000'
+                fontStyle: cell.content?.styles?.italic ? 'italic' : 'normal',
+                color: cell.content?.color || '#000000',
+                textAlign: cell.content?.textAlign || 'left',
+                textTransform: cell.content?.textTransform || null
             } : {}
         };
     }
