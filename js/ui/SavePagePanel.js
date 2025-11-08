@@ -753,7 +753,7 @@ class SavePagePanel {
                 allowedFormats: ['jpg', 'png', 'webp', 'gif']
             },
             styling: isText ? {
-                fontFamily: cell.content?.fontFamily || 'Inter',
+                fontFamily: cell.content?.fontFamily || '"Wix Madefor Display", Arial, sans-serif',
                 fontWeight: cell.content?.fontWeight || 'normal',
                 fontStyle: cell.content?.styles?.italic ? 'italic' : 'normal',
                 color: cell.content?.color || '#000000',
