@@ -338,12 +338,17 @@ class ContentSlotRenderer {
 
         const { x, y, width, height } = slot.boundingBox;
         const constraints = slot.constraints || {};
+        const styling = slot.styling || {};
 
-        // Text styling from constraints
-        const fontFamily = constraints.fontFamily || 'Arial';
-        const fontWeight = constraints.fontWeight || 'normal';
-        const color = constraints.color || '#000000';
-        const align = constraints.align || 'left';
+        // ✅ Text styling from slot.styling (designer's locked styling)
+        const fontFamily = styling.fontFamily || 'Arial';
+        const fontWeight = styling.fontWeight || 'normal';
+        const fontStyle = styling.fontStyle || 'normal';  // italic, oblique, or normal
+        const color = styling.color || '#000000';
+        const textAlign = styling.textAlign || constraints.horizontalAlign || 'left';
+        const textTransform = styling.textTransform || null;
+
+        // ✅ Layout constraints from slot.constraints
         const verticalAlign = constraints.verticalAlign || 'top';
         const minFontSize = constraints.minFontSize || 12;
         const maxFontSize = constraints.maxFontSize || 72;
@@ -353,18 +358,28 @@ class ContentSlotRenderer {
         const optimalSize = this.findOptimalFontSize(
             text,
             { x, y, width, height },
-            { fontFamily, fontWeight, lineHeight, minFontSize, maxFontSize }
+            { fontFamily, fontWeight, fontStyle, lineHeight, minFontSize, maxFontSize }
         );
+
+        // Apply text transform if specified (uppercase, lowercase, capitalize)
+        let displayText = text;
+        if (textTransform === 'uppercase') {
+            displayText = text.toUpperCase();
+        } else if (textTransform === 'lowercase') {
+            displayText = text.toLowerCase();
+        } else if (textTransform === 'capitalize') {
+            displayText = text.replace(/\b\w/g, char => char.toUpperCase());
+        }
 
         // Render text with optimal size
         this.ctx.save();
 
-        this.ctx.font = `${fontWeight} ${optimalSize}px ${fontFamily}`;
+        this.ctx.font = `${fontStyle} ${fontWeight} ${optimalSize}px ${fontFamily}`;
         this.ctx.fillStyle = color;
-        this.ctx.textAlign = align;
+        this.ctx.textAlign = textAlign;
 
         // Split text into lines that fit width
-        const lines = this.wrapText(text, width, this.ctx);
+        const lines = this.wrapText(displayText, width, this.ctx);
 
         // Calculate total text height
         const totalHeight = lines.length * optimalSize * lineHeight;
@@ -379,9 +394,9 @@ class ContentSlotRenderer {
 
         // Calculate X based on horizontal alignment
         let textX = x;
-        if (align === 'center') {
+        if (textAlign === 'center') {
             textX = x + width / 2;
-        } else if (align === 'right') {
+        } else if (textAlign === 'right') {
             textX = x + width;
         }
 
@@ -400,7 +415,7 @@ class ContentSlotRenderer {
      */
     findOptimalFontSize(text, boundingBox, styling) {
         const { width, height } = boundingBox;
-        const { fontFamily, fontWeight, lineHeight, minFontSize, maxFontSize } = styling;
+        const { fontFamily, fontWeight, fontStyle, lineHeight, minFontSize, maxFontSize } = styling;
 
         let low = minFontSize;
         let high = maxFontSize;
@@ -410,7 +425,7 @@ class ContentSlotRenderer {
         while (low <= high) {
             const mid = Math.floor((low + high) / 2);
 
-            if (this.textFitsInBox(text, width, height, mid, fontFamily, fontWeight, lineHeight)) {
+            if (this.textFitsInBox(text, width, height, mid, fontFamily, fontWeight, fontStyle, lineHeight)) {
                 bestSize = mid;
                 low = mid + 1; // Try larger
             } else {
@@ -424,15 +439,15 @@ class ContentSlotRenderer {
     /**
      * Check if text fits in bounding box at given font size
      */
-    textFitsInBox(text, boxWidth, boxHeight, fontSize, fontFamily, fontWeight, lineHeight) {
-        const cacheKey = `${text}-${boxWidth}-${fontSize}-${fontFamily}`;
+    textFitsInBox(text, boxWidth, boxHeight, fontSize, fontFamily, fontWeight, fontStyle, lineHeight) {
+        const cacheKey = `${text}-${boxWidth}-${fontSize}-${fontFamily}-${fontStyle}`;
 
         if (this.fontMetricsCache.has(cacheKey)) {
             return this.fontMetricsCache.get(cacheKey);
         }
 
         this.ctx.save();
-        this.ctx.font = `${fontWeight} ${fontSize}px ${fontFamily}`;
+        this.ctx.font = `${fontStyle} ${fontWeight} ${fontSize}px ${fontFamily}`;
 
         const lines = this.wrapText(text, boxWidth, this.ctx);
         const totalHeight = lines.length * fontSize * lineHeight;
