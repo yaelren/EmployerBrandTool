@@ -456,6 +456,12 @@ class UIManager {
         if (this.elements.minSpotSize) {
             this.elements.minSpotSize.addEventListener('input', () => {
                 const minSize = parseInt(this.elements.minSpotSize.value);
+                // Update percentage display (map 20-200 range to 0-100%)
+                const percentageDisplay = document.getElementById('minSpotSizeValue');
+                if (percentageDisplay) {
+                    const percentage = Math.round(((minSize - 20) / (200 - 20)) * 100);
+                    percentageDisplay.textContent = percentage + '%';
+                }
                 this.app.gridDetector.setMinCellSize(minSize);
                 this.app.minSpotSize = minSize; // Store for Grid.buildFromExisting()
                 this.app.onTextChanged(); // Trigger spot detection with new size
@@ -1433,10 +1439,23 @@ class UIManager {
      * @param {HTMLElement} container - Container for controls
      */
     createLayerControls(cell, container) {
+        // Create Chatooly section card
+        const card = document.createElement('div');
+        card.className = 'chatooly-section-card';
+        
+        const header = document.createElement('div');
+        header.className = 'chatooly-section-header';
+        header.setAttribute('role', 'button');
+        header.setAttribute('tabindex', '0');
+        header.textContent = `Layer Order (Cell ${cell.id})`;
+        
+        const content = document.createElement('div');
+        content.className = 'chatooly-section-content';
+        
         const section = document.createElement('div');
         section.className = 'control-section-simple';
         
-        // Layer controls - non-collapsible
+        // Layer controls
         const layerGroup = document.createElement('div');
         layerGroup.className = 'content-type-header layer-header';
         layerGroup.innerHTML = `
@@ -1462,7 +1481,15 @@ class UIManager {
         });
 
         section.appendChild(layerGroup);
-        container.appendChild(section);
+        content.appendChild(section);
+        card.appendChild(header);
+        card.appendChild(content);
+        container.appendChild(card);
+        
+        // Make card collapsible
+        header.addEventListener('click', () => {
+            card.classList.toggle('collapsed');
+        });
     }
 
     /**
@@ -2119,6 +2146,12 @@ class UIManager {
             this.elements.minSpotSize.addEventListener('input', () => {
                 const minSize = parseInt(this.elements.minSpotSize.value);
                 console.log('Minimum spot size changed to:', minSize);
+                // Update percentage display (map 20-200 range to 0-100%)
+                const percentageDisplay = document.getElementById('minSpotSizeValue');
+                if (percentageDisplay) {
+                    const percentage = Math.round(((minSize - 20) / (200 - 20)) * 100);
+                    percentageDisplay.textContent = percentage + '%';
+                }
                 this.app.gridDetector.setMinCellSize(minSize);
                 this.app.minSpotSize = minSize; // Store for Grid.buildFromExisting()
                 this.app.onTextChanged(); // Trigger spot detection with new size

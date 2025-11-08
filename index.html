@@ -72,45 +72,46 @@
                     <div class="chatooly-section-card">
                         <div class="chatooly-section-header" role="button" tabindex="0">Layout Setup</div>
                         <div class="chatooly-section-content">
-                            <!-- Grid Density (renamed from Min Spot Size) -->
-                            <div class="chatooly-control-group compact-row">
-                                <div class="compact-control">
-                                    <label for="minSpotSize">Grid Density</label>
-                                    <input type="number" id="minSpotSize" value="50" min="20" max="200">
-                                    <span class="unit">px</span>
+                            <!-- Grid Density (slider with percentage) -->
+                            <div class="chatooly-slider-group">
+                                <div class="chatooly-slider-label">
+                                    <span>Grid Density</span>
+                                    <span class="chatooly-slider-value" id="minSpotSizeValue">50%</span>
                                 </div>
+                                <input type="range" id="minSpotSize" min="20" max="200" value="50" class="chatooly-slider">
                             </div>
 
                             <!-- Canvas Padding Controls -->
-                            <div class="chatooly-control-group">
-                                <label>Canvas Padding</label>
-                                <div class="compact-padding-row">
-                                    <label for="paddingHorizontal">Width:</label>
-                                    <input type="range" id="paddingHorizontal" min="0" max="100" value="20">
-                                    <span id="paddingHorizontalValue">20px</span>
-                                </div>
-                                <div class="compact-padding-row">
-                                    <label for="paddingVertical">Height:</label>
-                                    <input type="range" id="paddingVertical" min="0" max="100" value="20">
-                                    <span id="paddingVerticalValue">20px</span>
+                            <div class="padding-control-group">
+                                <label class="control-label">Canvas Padding</label>
+                                <div class="padding-row">
+                                    <span class="padding-icon">⟷</span>
+                                    <div class="padding-input-wrapper">
+                                        <input type="number" id="paddingHorizontal" min="0" max="100" value="20">
+                                        <span class="input-unit">px</span>
+                                    </div>
+                                    <span class="padding-icon">⟷</span>
+                                    <div class="padding-input-wrapper">
+                                        <input type="number" id="paddingVertical" min="0" max="100" value="20">
+                                        <span class="input-unit">px</span>
+                                    </div>
+                                    <span class="padding-icon">□</span>
                                 </div>
                             </div>
 
-                            <!-- Cell Gaps (renamed from Main Text Cell Margin) -->
-                            <div class="chatooly-control-group">
-                                <label class="section-header">Cell Gaps</label>
-                                <div class="padding-controls">
-                                    <div class="padding-row">
-                                        <div class="padding-control">
-                                            <label for="marginVertical">Top/Bottom</label>
-                                            <input type="number" id="marginVertical" min="0" max="50" value="0" step="1">
-                                            <span class="unit">px</span>
-                                        </div>
-                                        <div class="padding-control">
-                                            <label for="marginHorizontal">Left/Right</label>
-                                            <input type="number" id="marginHorizontal" min="0" max="50" value="0" step="1">
-                                            <span class="unit">px</span>
-                                        </div>
+                            <!-- Cell Gaps -->
+                            <div class="padding-control-group">
+                                <label class="control-label">Cell Gaps</label>
+                                <div class="padding-row">
+                                    <span class="padding-icon">↔</span>
+                                    <div class="padding-input-wrapper">
+                                        <input type="number" id="marginHorizontal" min="0" max="50" value="0" step="1">
+                                        <span class="input-unit">px</span>
+                                    </div>
+                                    <span class="padding-icon" style="transform: rotate(90deg);">↔</span>
+                                    <div class="padding-input-wrapper">
+                                        <input type="number" id="marginVertical" min="0" max="50" value="0" step="1">
+                                        <span class="input-unit">px</span>
                                     </div>
                                 </div>
                             </div>
@@ -121,22 +122,21 @@
                     <div class="chatooly-section-card">
                         <div class="chatooly-section-header" role="button" tabindex="0">Background</div>
                         <div class="chatooly-section-content">
-                            
-                            <!-- Background Color -->
-                            <div class="chatooly-control-group compact-row">
-                                <div class="compact-control">
-                                    <label for="backgroundColor">Color</label>
-                                    <input type="color" id="backgroundColor" value="#ffffff">
-                                </div>
+
+                            <!-- Color -->
+                            <div class="background-color-row">
+                                <label class="control-label">Color</label>
+                                <input type="color" id="backgroundColor" value="#ffffff" class="background-color-picker">
                             </div>
 
-                            <!-- Background Media (Image/Video) from Media Manager only -->
-                            <div class="chatooly-control-group">
-                                <label for="backgroundMedia">Image Upload</label>
-                                <div class="background-media-controls">
-                                    <button type="button" id="browseBackgroundMedia" class="browse-media-btn">Background</button>
-                                    <button type="button" id="clearBackgroundMedia" style="display: none;" class="delicate-x">×</button>
-                                </div>
+                            <!-- Image Upload -->
+                            <div class="background-upload-group">
+                                <label class="control-label">Image Upload</label>
+                                <button type="button" id="browseBackgroundMedia" class="background-upload-btn">
+                                    <span class="upload-icon">📁</span>
+                                    <span>Background</span>
+                                </button>
+                                <button type="button" id="clearBackgroundMedia" style="display: none;" class="delicate-x">×</button>
 
                                 <!-- Video Controls (hidden by default) -->
                                 <div id="backgroundVideoControls" style="display: none;" class="video-controls">
@@ -152,28 +152,22 @@
                             </div>
 
                             <!-- Fill Mode -->
-                            <div class="chatooly-control-group">
-                                <label for="backgroundFillMode">Fill Mode</label>
-                                <select id="backgroundFillMode">
+                            <div class="background-select-group">
+                                <label class="control-label">Fill Mode</label>
+                                <select id="backgroundFillMode" class="chatooly-select">
                                     <option value="stretch">Stretch</option>
                                     <option value="fit">Fit</option>
                                     <option value="fill" selected>Fill (Crop)</option>
                                 </select>
                             </div>
 
-                            <!-- Enable Padding (convert radio to toggle concept) -->
-                            <div class="chatooly-control-group">
-                                <label>Enable Padding</label>
-                                <div class="space-toggles">
-                                    <label>
-                                        <input type="radio" name="backgroundSpace" value="canvas" checked>
-                                        Canvas
-                                    </label>
-                                    <label>
-                                        <input type="radio" name="backgroundSpace" value="padding">
-                                        Padding
-                                    </label>
-                                </div>
+                            <!-- Enable Padding -->
+                            <div class="background-toggle-row">
+                                <label class="control-label">Enable Padding</label>
+                                <label class="toggle-switch">
+                                    <input type="checkbox" id="backgroundPaddingToggle">
+                                    <span class="toggle-slider"></span>
+                                </label>
                             </div>
                         </div>
                     </div>

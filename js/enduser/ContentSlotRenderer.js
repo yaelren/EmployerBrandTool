@@ -59,6 +59,33 @@ class ContentSlotRenderer {
     }
 
     /**
+     * Scale bounding box from export coordinates to display coordinates
+     * @param {Object} exportBounds - Bounding box in export coordinates
+     * @returns {Object} Bounding box in display coordinates
+     */
+    scaleExportToDisplay(exportBounds) {
+        // Get canvas dimensions
+        const displayWidth = this.canvas.width;
+        const displayHeight = this.canvas.height;
+
+        // Get export resolution from Chatooly
+        const exportWidth = window.Chatooly?.canvasResizer?.exportWidth || displayWidth;
+        const exportHeight = window.Chatooly?.canvasResizer?.exportHeight || displayHeight;
+
+        // Calculate scale factors (export → display)
+        const scaleX = displayWidth / exportWidth;
+        const scaleY = displayHeight / exportHeight;
+
+        // Scale bounds
+        return {
+            x: exportBounds.x * scaleX,
+            y: exportBounds.y * scaleY,
+            width: exportBounds.width * scaleX,
+            height: exportBounds.height * scaleY
+        };
+    }
+
+    /**
      * Render text content in bounded region (overlay)
      */
     renderTextOverlay(slot, text) {
@@ -67,6 +94,11 @@ class ContentSlotRenderer {
             console.warn(`⚠️ No bounding box for slot ${slot.slotId}`);
             return;
         }
+
+        // ✅ CRITICAL FIX: Scale bounding box from export to display coordinates
+        // boundingBox is in export coordinates (e.g., 1080x1350)
+        // but we're rendering on display canvas (e.g., 528x660)
+        const displayBounds = this.scaleExportToDisplay(boundingBox);
 
         // Save canvas state
         this.ctx.save();
@@ -85,7 +117,7 @@ class ContentSlotRenderer {
         const maxFontSize = constraints?.maxFontSize || styling?.fontSize || 72;
         const fontSize = this.findOptimalFontSize(
             text,
-            boundingBox,
+            displayBounds,
             { fontFamily, fontWeight, fontStyle, lineHeight, minFontSize, maxFontSize }
         );
 
@@ -95,23 +127,23 @@ class ContentSlotRenderer {
         this.ctx.textAlign = textAlign;
 
         // Split text into lines
-        const lines = this.wrapText(text, boundingBox.width, this.ctx);
+        const lines = this.wrapText(text, displayBounds.width, this.ctx);
         const totalHeight = lines.length * fontSize * lineHeight;
 
         // Calculate starting Y based on vertical alignment
-        let startY = boundingBox.y;
+        let startY = displayBounds.y;
         if (verticalAlign === 'middle') {
-            startY = boundingBox.y + (boundingBox.height - totalHeight) / 2;
+            startY = displayBounds.y + (displayBounds.height - totalHeight) / 2;
         } else if (verticalAlign === 'bottom') {
-            startY = boundingBox.y + boundingBox.height - totalHeight;
+            startY = displayBounds.y + displayBounds.height - totalHeight;
         }
 
         // Calculate X based on horizontal alignment
-        let textX = boundingBox.x;
+        let textX = displayBounds.x;
         if (textAlign === 'center') {
-            textX = boundingBox.x + boundingBox.width / 2;
+            textX = displayBounds.x + displayBounds.width / 2;
         } else if (textAlign === 'right') {
-            textX = boundingBox.x + boundingBox.width;
+            textX = displayBounds.x + displayBounds.width;
         }
 
         // Render each line
@@ -154,13 +186,16 @@ class ContentSlotRenderer {
             return;
         }
 
+        // ✅ CRITICAL FIX: Scale bounding box from export to display coordinates
+        const displayBounds = this.scaleExportToDisplay(boundingBox);
+
         // Load and render image
         const img = new Image();
         img.onload = () => {
             this.ctx.save();
 
             // Apply image rendering mode (crop to fit bounded region)
-            const { x, y, width, height } = boundingBox;
+            const { x, y, width, height } = displayBounds;
 
             // Calculate aspect ratios
             const imgAspect = img.width / img.height;

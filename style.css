@@ -3517,3 +3517,87 @@ select option {
 .old-preset-content {
     transition: all 0.3s ease;
 }
+
+/* Preset action buttons grid layout - side by side */
+.preset-action-buttons-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin-bottom: 10px;
+}
+
+.preset-action-buttons-grid button {
+    width: 100%;
+}
+
+/* Layout Setup Card - Figma matching styles */
+
+/* Canvas Padding and Cell Gaps controls */
+.padding-control-group {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-bottom: 10px;
+}
+
+.control-label {
+    font-family: 'TASA Orbiter', sans-serif;
+    font-size: 10px;
+    font-weight: 500;
+    color: black;
+}
+
+.padding-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+}
+
+.padding-icon {
+    font-size: 10px;
+    color: #6d736c;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 10px;
+    height: 10px;
+}
+
+.padding-input-wrapper {
+    flex: 0 1 auto;
+    background: #aeb7ac;
+    border-radius: 5px;
+    padding: 5px 8px;
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    min-width: 60px;
+}
+
+.padding-input-wrapper input[type="number"] {
+    background: transparent;
+    border: none;
+    outline: none;
+    width: 30px;
+    font-family: 'TASA Orbiter', sans-serif;
+    font-size: 10px;
+    font-weight: 500;
+    color: black;
+    -moz-appearance: textfield;
+    text-align: left;
+}
+
+.padding-input-wrapper input[type="number"]::-webkit-inner-spin-button,
+.padding-input-wrapper input[type="number"]::-webkit-outer-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+
+.input-unit {
+    font-family: 'TASA Orbiter', sans-serif;
+    font-size: 10px;
+    color: #454545;
+    flex-shrink: 0;
+}

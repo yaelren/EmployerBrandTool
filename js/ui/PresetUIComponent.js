@@ -32,93 +32,89 @@ class PresetUIComponent {
 
         container.innerHTML = `
             <div class="preset-controls preset-cloud-controls">
-                <!-- Multi-Page Save Section -->
-                <div class="preset-section preset-multipage-save-section">
-                    <h3>Multi-Page Presets</h3>
-                    <p class="preset-description">Save and load pages in multi-page presets</p>
-                    <div class="preset-multipage-controls">
-                        <button type="button" class="preset-save-page-btn">
-                            Save Page
-                        </button>
-                        <button type="button" class="preset-load-page-btn">
-                            Load Page
-                        </button>
-                    </div>
-                </div>
-
-                <!-- Save Page Panel (Inline) -->
-                <div class="preset-section save-page-panel-section" id="savePagePanelContainer">
-                    <!-- SavePagePanel will render here -->
-                </div>
-
-                <!-- Old Preset System (Collapsible for debugging) -->
-                <div class="preset-section old-preset-system-section">
-                    <h3 class="old-preset-toggle">Old Preset System <span class="toggle-indicator">▶</span></h3>
-                    <div class="old-preset-content" style="display: none;">
-
-                <!-- Save Section -->
-                <div class="preset-section preset-save-section">
-                    <h3>Save New Preset</h3>
-                    <p class="preset-description">Save your current design locally or to the cloud</p>
-                    <div class="preset-save-controls">
-                        <input
-                            type="text"
-                            id="presetNameInput"
-                            class="preset-name-input"
-                            placeholder="Enter preset name..."
-                            maxlength="50">
-                        <div class="preset-save-buttons">
-                            <button type="button" class="preset-save-local-btn">
-                                Save Locally
+                <!-- Multi-Page Presets Card -->
+                <div class="chatooly-section-card">
+                    <div class="chatooly-section-header" role="button" tabindex="0">Multi-Page Presets</div>
+                    <div class="chatooly-section-content">
+                        <p class="preset-description">Save and load pages in multi-page presets</p>
+                        <div class="preset-multipage-controls">
+                            <button type="button" class="preset-save-page-btn">
+                                Save Page
                             </button>
-                            <button type="button" class="preset-save-cloud-btn">
-                                Save to Cloud
+                            <button type="button" class="preset-load-page-btn">
+                                Load Page
                             </button>
+                        </div>
+                        
+                        <!-- Save Page Panel (Inline) -->
+                        <div class="preset-section save-page-panel-section" id="savePagePanelContainer">
+                            <!-- SavePagePanel will render here -->
                         </div>
                     </div>
                 </div>
 
-                <!-- Load Local File Section -->
-                <div class="preset-section preset-load-local-section">
-                    <h3>Load Local Preset</h3>
-                    <p class="preset-description">Upload a preset file from your computer</p>
-                    <div class="preset-load-file-controls">
+                <!-- Single Preset System Card -->
+                <div class="chatooly-section-card">
+                    <div class="chatooly-section-header" role="button" tabindex="0">Single Preset System</div>
+                    <div class="chatooly-section-content">
+                        
+                        <!-- Save Section -->
+                        <div class="chatooly-control-group">
+                            <label class="section-header">Save Preset</label>
+                            <input
+                                type="text"
+                                id="presetNameInput"
+                                class="preset-name-input"
+                                placeholder="Enter preset name..."
+                                maxlength="50">
+                        </div>
+
+                        <!-- Load Section -->
+                        <div class="chatooly-control-group">
+                            <label class="section-header">Load Preset</label>
+                            <select id="presetDropdown" class="preset-dropdown">
+                                <option value="">-- Select Preset --</option>
+                            </select>
+                        </div>
+
+                        <!-- Load File Input (Hidden) -->
                         <input
                             type="file"
                             id="presetFileInput"
                             accept=".json"
                             style="display: none;">
-                        <button type="button" class="preset-load-file-btn">
-                            Choose File
-                        </button>
                         <span id="selectedFileName" class="selected-file-name"></span>
-                    </div>
-                </div>
 
-                <!-- Load Section -->
-                <div class="preset-section preset-load-section">
-                    <h3>Load Preset</h3>
-                    <p class="preset-description">Select a preset from your cloud library</p>
-                    <div class="preset-load-controls">
-                        <select id="presetDropdown" class="preset-dropdown">
-                            <option value="">-- Select Preset --</option>
-                        </select>
-                        <div class="preset-action-buttons">
-                            <button type="button" class="preset-load-cloud-btn">
-                                Load
-                            </button>
-                            <button type="button" class="preset-delete-btn">
-                                Delete
-                            </button>
-                            <button type="button" class="preset-refresh-btn">
-                                Refresh
-                            </button>
+                        <!-- Action Buttons (Side by Side) -->
+                        <div class="chatooly-control-group">
+                            <label class="section-header">Actions</label>
+                            <div class="preset-action-buttons-grid">
+                                <button type="button" class="preset-load-file-btn">
+                                    Load Local
+                                </button>
+                                <button type="button" class="preset-load-cloud-btn">
+                                    Load from Cloud
+                                </button>
+                            </div>
+                            <div class="preset-action-buttons-grid">
+                                <button type="button" class="preset-save-local-btn">
+                                    Save Locally
+                                </button>
+                                <button type="button" class="preset-save-cloud-btn">
+                                    Save to Cloud
+                                </button>
+                            </div>
+                            <div class="preset-action-buttons-grid">
+                                <button type="button" class="preset-delete-btn">
+                                    Delete
+                                </button>
+                                <button type="button" class="preset-refresh-btn">
+                                    Refresh
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </div>
-
-                    </div><!-- end old-preset-content -->
-                </div><!-- end old-preset-system-section -->
             </div>
         `;
 
@@ -139,17 +135,15 @@ class PresetUIComponent {
      * Setup event listeners for preset controls
      */
     setupEventListeners() {
-        // Old preset system toggle
-        const oldPresetToggle = document.querySelector('.old-preset-toggle');
-        const oldPresetContent = document.querySelector('.old-preset-content');
-        const toggleIndicator = document.querySelector('.toggle-indicator');
-        if (oldPresetToggle && oldPresetContent && toggleIndicator) {
-            oldPresetToggle.addEventListener('click', () => {
-                const isVisible = oldPresetContent.style.display === 'block';
-                oldPresetContent.style.display = isVisible ? 'none' : 'block';
-                toggleIndicator.textContent = isVisible ? '▶' : '▼';
+        // Make cards collapsible
+        document.querySelectorAll('.chatooly-section-header').forEach(header => {
+            header.addEventListener('click', function() {
+                const card = this.closest('.chatooly-section-card');
+                if (card) {
+                    card.classList.toggle('collapsed');
+                }
             });
-        }
+        });
 
         // Save page to preset button (multi-page workflow)
         const savePageBtn = document.querySelector('.preset-save-page-btn');
