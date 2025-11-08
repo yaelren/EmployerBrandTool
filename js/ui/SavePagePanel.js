@@ -754,6 +754,7 @@ class SavePagePanel {
             },
             styling: isText ? {
                 fontFamily: cell.textComponent?.fontFamily || cell.content?.fontFamily || '"Wix Madefor Display", Arial, sans-serif',
+                fontSize: cell.textComponent?.fontSize || cell.fontSize || 16,
                 fontWeight: cell.textComponent?.fontWeight || cell.content?.fontWeight || 'normal',
                 fontStyle: (cell.textComponent?.fontStyle === 'italic' || cell.content?.styles?.italic) ? 'italic' : 'normal',
                 color: cell.textComponent?.color || cell.content?.color || '#000000',

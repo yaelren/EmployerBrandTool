@@ -349,6 +349,7 @@ class ContentSlotRenderer {
 
         // ✅ Text styling from slot.styling (designer's locked styling)
         const fontFamily = styling.fontFamily || 'Arial';
+        const fontSize = styling.fontSize || 16;  // Designer's chosen font size
         const fontWeight = styling.fontWeight || 'normal';
         const fontStyle = styling.fontStyle || 'normal';  // italic, oblique, or normal
         const color = styling.color || '#000000';
@@ -358,6 +359,7 @@ class ContentSlotRenderer {
 
         console.log('  ✅ Extracted styling:', {
             fontFamily,
+            fontSize,
             fontWeight,
             fontStyle,
             color,
@@ -368,15 +370,19 @@ class ContentSlotRenderer {
         // ✅ Layout constraints from slot.constraints
         const verticalAlign = constraints.verticalAlign || 'top';
         const minFontSize = constraints.minFontSize || 12;
-        const maxFontSize = constraints.maxFontSize || 72;
+        const maxFontSize = constraints.maxFontSize || Math.max(fontSize, 72);  // Use designer's size as max if larger
         const lineHeight = constraints.lineHeight || 1.2;
 
-        // Find optimal font size using binary search
-        const optimalSize = this.findOptimalFontSize(
-            text,
-            { x, y, width, height },
-            { fontFamily, fontWeight, fontStyle, lineHeight, minFontSize, maxFontSize }
-        );
+        // Try designer's font size first, only shrink if text doesn't fit
+        let optimalSize = fontSize;
+        if (!this.textFitsInBox(text, width, height, fontSize, fontFamily, fontWeight, fontStyle, lineHeight)) {
+            // Designer's size doesn't fit, find optimal size using binary search
+            optimalSize = this.findOptimalFontSize(
+                text,
+                { x, y, width, height },
+                { fontFamily, fontWeight, fontStyle, lineHeight, minFontSize, maxFontSize: fontSize }  // Don't go larger than designer's size
+            );
+        }
 
         console.log('  📐 Calculated font size:', optimalSize, 'px');
 
