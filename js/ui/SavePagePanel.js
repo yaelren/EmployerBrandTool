@@ -753,11 +753,11 @@ class SavePagePanel {
                 allowedFormats: ['jpg', 'png', 'webp', 'gif']
             },
             styling: isText ? {
-                fontFamily: cell.content?.fontFamily || '"Wix Madefor Display", Arial, sans-serif',
-                fontWeight: cell.content?.fontWeight || 'normal',
-                fontStyle: cell.content?.styles?.italic ? 'italic' : 'normal',
-                color: cell.content?.color || '#000000',
-                textAlign: cell.content?.textAlign || 'left',
+                fontFamily: cell.textComponent?.fontFamily || cell.content?.fontFamily || '"Wix Madefor Display", Arial, sans-serif',
+                fontWeight: cell.textComponent?.fontWeight || cell.content?.fontWeight || 'normal',
+                fontStyle: (cell.textComponent?.fontStyle === 'italic' || cell.content?.styles?.italic) ? 'italic' : 'normal',
+                color: cell.textComponent?.color || cell.content?.color || '#000000',
+                textAlign: cell.textComponent?.alignH || cell.content?.textAlign || 'left',
                 textTransform: cell.content?.textTransform || null
             } : {}
         };
