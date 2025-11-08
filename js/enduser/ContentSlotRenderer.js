@@ -340,6 +340,13 @@ class ContentSlotRenderer {
         const constraints = slot.constraints || {};
         const styling = slot.styling || {};
 
+        // 🔍 DEBUG: Log complete slot data to see what styling we're receiving
+        console.log('🎨 renderTextSlot() called for slot:', slot.slotId);
+        console.log('  📦 Complete slot object:', slot);
+        console.log('  🎨 slot.styling:', styling);
+        console.log('  📏 slot.constraints:', constraints);
+        console.log('  💬 User text:', text);
+
         // ✅ Text styling from slot.styling (designer's locked styling)
         const fontFamily = styling.fontFamily || 'Arial';
         const fontWeight = styling.fontWeight || 'normal';
@@ -347,6 +354,15 @@ class ContentSlotRenderer {
         const color = styling.color || '#000000';
         const textAlign = styling.textAlign || constraints.horizontalAlign || 'left';
         const textTransform = styling.textTransform || null;
+
+        console.log('  ✅ Extracted styling:', {
+            fontFamily,
+            fontWeight,
+            fontStyle,
+            color,
+            textAlign,
+            textTransform
+        });
 
         // ✅ Layout constraints from slot.constraints
         const verticalAlign = constraints.verticalAlign || 'top';
@@ -361,6 +377,8 @@ class ContentSlotRenderer {
             { fontFamily, fontWeight, fontStyle, lineHeight, minFontSize, maxFontSize }
         );
 
+        console.log('  📐 Calculated font size:', optimalSize, 'px');
+
         // Apply text transform if specified (uppercase, lowercase, capitalize)
         let displayText = text;
         if (textTransform === 'uppercase') {
@@ -371,12 +389,19 @@ class ContentSlotRenderer {
             displayText = text.replace(/\b\w/g, char => char.toUpperCase());
         }
 
+        console.log('  📝 Display text after transform:', displayText);
+
         // Render text with optimal size
         this.ctx.save();
 
-        this.ctx.font = `${fontStyle} ${fontWeight} ${optimalSize}px ${fontFamily}`;
+        const finalFont = `${fontStyle} ${fontWeight} ${optimalSize}px ${fontFamily}`;
+        this.ctx.font = finalFont;
         this.ctx.fillStyle = color;
         this.ctx.textAlign = textAlign;
+
+        console.log('  🖌️ Canvas font set to:', finalFont);
+        console.log('  🎨 Canvas fillStyle set to:', color);
+        console.log('  📍 Canvas textAlign set to:', textAlign);
 
         // Split text into lines that fit width
         const lines = this.wrapText(displayText, width, this.ctx);
