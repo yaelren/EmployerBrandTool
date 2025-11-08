@@ -744,9 +744,10 @@ class SavePagePanel {
             required: true,
             constraints: isText ? {
                 maxCharacters: 100,
-                minFontSize: 50,
-                maxFontSize: 100,
-                alignment: 'center'
+                minFontSize: Math.max(12, Math.floor((cell.textComponent?.fontSize || cell.fontSize || 16) * 0.5)), // Min = 50% of current size
+                maxFontSize: cell.textComponent?.fontSize || cell.fontSize || 100, // Max = current cell font size
+                alignment: 'center',
+                fontSizeMode: 'fixed' // 'auto-fit' or 'fixed' - CHANGED TO FIXED to always use designer size
             } : {
                 fitMode: 'cover',
                 maxFileSize: 10485760,
@@ -759,7 +760,9 @@ class SavePagePanel {
                 fontStyle: (cell.textComponent?.fontStyle === 'italic' || cell.content?.styles?.italic) ? 'italic' : 'normal',
                 color: cell.textComponent?.color || cell.content?.color || '#000000',
                 textAlign: cell.textComponent?.alignH || cell.content?.textAlign || 'left',
-                textTransform: cell.content?.textTransform || null
+                textTransform: cell.content?.textTransform || null,
+                highlight: cell.textComponent?.highlight || cell.highlight || cell.content?.highlight || false,
+                highlightColor: cell.textComponent?.highlightColor || cell.highlightColor || cell.content?.highlightColor || '#ffff00'
             } : {}
         };
     }
