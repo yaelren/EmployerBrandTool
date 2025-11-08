@@ -1532,24 +1532,20 @@ window.renderHighResolution = function(targetCanvas, scale) {
     ctx.save();
     ctx.scale(scale, scale);
 
-    // Get current render data (no swapping - use original layout)
-    const renderData = {
-        textLines: app.textEngine.getLinesForRender(),
-        textConfig: app.textEngine.getConfig(),
-        spots: app.spots,
-        debugInfo: null // Skip debug for export
-    };
-
-    // Temporarily swap canvas and context for rendering, but keep everything else the same
+    // Temporarily swap canvas and context for rendering
     const originalCanvas = app.canvasManager.canvas;
     const originalCtx = app.canvasManager.ctx;
 
-    // Temporarily set export canvas and context
+    // Set export canvas and context
     app.canvasManager.canvas = targetCanvas;
     app.canvasManager.ctx = ctx;
 
-    // Render using the actual CanvasManager (preserves all methods and alignment logic)
-    app.canvasManager.render(renderData);
+    // NEW: Use the same render flow as normal rendering (grid/layer system)
+    // Render background
+    app.canvasManager.renderBackground();
+
+    // Render using the unified grid architecture (no debug overlays for export)
+    app._renderWithAnimations();
 
     // Restore original canvas and context
     app.canvasManager.canvas = originalCanvas;
