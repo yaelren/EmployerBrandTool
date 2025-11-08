@@ -553,7 +553,7 @@ class PresetManager {
                 canvasData.width,
                 canvasData.height
             );
-            window.Chatooly.canvasResizer.applyExportSize();
+            // Note: No need to call applyExportSize() - setExportSize now handles everything including UI updates
         }
 
         // Update textEngine canvas dimensions
