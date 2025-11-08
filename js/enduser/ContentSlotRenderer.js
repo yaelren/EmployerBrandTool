@@ -352,7 +352,8 @@ class ContentSlotRenderer {
         const fontWeight = styling.fontWeight || 'normal';
         const fontStyle = styling.fontStyle || 'normal';  // italic, oblique, or normal
         const color = styling.color || '#000000';
-        const textAlign = styling.textAlign || constraints.horizontalAlign || 'left';
+        // Check multiple possible alignment property names
+        const textAlign = styling.textAlign || constraints.alignment || constraints.horizontalAlign || 'left';
         const textTransform = styling.textTransform || null;
 
         console.log('  ✅ Extracted styling:', {
