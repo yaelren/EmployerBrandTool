@@ -32,30 +32,37 @@ class ContentSlotManager {
             throw new Error('Invalid cell: missing bounds property');
         }
 
-        // For text cells, calculate actual text bounds
-        if (cell.type === 'main-text' || cell.type === 'text') {
-            return this._captureTextBounds(cell);
-        }
+        // ✅ CRITICAL FIX: Scale bounds from display size to actual canvas size
+        // The canvas may be scaled down for display (e.g., 528x660) but actual size is 1080x1350
+        const canvas = this.app.canvasManager.canvas;
+        const displayWidth = canvas.width;
+        const displayHeight = canvas.height;
 
-        // For content cells, check content type
-        if (cell.type === 'content' || cell.type === 'spot') {
-            if (cell.content) {
-                // Text content in a content cell
-                if (cell.content.type === 'text' || cell.content.text !== undefined) {
-                    return this._captureTextBounds(cell);
-                }
-                // Image/media content
-                // 🎯 FIX: Old presets don't set content.type or content.mediaType, only content.media
-                if (cell.content.type === 'media' || cell.content.mediaType || cell.content.media) {
-                    return this._captureMediaBounds(cell);
-                }
-            }
-            // Empty content cell - use full cell bounds
-            return this._copyBounds(cell.bounds);
-        }
+        // Get the actual export resolution from Chatooly if available
+        const actualWidth = window.Chatooly?.canvasResizer?.exportWidth || displayWidth;
+        const actualHeight = window.Chatooly?.canvasResizer?.exportHeight || displayHeight;
 
-        // Fallback: use cell bounds
-        return this._copyBounds(cell.bounds);
+        const scaleX = actualWidth / displayWidth;
+        const scaleY = actualHeight / displayHeight;
+
+        // Scale the bounds to actual canvas size
+        const scaledBounds = {
+            x: cell.bounds.x * scaleX,
+            y: cell.bounds.y * scaleY,
+            width: cell.bounds.width * scaleX,
+            height: cell.bounds.height * scaleY
+        };
+
+        // Debug logging
+        console.log('📐 Capturing bounding box for cell:', cell.id);
+        console.log('  Display canvas:', displayWidth, 'x', displayHeight);
+        console.log('  Actual canvas:', actualWidth, 'x', actualHeight);
+        console.log('  Scale factors:', scaleX.toFixed(2), 'x', scaleY.toFixed(2));
+        console.log('  Cell bounds (display):', cell.bounds);
+        console.log('  Cell bounds (scaled):', scaledBounds);
+        console.log('  Cell fontSize:', cell.fontSize || cell.textComponent?.fontSize);
+
+        return scaledBounds;
     }
 
     /**
