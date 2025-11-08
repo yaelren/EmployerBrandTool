@@ -3459,3 +3459,57 @@ select option {
     gap: 4px;
 }
 
+
+/* Multi-Page Preset Controls */
+.preset-multipage-controls {
+    display: flex;
+    gap: 8px;
+}
+
+.preset-save-page-btn,
+.preset-load-page-btn {
+    flex: 1;
+    padding: 6px 12px;
+    font-size: 11px;
+    font-weight: 400;
+    border-radius: 3px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    border: 1px solid var(--chatooly-color-border, #3a3a3a);
+    background: var(--chatooly-color-surface, #1a1a1a);
+    color: var(--chatooly-color-text, #e5e5e5);
+}
+
+.preset-save-page-btn:hover,
+.preset-load-page-btn:hover {
+    background: var(--chatooly-color-surface-elevated, #2a2a2a);
+    border-color: rgba(255, 255, 255, 0.2);
+}
+
+/* Old Preset System - Collapsible Debug Section */
+.old-preset-system-section {
+    opacity: 0.5;
+}
+
+.old-preset-toggle {
+    cursor: pointer;
+    user-select: none;
+    color: var(--chatooly-color-text-secondary, #666) !important;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    transition: color 0.2s ease;
+}
+
+.old-preset-toggle:hover {
+    color: var(--chatooly-color-text, #999) !important;
+}
+
+.toggle-indicator {
+    font-size: 10px;
+    margin-left: 8px;
+}
+
+.old-preset-content {
+    transition: all 0.3s ease;
+}

@@ -33,9 +33,14 @@ class DebugController {
     cacheElements() {
         this.elements.toggleGuides = document.getElementById('toggleGuides');
         this.elements.guidesLabel = document.getElementById('guidesLabel');
-        
+        this.elements.toggleContentSlots = document.getElementById('toggleContentSlots');
+        this.elements.contentSlotsLabel = document.getElementById('contentSlotsLabel');
+
         if (!this.elements.toggleGuides) {
             console.warn('Debug element not found: toggleGuides');
+        }
+        if (!this.elements.toggleContentSlots) {
+            console.warn('Debug element not found: toggleContentSlots');
         }
     }
     
@@ -50,7 +55,14 @@ class DebugController {
                 this.toggleAllControls();
             });
         }
-        
+
+        // Content Slots toggle button
+        if (this.elements.toggleContentSlots) {
+            this.elements.toggleContentSlots.addEventListener('click', () => {
+                this.toggleContentSlots();
+            });
+        }
+
         // Global keyboard shortcuts
         document.addEventListener('keydown', (e) => this.handleKeyboardShortcut(e));
     }
@@ -276,6 +288,30 @@ class DebugController {
     }
     
     /**
+     * Toggle Content Slots overlay visibility
+     */
+    toggleContentSlots() {
+        if (this.app.contentSlotOverlay) {
+            this.app.contentSlotOverlay.toggle();
+
+            // Update button label
+            const isEnabled = this.app.contentSlotOverlay.enabled;
+            if (this.elements.contentSlotsLabel) {
+                this.elements.contentSlotsLabel.textContent = isEnabled ? 'Hide Content Slots' : 'Show Content Slots';
+            }
+
+            // Update button visual state
+            if (this.elements.toggleContentSlots) {
+                if (isEnabled) {
+                    this.elements.toggleContentSlots.classList.add('active');
+                } else {
+                    this.elements.toggleContentSlots.classList.remove('active');
+                }
+            }
+        }
+    }
+
+    /**
      * Export debug state for testing
      * @returns {Object} Debug state
      */
@@ -283,7 +319,7 @@ class DebugController {
         const anyEnabled = this.debugOptions.showSpotOutlines ||
                           this.debugOptions.showSpotNumbers ||
                           this.debugOptions.showPadding;
-        
+
         return {
             options: { ...this.debugOptions },
             guidesVisible: anyEnabled

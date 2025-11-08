@@ -230,6 +230,7 @@ class CellRenderer {
             case 'fit':
             default:
                 // Free: Maintain aspect ratio, fit within spot (scale can exceed boundaries)
+                // Cell-relative scaling: scale is relative to cell dimensions
                 if (mediaAspect > contentAspect) {
                     // Media is wider than content area
                     drawWidth = contentWidth * scale;
@@ -312,17 +313,17 @@ class CellRenderer {
                 if (media.readyState >= HTMLMediaElement.HAVE_METADATA) {
                     ctx.drawImage(media, 0, 0, drawWidth, drawHeight);
                     
-                    // Debug: Log video state occasionally
-                    if (Math.random() < 0.001) { // Very infrequent logging
-                        console.log('Video rendering:', {
-                            readyState: media.readyState,
-                            paused: media.paused,
-                            currentTime: media.currentTime,
-                            duration: media.duration,
-                            videoWidth: media.videoWidth,
-                            videoHeight: media.videoHeight
-                        });
-                    }
+                    // // Debug: Log video state occasionally
+                    // if (Math.random() < 0.001) { // Very infrequent logging
+                    //     console.log('Video rendering:', {
+                    //         readyState: media.readyState,
+                    //         paused: media.paused,
+                    //         currentTime: media.currentTime,
+                    //         duration: media.duration,
+                    //         videoWidth: media.videoWidth,
+                    //         videoHeight: media.videoHeight
+                    //     });
+                    // }
                 } else {
                     // Video not ready, draw placeholder
                     this.renderVideoPlaceholder(ctx, 0, 0, drawWidth, drawHeight);
@@ -437,6 +438,9 @@ class CellRenderer {
         // Set position alignment
         cell.textComponent.positionH = cell.content.positionH || 'center';
         cell.textComponent.positionV = cell.content.positionV || 'middle';
+
+        // Set alignment mode: CONTENT CELLS align to text box (longest line width)
+        cell.textComponent.alignToTextBox = true;
 
         // Set padding
         const padding = cell.content.padding || 1;

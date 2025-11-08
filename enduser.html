@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<!--
+    Chatooly Tool Template - End User Interface
+    Author: Yael Renous - Studio Video
+    Sprint 4: End-User Interface
+
+    This is the simplified end-user interface for filling content slots.
+    Designer controls have been removed - users can only:
+    1. Select a preset
+    2. Fill content slots via forms
+    3. Navigate between pages
+    4. Preview and export
+-->
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Employer Brand Tool - Fill Content</title>
+
+    <!-- ========== Import Map for Wix SDK (Cloud Presets) ========== -->
+    <script type="importmap">
+    {
+        "imports": {
+            "@wix/sdk": "https://cdn.jsdelivr.net/npm/@wix/sdk@1.17.1/+esm",
+            "@wix/data": "https://cdn.jsdelivr.net/npm/@wix/data@1.0.306/+esm",
+            "@wix/media": "https://cdn.jsdelivr.net/npm/@wix/media@1.0.195/+esm"
+        }
+    }
+    </script>
+
+    <!-- ========== Google Fonts ========== -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Wix+Madefor+Display:wght@400..800&family=Wix+Madefor+Text:ital,wght@0,400..800;1,400..800&display=swap" rel="stylesheet">
+
+    <!-- ========== Required CDN Styles ========== -->
+    <link rel="stylesheet" href="https://yaelren.github.io/chatooly-cdn/css/unified.min.css">
+
+    <!-- Custom styles -->
+    <link rel="stylesheet" href="css/enduser.css">
+    <link rel="stylesheet" href="css/load-page-modal.css">
+</head>
+<body>
+    <div class="enduser-container">
+        <!-- Header -->
+        <div class="enduser-header">
+            <div class="header-left">
+                <h1 class="header-title">Employer Brand Tool</h1>
+                <span class="header-subtitle">End User</span>
+            </div>
+            <div class="header-right">
+                <span class="preset-loaded-name" id="presetName" style="display: none;">No preset loaded</span>
+            </div>
+        </div>
+
+        <!-- Export Bar (below header) -->
+        <div class="export-bar" id="exportBar">
+            <button class="export-bar-btn" id="exportBtn" disabled>Export</button>
+        </div>
+
+        <!-- Main Content Area -->
+        <div class="enduser-main">
+            <!-- Left Sidebar: Form -->
+            <div class="enduser-sidebar">
+                <div class="sidebar-header" id="sidebarHeader">
+                    <h2 class="sidebar-title" id="sidebarTitle">Select a Preset</h2>
+                </div>
+
+                <div class="sidebar-content" id="sidebarContent">
+                    <!-- Preset Selector (shown initially) -->
+                    <div id="presetSelector" style="text-align: center; padding: 48px 0; display: block;">
+                        <button id="browsePresetsBtn" class="modal-load-btn">Browse Presets</button>
+                    </div>
+
+                    <!-- Page Sections Container (populated dynamically by FormGenerator) -->
+                    <!-- Each page will be a collapsible section with its content slots -->
+                    <div id="pageSectionsContainer">
+                        <!-- Page sections will be generated here by FormGenerator -->
+                        <!-- Example structure:
+                        <div class="enduser-page-section">
+                            <button class="page-section-header">
+                                <span class="section-toggle">▼</span>
+                                <span class="section-title">Page 1: Title</span>
+                                <span class="section-badge">3 fields</span>
+                            </button>
+                            <div class="page-section-content">
+                                [form fields]
+                            </div>
+                        </div>
+                        -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Center: Canvas Preview -->
+            <div class="enduser-canvas-area">
+                <!-- Chatooly Canvas Container (CDN handles styling) -->
+                <div id="chatooly-container">
+                    <canvas id="chatooly-canvas"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- Bottom: Page Navigation with Thumbnails -->
+        <div class="enduser-page-nav" id="pageNav" style="display: none;">
+            <div class="page-nav-left">
+                <div class="enduser-page-thumbs" id="pageThumbs">
+                    <!-- Page thumbnails will be generated here by EndUserController -->
+                    <!-- Example:
+                    <div class="enduser-page-thumb active" data-page-index="0">
+                        <div class="thumb-preview">
+                            <div class="thumb-placeholder">
+                                <span class="thumb-number">1</span>
+                            </div>
+                        </div>
+                        <span class="thumb-label">Opening Page</span>
+                    </div>
+                    -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Preset Selection Modal -->
+    <div id="presetModal" class="modal" style="display: none;">
+        <div class="modal-overlay"></div>
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Select a Preset</h3>
+                <button id="closePresetModal" class="modal-close">×</button>
+            </div>
+            <div class="modal-body">
+                <div id="presetList" class="preset-list">
+                    <!-- Presets will be populated here -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ========== Lottie Animation Library ========== -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/lottie-web/5.12.2/lottie.min.js"></script>
+
+    <!-- ========== GIF Animation Library for Canvas ========== -->
+    <script src="https://cdn.jsdelivr.net/npm/gifler@0.1.0/gifler.min.js"></script>
+
+    <!-- ========== Chatooly CDN v2.0 Integration ========== -->
+    <script src="https://yaelren.github.io/chatooly-cdn/js/core.min.js"></script>
+
+    <!-- ========== Chatooly Configuration ========== -->
+    <script src="js/chatooly-config.js"></script>
+
+    <!-- ========== Shared Components (from designer) ========== -->
+
+    <!-- Text System -->
+    <script src="js/text/FontMetrics.js"></script>
+    <script src="js/text/TextComponent.js"></script>
+    <script src="js/text/FontManager.js"></script>
+
+    <!-- Canvas & Rendering -->
+    <script src="js/background/BackgroundManager.js"></script>
+    <script src="js/canvas/CanvasManager.js"></script>
+
+    <!-- Grid System (for rendering only, not editing) -->
+    <script src="js/grid/GridDetector.js"></script>
+    <script src="js/grid/Layer.js"></script>
+    <script src="js/grid/LayerManager.js"></script>
+    <script src="js/grid/GridCell.js"></script>
+    <script src="js/grid/MainTextCell.js"></script>
+    <script src="js/grid/ContentCell.js"></script>
+    <script src="js/grid/CellRenderer.js"></script>
+    <script src="js/grid/GridBuilder.js"></script>
+    <script src="js/grid/GridSnapshot.js"></script>
+    <script src="js/grid/Grid.js"></script>
+
+    <!-- Content Controllers -->
+    <script src="js/content/ContentController.js"></script>
+    <script src="js/content/EmptyContentController.js"></script>
+    <script src="js/content/TextContentController.js"></script>
+    <script src="js/content/ImageContentController.js"></script>
+    <script src="js/content/FillContentController.js"></script>
+
+    <!-- Animation System -->
+    <script src="js/animations/CellAnimation.js"></script>
+
+    <!-- Preset System -->
+    <script src="js/parameters/ContentSlotTypes.js"></script>
+    <script src="js/parameters/ContentSlotManager.js"></script>
+
+    <!-- Wix CMS Integration -->
+    <script type="module" src="js/api/WixPresetAPI.js"></script>
+    <script type="module" src="js/api/WixMultiPagePresetAdapter.js"></script>
+    <script src="js/parameters/PresetPageManager.js"></script>
+
+    <!-- ========== End-User Components (Sprint 4) ========== -->
+    <script src="js/enduser/FormGenerator.js"></script>
+    <script src="js/enduser/ContentSlotRenderer.js"></script>
+    <script src="js/enduser/EndUserController.js"></script>
+
+    <!-- ========== End-User Application Entry Point ========== -->
+    <script src="js/enduser-app.js"></script>
+</body>
+</html>

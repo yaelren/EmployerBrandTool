@@ -82,6 +82,11 @@ class EmployerBrandToolPOC {
             this.presetUIComponent = new PresetUIComponent(this);
             this.presetUIComponent.initialize(this.presetManager);
 
+            // Initialize Multi-Page Preset System
+            this.presetPageManager = new PresetPageManager(this);
+            // this.savePageModal = new SavePageModal(this); // Replaced by SavePagePanel in sidebar
+            this.loadPageModal = new LoadPageModal(this);
+
             // Initialize Wix Cloud Backend for Presets (MUST happen before font loading)
             await this.initializeWixCloud();
 
@@ -93,6 +98,9 @@ class EmployerBrandToolPOC {
 
             // Initialize Grid system (NEW - simple per-cell animations)
             this.grid = new Grid(this);
+
+            // Initialize Content Slot Overlay (visual indicators like grid guides)
+            this.contentSlotOverlay = new ContentSlotOverlay(this);
 
             // Set initial canvas size via Chatooly CDN
             this.initializeChatoolyCanvas();
@@ -694,6 +702,11 @@ class EmployerBrandToolPOC {
      * @private
      */
     onCanvasClick(event) {
+        // Skip normal canvas click behavior if in save page mode
+        if (this.savePageModeActive) {
+            return;
+        }
+
         const canvasCoords = this.canvasManager.screenToCanvas(event.clientX, event.clientY);
         
         // Find clicked cell using grid system
@@ -753,6 +766,11 @@ class EmployerBrandToolPOC {
      * @param {MouseEvent} event - Mouse move event
      */
     onCanvasHover(event) {
+        // Skip hover effects if in save page mode
+        if (this.savePageModeActive) {
+            return;
+        }
+        
         const canvasCoords = this.canvasManager.screenToCanvas(event.clientX, event.clientY);
         
         // Find hovered cell using grid system
@@ -785,6 +803,11 @@ class EmployerBrandToolPOC {
      * @param {MouseEvent} event - Mouse leave event
      */
     onCanvasLeave(event) {
+        // Skip if in save page mode
+        if (this.savePageModeActive) {
+            return;
+        }
+        
         // Clear hover state
         this.hoveredCell = null;
         this.showHoverOutline = false;
@@ -895,6 +918,11 @@ class EmployerBrandToolPOC {
             // Render hover outline if hovering over a cell
             if (this.showHoverOutline && this.hoveredCell) {
                 this.renderHoverOutline(this.canvasManager.ctx, this.hoveredCell);
+            }
+
+            // 🎯 Refresh content slot overlay if enabled
+            if (this.contentSlotOverlay) {
+                this.contentSlotOverlay.refresh();
             }
 
         } catch (error) {
@@ -1494,10 +1522,14 @@ class EmployerBrandToolPOC {
             // Expose WixAPI globally for FontManager to use
             window.wixAPI = this.wixAPI;
 
-            // Connect Wix API to PresetManager
+            // Connect Wix API to PresetManager (single-page presets)
             this.presetManager.setWixAPI(this.wixAPI);
 
+            // Connect Wix API to PresetPageManager (multi-page presets - Sprint 3)
+            await this.presetPageManager.initializeWix(this.wixAPI);
+
             console.log('✅ Wix Cloud Backend initialized successfully');
+            console.log('✅ Multi-page preset Wix integration ready');
 
         } catch (error) {
             console.error('❌ Failed to initialize Wix Cloud Backend:', error);

@@ -123,7 +123,7 @@ class PresetManager {
     }
 
     /**
-     * Serialize background state (NO base64 - URLs only)
+     * Serialize background state (supports both cloud URLs and localStorage data URLs)
      * @returns {Object} Background state
      * @private
      */
@@ -136,14 +136,29 @@ class PresetManager {
         if (hasImage) {
             console.log('   → Image element type:', bg.backgroundImage.constructor.name);
             console.log('   → Image dimensions:', bg.backgroundImage.width, 'x', bg.backgroundImage.height);
-            console.log('   → Image will be uploaded to cloud');
+
+            // For localStorage: Use data URL if available (from file upload)
+            // For cloud: imageElement will be uploaded and URL set in saveToCloud()
+            const hasDataURL = !!bg.backgroundImageDataURL;
+            const hasCloudURL = !!bg.backgroundImageURL;
+            console.log('   → Has data URL:', hasDataURL);
+            console.log('   → Has cloud URL:', hasCloudURL);
+
+            if (hasDataURL) {
+                console.log('   → Using data URL for localStorage');
+            } else if (hasCloudURL) {
+                console.log('   → Using cloud URL');
+            } else {
+                console.log('   → Image will be uploaded to cloud');
+            }
         } else {
             console.log('   → No image to serialize');
         }
 
         return {
             color: bg.backgroundColor,
-            imageURL: bg.backgroundImageURL || null, // Will be set during cloud upload
+            // Use data URL for localStorage, cloud URL if available, or null for upload
+            imageURL: bg.backgroundImageDataURL || bg.backgroundImageURL || null,
             imageElement: bg.backgroundImage, // Temp reference for upload
             fitMode: bg.backgroundFitMode,
             videoSettings: {
@@ -222,15 +237,14 @@ class PresetManager {
         const processedData = { ...cellData };
         const content = { ...cellData.content };
 
-        // Handle media content - store temp reference for cloud upload
+        // Handle media content - keep mediaUrl from ContentCell
         if (cellData.contentType === 'media' && cellData.content.media) {
             if (cellData.content.media instanceof HTMLImageElement) {
                 console.log(`📸 SAVE: Processing cell ${cellData.id} with image`);
                 console.log('   → Image dimensions:', cellData.content.media.width, 'x', cellData.content.media.height);
-                content.imageElement = cellData.content.media; // Temp ref for upload
-                content.imageURL = null; // Will be set during cloud upload
+                console.log('   → mediaUrl:', cellData.content.mediaUrl);
                 content.mediaType = 'image';
-                content.media = null; // Remove actual element
+                content.media = null; // Remove actual element (mediaUrl is preserved)
             } else if (cellData.content.media instanceof HTMLVideoElement) {
                 console.log(`🎥 SAVE: Processing cell ${cellData.id} with video`);
                 console.log('   → Video dimensions:', cellData.content.media.videoWidth, 'x', cellData.content.media.videoHeight);
@@ -579,7 +593,7 @@ class PresetManager {
     }
 
     /**
-     * Restore background state from Wix URL
+     * Restore background state from URL (supports both cloud URLs and data URLs)
      * @param {Object} backgroundData - Background state data
      * @private
      */
@@ -589,16 +603,24 @@ class PresetManager {
         // Set background color
         bg.setBackgroundColor(backgroundData.color);
 
-        // Restore background image from Wix CDN URL
+        // Restore background image from URL (cloud CDN or data URL)
         if (backgroundData.imageURL) {
             console.log('🔄 LOAD: Restoring background image...');
-            console.log('   → URL type:', backgroundData.imageURL.substring(0, 30));
+            const isDataURL = backgroundData.imageURL.startsWith('data:');
+            console.log('   → URL type:', isDataURL ? 'data URL' : 'cloud URL');
             console.log('   → URL length:', backgroundData.imageURL.length, 'characters');
 
             const img = new Image();
             img.crossOrigin = 'anonymous'; // Enable CORS for CDN images
             img.onload = () => {
-                bg.setBackgroundImage(img);
+                // Store both image element and data URL in BackgroundManager
+                bg.backgroundImage = img;
+                if (isDataURL) {
+                    bg.backgroundImageDataURL = backgroundData.imageURL;
+                } else {
+                    bg.backgroundImageURL = backgroundData.imageURL;
+                    bg.backgroundImageDataURL = null;
+                }
                 // Trigger render after image loads so it appears on canvas
                 this.safeRender();
             };
@@ -1203,7 +1225,66 @@ class PresetManager {
             if (this.app.uiManager.elements.textColor) {
                 this.app.uiManager.elements.textColor.value = stateData.mainText.color;
             }
-            
+
+            // Update line spacing UI
+            const lineSpacingInput = document.getElementById('lineSpacing');
+            if (lineSpacingInput && stateData.mainText.lineSpacing !== undefined) {
+                lineSpacingInput.value = stateData.mainText.lineSpacing;
+            }
+
+            // Update margin UI
+            const marginVerticalInput = document.getElementById('marginVertical');
+            if (marginVerticalInput && stateData.mainText.marginVertical !== undefined) {
+                marginVerticalInput.value = stateData.mainText.marginVertical;
+            }
+            const marginHorizontalInput = document.getElementById('marginHorizontal');
+            if (marginHorizontalInput && stateData.mainText.marginHorizontal !== undefined) {
+                marginHorizontalInput.value = stateData.mainText.marginHorizontal;
+            }
+
+            // Update text style buttons (bold, italic, underline, highlight)
+            const boldBtn = document.getElementById('mainTextBold');
+            if (boldBtn) {
+                if (stateData.mainText.fontWeight === 'bold') {
+                    boldBtn.classList.add('active');
+                } else {
+                    boldBtn.classList.remove('active');
+                }
+            }
+
+            const italicBtn = document.getElementById('mainTextItalic');
+            if (italicBtn) {
+                if (stateData.mainText.fontStyle === 'italic') {
+                    italicBtn.classList.add('active');
+                } else {
+                    italicBtn.classList.remove('active');
+                }
+            }
+
+            const underlineBtn = document.getElementById('mainTextUnderline');
+            if (underlineBtn) {
+                if (stateData.mainText.underline) {
+                    underlineBtn.classList.add('active');
+                } else {
+                    underlineBtn.classList.remove('active');
+                }
+            }
+
+            const highlightBtn = document.getElementById('mainTextHighlight');
+            if (highlightBtn) {
+                if (stateData.mainText.highlight) {
+                    highlightBtn.classList.add('active');
+                } else {
+                    highlightBtn.classList.remove('active');
+                }
+            }
+
+            // Update highlight color UI
+            const highlightColorInput = document.getElementById('mainTextHighlightColor');
+            if (highlightColorInput && stateData.mainText.highlightColor) {
+                highlightColorInput.value = stateData.mainText.highlightColor;
+            }
+
             // Update padding UI
             if (this.app.uiManager.elements.paddingHorizontal) {
                 this.app.uiManager.elements.paddingHorizontal.value = stateData.canvas.padding.left;
@@ -1216,7 +1297,24 @@ class PresetManager {
             if (this.app.uiManager.elements.minSpotSize) {
                 this.app.uiManager.elements.minSpotSize.value = stateData.grid.minCellSize;
             }
-            
+
+            // Update position alignment buttons UI
+            if (stateData.mainText.alignH && stateData.mainText.alignV) {
+                const positioningGrid = document.querySelector('.positioning-grid');
+                if (positioningGrid) {
+                    // Remove active class from all position buttons
+                    positioningGrid.querySelectorAll('.pos-btn').forEach(btn => btn.classList.remove('active'));
+
+                    // Find and activate the button matching the loaded alignment
+                    const matchingButton = positioningGrid.querySelector(
+                        `.pos-btn[data-horizontal="${stateData.mainText.alignH}"][data-vertical="${stateData.mainText.alignV}"]`
+                    );
+                    if (matchingButton) {
+                        matchingButton.classList.add('active');
+                    }
+                }
+            }
+
             // UI elements updated successfully
         } finally {
             // Restore original event listener

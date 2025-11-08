@@ -1,0 +1,187 @@
+{
+  "_id": "preset-001",
+  "presetName": "Employee Spotlight Campaign",
+  "description": "Highlight team members with customizable name and photo",
+  "pageCount": 3,
+
+  "page1": {
+    "pageName": "Hero Intro",
+    "pageNumber": 1,
+    "canvas": {
+      "width": 1080,
+      "height": 1080,
+      "backgroundColor": "#1a1a1a"
+    },
+    "mainText": {
+      "text": "MEET THE TEAM",
+      "editable": false,
+      "fontSize": 72,
+      "fontFamily": "Wix Madefor Display",
+      "color": "#ffffff",
+      "fontWeight": "800"
+    },
+    "textCells": [
+      {
+        "cellId": "cell-0-1",
+        "text": "Showcasing the amazing people\nbehind our success",
+        "editable": false,
+        "fontSize": 24,
+        "color": "#999999"
+      }
+    ],
+    "background": {
+      "color": "#1a1a1a",
+      "editable": false
+    },
+    "editableFields": {}
+  },
+
+  "page2": {
+    "pageName": "Employee Profile",
+    "pageNumber": 2,
+    "canvas": {
+      "width": 1080,
+      "height": 1080,
+      "backgroundColor": "#ffffff"
+    },
+    "mainText": {
+      "text": "{{employeeName}}",
+      "editable": true,
+      "fieldName": "employeeName",
+      "fieldLabel": "Employee Name",
+      "defaultValue": "Sarah Johnson",
+      "fontSize": 64,
+      "fontFamily": "Wix Madefor Display",
+      "color": "#1a1a1a",
+      "fontWeight": "700"
+    },
+    "textCells": [
+      {
+        "cellId": "cell-0-1",
+        "text": "Senior Product Designer",
+        "editable": false,
+        "fontSize": 28,
+        "color": "#666666",
+        "fontWeight": "500"
+      },
+      {
+        "cellId": "cell-1-1",
+        "text": "\"Design is not just what it looks like.\nDesign is how it works.\"",
+        "editable": false,
+        "fontSize": 20,
+        "color": "#999999",
+        "fontStyle": "italic"
+      },
+      {
+        "cellId": "cell-2-0",
+        "text": "5 Years",
+        "editable": false,
+        "fontSize": 32,
+        "color": "#1a1a1a",
+        "fontWeight": "700"
+      },
+      {
+        "cellId": "cell-2-1",
+        "text": "with the company",
+        "editable": false,
+        "fontSize": 16,
+        "color": "#999999"
+      }
+    ],
+    "contentCells": [
+      {
+        "cellId": "cell-0-0",
+        "type": "image",
+        "editable": true,
+        "fieldName": "employeePhoto",
+        "fieldLabel": "Employee Photo",
+        "defaultImageUrl": null,
+        "fitMode": "cover"
+      }
+    ],
+    "background": {
+      "color": "#ffffff",
+      "editable": false
+    },
+    "editableFields": {
+      "employeeName": {
+        "type": "text",
+        "label": "Employee Name",
+        "defaultValue": "Sarah Johnson",
+        "placeholder": "Enter employee name...",
+        "required": true
+      },
+      "employeePhoto": {
+        "type": "image",
+        "label": "Employee Photo",
+        "accept": "image/*",
+        "required": true,
+        "hint": "Upload a professional headshot (recommended: 800x800px)"
+      }
+    }
+  },
+
+  "page3": {
+    "pageName": "Fun Facts",
+    "pageNumber": 3,
+    "canvas": {
+      "width": 1080,
+      "height": 1080,
+      "backgroundColor": "#f5f5f5"
+    },
+    "mainText": {
+      "text": "FUN FACTS",
+      "editable": false,
+      "fontSize": 56,
+      "fontFamily": "Wix Madefor Display",
+      "color": "#1a1a1a",
+      "fontWeight": "800"
+    },
+    "textCells": [
+      {
+        "cellId": "cell-0-0",
+        "text": "☕",
+        "editable": false,
+        "fontSize": 48
+      },
+      {
+        "cellId": "cell-0-1",
+        "text": "Coffee Enthusiast\nDrinks 4 cups daily",
+        "editable": false,
+        "fontSize": 20,
+        "color": "#333333"
+      },
+      {
+        "cellId": "cell-1-0",
+        "text": "🎨",
+        "editable": false,
+        "fontSize": 48
+      },
+      {
+        "cellId": "cell-1-1",
+        "text": "Design Mentor\nHelped 12 designers grow",
+        "editable": false,
+        "fontSize": 20,
+        "color": "#333333"
+      },
+      {
+        "cellId": "cell-2-0",
+        "text": "🌍",
+        "editable": false,
+        "fontSize": 48
+      },
+      {
+        "cellId": "cell-2-1",
+        "text": "World Traveler\nVisited 23 countries",
+        "editable": false,
+        "fontSize": 20,
+        "color": "#333333"
+      }
+    ],
+    "background": {
+      "color": "#f5f5f5",
+      "editable": false
+    },
+    "editableFields": {}
+  }
+}
