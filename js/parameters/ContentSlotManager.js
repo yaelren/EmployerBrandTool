@@ -45,10 +45,15 @@ class ContentSlotManager {
         const scaleX = actualWidth / displayWidth;
         const scaleY = actualHeight / displayHeight;
 
-        // Scale the bounds to actual canvas size
+        // Get canvas padding (cells are positioned relative to padding area, not canvas edges)
+        const padding = this.app.canvasManager.backgroundManager.padding || { top: 0, bottom: 0, left: 0, right: 0 };
+
+        // Scale the bounds to actual canvas size AND account for padding
+        // Cell coordinates are relative to the padding-adjusted content area
+        // So we need to subtract padding first (to get canvas-relative coords), then scale
         const scaledBounds = {
-            x: cell.bounds.x * scaleX,
-            y: cell.bounds.y * scaleY,
+            x: (cell.bounds.x + padding.left) * scaleX,
+            y: (cell.bounds.y + padding.top) * scaleY,
             width: cell.bounds.width * scaleX,
             height: cell.bounds.height * scaleY
         };
@@ -58,8 +63,9 @@ class ContentSlotManager {
         console.log('  Display canvas:', displayWidth, 'x', displayHeight);
         console.log('  Actual canvas:', actualWidth, 'x', actualHeight);
         console.log('  Scale factors:', scaleX.toFixed(2), 'x', scaleY.toFixed(2));
+        console.log('  Canvas padding:', padding);
         console.log('  Cell bounds (display):', cell.bounds);
-        console.log('  Cell bounds (scaled):', scaledBounds);
+        console.log('  Cell bounds (scaled + padding):', scaledBounds);
         console.log('  Cell fontSize:', cell.fontSize || cell.textComponent?.fontSize);
 
         return scaledBounds;
