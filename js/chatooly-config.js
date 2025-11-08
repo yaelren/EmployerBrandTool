@@ -17,7 +17,7 @@ window.ChatoolyConfig = {
         exportButton: true,      // Export button in sidebar footer
         exportModal: true,       // Export modal UI
         publishButton: false,    // Publish to Hub button (DISABLED for this tool)
-        canvasResizeBar: true,   // Canvas resize bar UI
+        canvasResizeBar: !window.location.pathname.includes('enduser.html'),  // Resize bar only on designer page (index.html)
         backgroundControls: true // Background color/gradient controls
     },
 

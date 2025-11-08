@@ -187,25 +187,17 @@ body {
     flex: 1;
     background: #0a0a0a;
     position: relative;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    overflow: hidden; /* Prevent container from overflowing */
     min-height: 0; /* Allow flex item to shrink below content size */
+    overflow: hidden; /* Prevent scrolling */
 }
 
-/* Constrain Chatooly container to fit within canvas area */
+/* Override Chatooly CDN positioning to stay within canvas area */
 .enduser-canvas-area #chatooly-container {
-    position: relative !important;
-    z-index: 1 !important;
-    background: #0a0a0a !important; /* Black background instead of white */
-    max-width: 100% !important;
-    max-height: 100% !important;
-    width: auto !important;
-    height: auto !important;
-    display: flex !important;
-    align-items: center !important;
-    justify-content: center !important;
+    position: absolute !important; /* Override CDN's fixed positioning */
+    width: 100% !important;
+    height: 100% !important;
+    left: 0 !important;
+    top: 0 !important;
 }
 
 .enduser-canvas-area #chatooly-canvas {
@@ -883,6 +875,83 @@ body {
     object-fit: contain;
     display: block;
     border-radius: 4px;
+}
+
+/* ===== FULL-SCREEN PRESET SELECTOR ===== */
+
+.fullscreen-preset-selector {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: #000000;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    z-index: 20000;
+    gap: 24px;
+}
+
+.fullscreen-preset-selector.hidden {
+    display: none;
+}
+
+.fullscreen-preset-title {
+    font-size: 24px;
+    font-weight: 600;
+    color: var(--chatooly-color-text, #e5e5e5);
+    margin: 0 0 16px 0;
+    text-align: center;
+}
+
+.fullscreen-preset-dropdown {
+    min-width: 400px;
+    background: var(--chatooly-color-surface-elevated, #2a2a2a);
+    border: 1px solid var(--chatooly-color-border, #3a3a3a);
+    border-radius: 6px;
+    padding: 14px 18px;
+    color: var(--chatooly-color-text, #e5e5e5);
+    font-size: 16px;
+    font-family: inherit;
+    cursor: pointer;
+    transition: border-color 0.2s ease;
+}
+
+.fullscreen-preset-dropdown:focus {
+    outline: none;
+    border-color: rgba(255, 255, 255, 0.4);
+}
+
+.fullscreen-preset-dropdown option {
+    background: var(--chatooly-color-surface-elevated, #2a2a2a);
+    color: var(--chatooly-color-text, #e5e5e5);
+}
+
+.fullscreen-load-btn {
+    min-width: 400px;
+    background: var(--chatooly-color-surface-elevated, #2a2a2a);
+    color: var(--chatooly-color-text, #e5e5e5);
+    border: 1px solid var(--chatooly-color-border, #3a3a3a);
+    padding: 14px 32px;
+    border-radius: 6px;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    font-family: inherit;
+}
+
+.fullscreen-load-btn:hover {
+    background: var(--chatooly-color-surface-hover, #222);
+    border-color: rgba(255, 255, 255, 0.3);
+    transform: translateY(-1px);
+}
+
+.fullscreen-load-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
 }
 
 /* ===== PRESET SELECTION MODAL ===== */

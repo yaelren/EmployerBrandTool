@@ -42,7 +42,18 @@
     <link rel="stylesheet" href="css/load-page-modal.css">
 </head>
 <body>
-    <div class="enduser-container">
+    <!-- Full-Screen Preset Selector (shown on initial load) -->
+    <div class="fullscreen-preset-selector" id="fullscreenPresetSelector">
+        <div>
+            <h1 class="fullscreen-preset-title">Select a Preset</h1>
+            <select class="fullscreen-preset-dropdown" id="fullscreenPresetDropdown">
+                <option value="">Choose a preset...</option>
+            </select>
+        </div>
+        <button class="fullscreen-load-btn" id="fullscreenLoadBtn" disabled>Load Preset</button>
+    </div>
+
+    <div class="enduser-container" id="mainContainer" style="display: none;">
         <!-- Header -->
         <div class="enduser-header">
             <div class="header-left">
@@ -68,11 +79,6 @@
                 </div>
 
                 <div class="sidebar-content" id="sidebarContent">
-                    <!-- Preset Selector (shown initially) -->
-                    <div id="presetSelector" style="text-align: center; padding: 48px 0; display: block;">
-                        <button id="browsePresetsBtn" class="modal-load-btn">Browse Presets</button>
-                    </div>
-
                     <!-- Page Sections Container (populated dynamically by FormGenerator) -->
                     <!-- Each page will be a collapsible section with its content slots -->
                     <div id="pageSectionsContainer">
@@ -96,7 +102,11 @@
             <!-- Center: Canvas Preview -->
             <div class="enduser-canvas-area">
                 <!-- Chatooly Canvas Container (CDN handles styling) -->
-                <div id="chatooly-container">
+                <div
+                    id="chatooly-container"
+                    data-chatooly-template="canvas-area"
+                    data-chatooly-canvas-id="chatooly-canvas"
+                >
                     <canvas id="chatooly-canvas"></canvas>
                 </div>
             </div>
@@ -191,6 +201,25 @@
     <script type="module" src="js/api/WixPresetAPI.js"></script>
     <script type="module" src="js/api/WixMultiPagePresetAdapter.js"></script>
     <script src="js/parameters/PresetPageManager.js"></script>
+
+    <!-- ========== Designer Components (needed for full app) ========== -->
+    <script src="js/text/TextPositioning.js"></script>
+    <script src="js/text/MainTextController.js"></script>
+    <script src="js/canvas/DebugController.js"></script>
+    <script src="js/text/FontUploadComponent.js"></script>
+    <script src="js/ui/MediaPickerModal.js"></script>
+    <script src="js/ui/UIManager.js"></script>
+    <script src="js/ui/PresetUIComponent.js"></script>
+    <script src="js/parameters/PresetManager.js"></script>
+    <script src="js/ui/ContentSlotConfigPanel.js"></script>
+    <script src="js/ui/SavePageModal.js"></script>
+    <script src="js/ui/ExportFormatSelector.js"></script>
+    <script src="js/ui/ContentSlotOverlay.js"></script>
+    <script src="js/ui/SavePagePanel.js"></script>
+    <script src="js/ui/LoadPageModal.js"></script>
+
+    <!-- ========== Main Application Class ========== -->
+    <script src="js/app.js"></script>
 
     <!-- ========== End-User Components (Sprint 4) ========== -->
     <script src="js/enduser/FormGenerator.js"></script>

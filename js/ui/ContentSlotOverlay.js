@@ -157,7 +157,8 @@ class ContentSlotOverlay {
             mainTextCells.forEach((cell, index) => {
                 if (cell && cell.text && cell.text.trim()) {
                     try {
-                        const bbox = this.contentSlotManager.captureBoundingBox(cell);
+                        // Get tight content bounds (not full cell bounds) for visualization
+                        const bbox = this.contentSlotManager.getDisplayBoundingBox(cell);
                         bounds.push({
                             bounds: bbox,
                             type: 'text',
@@ -190,9 +191,10 @@ class ContentSlotOverlay {
 
                 // Skip media cells without media
                 if (cell.contentType === 'media' && (!cell.content || !cell.content.media)) return;
-                
+
                 try {
-                    const bbox = this.contentSlotManager.captureBoundingBox(cell);
+                    // Get tight content bounds (not full cell bounds) for visualization
+                    const bbox = this.contentSlotManager.getDisplayBoundingBox(cell);
                     bounds.push({
                         bounds: bbox,
                         type: cell.contentType,

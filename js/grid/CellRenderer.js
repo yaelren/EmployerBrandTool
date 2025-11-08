@@ -17,8 +17,13 @@ class CellRenderer {
      *   - backgroundImage: HTMLImageElement - Background image for masks
      */
     static render(ctx, cell, options = {}) {
-        
+
         if (!cell) return;
+
+        // ✅ Skip rendering if cell is marked as invisible (for hide-then-overlay in end-user mode)
+        if (cell.visible === false) {
+            return;
+        }
 
         if (cell instanceof MainTextCell) {
             this.renderTextCell(ctx, cell, options);

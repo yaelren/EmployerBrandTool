@@ -516,8 +516,10 @@ class PresetManager {
      * @private
      */
     clearCurrentState() {
-        // Clear text
-        this.app.uiManager.elements.mainText.value = '';
+        // Clear text (only if UI elements exist)
+        if (this.app.uiManager.elements.mainText) {
+            this.app.uiManager.elements.mainText.value = '';
+        }
         this.app.mainTextComponent.text = '';
 
         // Clear spots and waiting spots completely
@@ -658,7 +660,9 @@ class PresetManager {
 
         // 1. Update UI elements (for visibility)
         console.log('   → Step 1: Updating UI elements');
-        ui.mainText.value = mainTextData.content;
+        if (ui.mainText) {
+            ui.mainText.value = mainTextData.content;
+        }
         if (ui.fontFamily) {
             ui.fontFamily.value = mainTextData.fontFamily;
         }

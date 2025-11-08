@@ -21,11 +21,46 @@ class ContentSlotManager {
     }
 
     /**
-     * Capture ACTUAL content bounding box (not cell bounds)
-     * Calculates the precise bounds of the rendered content (text or image)
+     * Get DISPLAY bounding box for visualization (NOT scaled)
+     * Returns tight content bounds in display coordinates for overlay visualization
      *
      * @param {GridCell} cell - Grid cell (MainTextCell, TextCell, or ContentCell)
-     * @returns {BoundingBox} Bounding box {x, y, width, height}
+     * @returns {BoundingBox} Bounding box {x, y, width, height} in display coordinates
+     */
+    getDisplayBoundingBox(cell) {
+        if (!cell || !cell.bounds) {
+            throw new Error('Invalid cell: missing bounds property');
+        }
+
+        // Determine cell type and get tight content bounds
+        let tightBounds;
+
+        if (cell.type === 'main-text' || cell.type === 'text' ||
+            (cell.type === 'content' && cell.content && (cell.content.type === 'text' || cell.content.text !== undefined))) {
+            // Text content - get tight text bounds
+            tightBounds = this._captureTextBounds(cell);
+        } else if (cell.type === 'content' || cell.type === 'spot') {
+            // Media content - get tight media bounds
+            tightBounds = this._captureMediaBounds(cell);
+        } else {
+            // Fallback to cell bounds
+            tightBounds = this._copyBounds(cell.bounds);
+        }
+
+        console.log('📐 Display bounding box for cell:', cell.id);
+        console.log('  Cell bounds:', cell.bounds);
+        console.log('  Tight content bounds:', tightBounds);
+
+        return tightBounds;
+    }
+
+    /**
+     * Capture ACTUAL content bounding box (not cell bounds)
+     * Calculates the precise bounds of the rendered content (text or image)
+     * AND scales to export resolution
+     *
+     * @param {GridCell} cell - Grid cell (MainTextCell, TextCell, or ContentCell)
+     * @returns {BoundingBox} Bounding box {x, y, width, height} in export coordinates
      */
     captureBoundingBox(cell) {
         if (!cell || !cell.bounds) {

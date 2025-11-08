@@ -11,9 +11,9 @@
  */
 
 class EndUserController {
-    constructor(canvasManager, presetPageManager, wixAPI) {
-        this.canvasManager = canvasManager;
-        this.presetPageManager = presetPageManager;
+    constructor(app, wixAPI) {
+        // Store full app instance (same as designer mode)
+        this.app = app;
         this.wixAPI = wixAPI;
 
         // State
@@ -46,13 +46,21 @@ class EndUserController {
             presetModal: document.getElementById('presetModal'),
             presetList: document.getElementById('presetList'),
             closePresetModal: document.getElementById('closePresetModal'),
-            canvas: document.getElementById('chatooly-canvas')
+            canvas: document.getElementById('chatooly-canvas'),
+            // Full-screen preset selector
+            fullscreenPresetSelector: document.getElementById('fullscreenPresetSelector'),
+            fullscreenPresetDropdown: document.getElementById('fullscreenPresetDropdown'),
+            fullscreenLoadBtn: document.getElementById('fullscreenLoadBtn'),
+            mainContainer: document.getElementById('mainContainer')
         };
 
         // ✅ Phase 1A: Load saved content data from localStorage
         this.loadContentDataFromLocalStorage();
 
         this.initializeEventListeners();
+
+        // Load presets into fullscreen dropdown
+        this.loadPresetsIntoFullscreenDropdown();
     }
 
     /**
@@ -84,6 +92,7 @@ class EndUserController {
 
     /**
      * ✅ Phase 1B: Create debounced render function
+     * Uses hide-then-overlay approach for correct rendering
      */
     debouncedRender() {
         // Clear existing timer
@@ -95,7 +104,15 @@ class EndUserController {
         this.renderDebounceTimer = setTimeout(() => {
             const pageData = this.loadedPages[this.currentPageIndex];
             if (pageData) {
-                this.contentSlotRenderer.renderLockedLayout(pageData, this.contentData);
+                // Hide cells with filled content slots
+                this.hideFilledContentSlots(pageData.contentSlots);
+
+                // Render designer layout (creates "holes" where user content will go)
+                this.app.render();
+
+                // Overlay user content in bounded regions
+                this.contentSlotRenderer.renderUserContent(pageData.contentSlots, this.contentData);
+
                 console.log('🎨 Canvas re-rendered (debounced)');
             }
         }, 300);
@@ -105,7 +122,29 @@ class EndUserController {
      * Initialize all event listeners
      */
     initializeEventListeners() {
-        // Preset selection
+        // Full-screen preset selector
+        if (this.elements.fullscreenPresetDropdown) {
+            this.elements.fullscreenPresetDropdown.addEventListener('change', (e) => {
+                const selectedPresetId = e.target.value;
+                if (selectedPresetId) {
+                    this.elements.fullscreenLoadBtn.disabled = false;
+                } else {
+                    this.elements.fullscreenLoadBtn.disabled = true;
+                }
+            });
+        }
+
+        if (this.elements.fullscreenLoadBtn) {
+            this.elements.fullscreenLoadBtn.addEventListener('click', (e) => {
+                e.preventDefault(); // Prevent form submission/page refresh
+                const selectedPresetId = this.elements.fullscreenPresetDropdown.value;
+                if (selectedPresetId) {
+                    this.loadPresetFromFullscreen(selectedPresetId);
+                }
+            });
+        }
+
+        // Preset selection (old modal - keep for future use)
         if (this.elements.browsePresetsBtn) {
             console.log('🔗 Attaching click listener to Browse Presets button');
             this.elements.browsePresetsBtn.addEventListener('click', (e) => {
@@ -114,8 +153,6 @@ class EndUserController {
                 e.stopPropagation();
                 this.showPresetModal();
             });
-        } else {
-            console.error('❌ Browse Presets button not found in DOM!');
         }
 
         if (this.elements.closePresetModal) {
@@ -170,7 +207,7 @@ class EndUserController {
 
             // Fetch presets from Wix CMS
             console.log('🔄 Fetching presets from Wix CMS...');
-            const presets = await this.presetPageManager.getAllPresets();
+            const presets = await this.app.presetPageManager.getAllPresets();
             console.log(`✅ Fetched ${presets.length} presets from CMS`);
 
             if (presets.length === 0) {
@@ -223,6 +260,72 @@ class EndUserController {
     }
 
     /**
+     * Load presets into fullscreen dropdown on initialization
+     */
+    async loadPresetsIntoFullscreenDropdown() {
+        try {
+            console.log('🔄 Loading presets into fullscreen dropdown...');
+            const presets = await this.app.presetPageManager.getAllPresets();
+            console.log(`✅ Fetched ${presets.length} presets for fullscreen selector`);
+
+            if (presets.length === 0) {
+                this.elements.fullscreenPresetDropdown.innerHTML = `
+                    <option value="">No presets available</option>
+                `;
+                this.elements.fullscreenLoadBtn.disabled = true;
+            } else {
+                this.elements.fullscreenPresetDropdown.innerHTML = `
+                    <option value="">Choose a preset...</option>
+                    ${presets.map(preset => `
+                        <option value="${preset.presetId}">${preset.presetName} (${preset.pageCount} pages)</option>
+                    `).join('')}
+                `;
+            }
+        } catch (error) {
+            console.error('❌ Error loading presets into fullscreen dropdown:', error);
+            this.elements.fullscreenPresetDropdown.innerHTML = `
+                <option value="">Error loading presets</option>
+            `;
+        }
+    }
+
+    /**
+     * Load preset from fullscreen selector and transition to main UI
+     */
+    async loadPresetFromFullscreen(presetId) {
+        try {
+            console.log(`📂 Loading preset from fullscreen: ${presetId}`);
+
+            // Load the preset (same as loadPreset but with UI transition)
+            await this.loadPreset(presetId);
+            console.log('✅ Preset loaded successfully');
+
+            // Hide fullscreen selector and show main container
+            console.log('🔄 Hiding fullscreen selector...');
+            if (this.elements.fullscreenPresetSelector) {
+                this.elements.fullscreenPresetSelector.classList.add('hidden');
+                console.log('✅ Fullscreen selector hidden');
+            } else {
+                console.error('❌ fullscreenPresetSelector element not found');
+            }
+
+            console.log('🔄 Showing main container...');
+            if (this.elements.mainContainer) {
+                this.elements.mainContainer.style.display = 'flex';
+                console.log('✅ Main container shown');
+            } else {
+                console.error('❌ mainContainer element not found');
+            }
+
+            console.log('✅ Transitioned from fullscreen selector to main UI');
+        } catch (error) {
+            console.error('❌ Error loading preset from fullscreen:', error);
+            console.error('❌ Error stack:', error.stack);
+            alert('Failed to load preset: ' + error.message);
+        }
+    }
+
+    /**
      * Load a preset and display first page
      */
     async loadPreset(presetId) {
@@ -230,7 +333,7 @@ class EndUserController {
             console.log(`📂 Loading preset: ${presetId}`);
 
             // Fetch preset data from Wix CMS
-            this.currentPresetData = await this.presetPageManager.getPresetFromCMS(presetId);
+            this.currentPresetData = await this.app.presetPageManager.getPresetFromCMS(presetId);
             this.currentPresetId = presetId;
 
             // Parse all pages and namespace slotIds
@@ -240,6 +343,9 @@ class EndUserController {
                 if (this.currentPresetData[pageField]) {
                     try {
                         const pageData = JSON.parse(this.currentPresetData[pageField]);
+
+                        // ✅ Add presetName to pageData (required by PresetManager validation)
+                        pageData.presetName = this.currentPresetData.presetName || 'Untitled Preset';
 
                         // ✅ Phase 1A: NAMESPACE slotIds by page number
                         if (pageData.contentSlots && Array.isArray(pageData.contentSlots)) {
@@ -263,7 +369,7 @@ class EndUserController {
             // Update UI
             this.elements.presetName.textContent = this.currentPresetData.presetName;
             this.elements.presetName.style.display = 'block';
-            this.elements.presetSelector.style.display = 'none';
+            // Note: presetSelector element removed in favor of fullscreen selector
             this.elements.pageNav.style.display = 'flex';
             this.elements.exportBtn.disabled = false;
 
@@ -281,6 +387,7 @@ class EndUserController {
 
     /**
      * Render the current page (canvas + form)
+     * Uses hide-then-overlay approach for correct rendering
      */
     async renderCurrentPage() {
         const pageData = this.loadedPages[this.currentPageIndex];
@@ -296,8 +403,24 @@ class EndUserController {
         // Update page indicator
         this.updatePageNavigation();
 
-        // Render canvas with locked layout
-        await this.contentSlotRenderer.renderLockedLayout(pageData, this.contentData);
+        // ========== HIDE-THEN-OVERLAY APPROACH ==========
+
+        // Step 1: Load page into app (same as designer mode)
+        await this.app.presetManager.deserializeState(pageData);
+        console.log('✅ Page data loaded into app');
+
+        // Step 2: Hide cells that have editable content slots with user data
+        this.hideFilledContentSlots(pageData.contentSlots);
+
+        // Step 3: Render designer layout (creates "holes" where user content will go)
+        this.app.render();
+        console.log('✅ Designer layout rendered');
+
+        // Step 4: Overlay user content in bounded regions (fills the holes)
+        this.contentSlotRenderer.renderUserContent(pageData.contentSlots, this.contentData);
+        console.log('✅ User content overlaid');
+
+        // ========== FORM GENERATION ==========
 
         // Generate form for this page's content slots
         const pageSlotsData = {
@@ -312,6 +435,47 @@ class EndUserController {
         this.prePopulateForm(pageData.contentSlots);
 
         console.log('✅ Page rendered');
+    }
+
+    /**
+     * Hide cells that have content slots with user data
+     * This creates "holes" in the designer layout where user content will be overlaid
+     * @param {Array} contentSlots - Array of content slot definitions
+     */
+    hideFilledContentSlots(contentSlots) {
+        if (!contentSlots || !this.app.grid) {
+            return;
+        }
+
+        const allCells = this.app.grid.getAllCells();
+
+        contentSlots.forEach(slot => {
+            // Only hide if user has provided content for this slot
+            const userValue = this.contentData[slot.slotId];
+            if (!userValue) {
+                return; // No user data, keep designer default visible
+            }
+
+            // Find cell by sourceContentId
+            const cell = allCells.find(c => c.contentId === slot.sourceContentId);
+            if (cell) {
+                // Make cell invisible (creates a "hole")
+                cell.visible = false;
+                console.log(`👻 Hidden cell with contentId: ${slot.sourceContentId} for slot: ${slot.slotId}`);
+
+                // ✅ SPECIAL CASE: If this is a MainTextCell, hide ALL MainTextCell instances
+                // because main text is split across multiple cells ("WIX", "CITY", "GUIDES")
+                if (cell.constructor.name === 'MainTextCell') {
+                    console.log('👻 Detected MainTextCell - hiding ALL main text cells');
+                    allCells.forEach(c => {
+                        if (c.constructor.name === 'MainTextCell') {
+                            c.visible = false;
+                            console.log(`   👻 Hidden MainTextCell: "${c.text}" (${c.contentId})`);
+                        }
+                    });
+                }
+            }
+        });
     }
 
     /**
@@ -460,16 +624,27 @@ class EndUserController {
             for (let i = 0; i < this.loadedPages.length; i++) {
                 console.log(`📥 Exporting page ${i + 1}/${this.loadedPages.length}...`);
 
-                // Render page
+                // Render page using hide-then-overlay approach
                 this.currentPageIndex = i;
                 const pageData = this.loadedPages[i];
-                await this.contentSlotRenderer.renderLockedLayout(pageData, this.contentData);
+
+                // Load page into app
+                await this.app.presetManager.deserializeState(pageData);
+
+                // Hide filled content slots
+                this.hideFilledContentSlots(pageData.contentSlots);
+
+                // Render designer layout
+                this.app.render();
+
+                // Overlay user content
+                this.contentSlotRenderer.renderUserContent(pageData.contentSlots, this.contentData);
 
                 // Wait for render to complete
                 await new Promise(resolve => setTimeout(resolve, 500));
 
                 // Export canvas to PNG
-                const dataURL = this.canvasManager.canvas.toDataURL('image/png');
+                const dataURL = this.app.canvasManager.canvas.toDataURL('image/png');
                 exportedImages.push({
                     pageNumber: i + 1,
                     pageName: pageData.pageName,

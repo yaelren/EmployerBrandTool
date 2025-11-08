@@ -83,6 +83,12 @@ class UIManager {
     initializeFontFamilyDropdown() {
         const fontFamilySelect = this.elements.fontFamily;
 
+        // 🎯 FIX: Guard against missing element (e.g., in end-user mode)
+        if (!fontFamilySelect) {
+            console.log('⚠️ Font family dropdown element not found - skipping initialization');
+            return;
+        }
+
         // Get available fonts from TextComponent (single source of truth)
         const fonts = this.app.textEngine.getAvailableFonts();
 
@@ -126,6 +132,13 @@ class UIManager {
      */
     refreshFontFamilyDropdown() {
         const fontFamilySelect = this.elements.fontFamily;
+
+        // 🎯 FIX: Guard against missing element (e.g., in end-user mode)
+        if (!fontFamilySelect) {
+            console.log('⚠️ Font family dropdown element not found - skipping refresh');
+            return;
+        }
+
         const currentSelection = fontFamilySelect.value;
 
         // Get available fonts from TextComponent (single source of truth)
@@ -367,6 +380,12 @@ class UIManager {
                 }
             });
         });
+
+        // 🎯 FIX: Guard against missing elements (e.g., in end-user mode)
+        if (!this.elements.mainText) {
+            console.log('⚠️ Main UI elements not found - skipping event listener setup');
+            return;
+        }
 
         // Text input changes
         this.elements.mainText.addEventListener('input', () => {
@@ -1049,7 +1068,8 @@ class UIManager {
         // Clear existing control sections
         sectionsContainer.innerHTML = '';
 
-        // Create control sections
+        // Create control sections as Chatooly cards
+        this.createDesignControls(cell, sectionsContainer);
         this.createContentControls(cell, sectionsContainer);
         this.createAnimationControls(cell, sectionsContainer);
         this.createLayerControls(cell, sectionsContainer);
@@ -1070,7 +1090,130 @@ class UIManager {
      * @param {Object} cell - Selected cell
      * @param {HTMLElement} container - Container for controls
      */
+    /**
+     * Create design & layout controls section
+     * @param {Object} cell - Selected cell
+     * @param {HTMLElement} container - Container for controls
+     */
+    createDesignControls(cell, container) {
+        // Create Chatooly section card
+        const card = document.createElement('div');
+        card.className = 'chatooly-section-card';
+        
+        const header = document.createElement('div');
+        header.className = 'chatooly-section-header';
+        header.setAttribute('role', 'button');
+        header.setAttribute('tabindex', '0');
+        header.textContent = `Design & Layout (Cell ${cell.id})`;
+        
+        const content = document.createElement('div');
+        content.className = 'chatooly-section-content';
+        
+        // Padding controls (4 sides)
+        const paddingGroup = document.createElement('div');
+        paddingGroup.className = 'chatooly-control-group';
+        paddingGroup.innerHTML = `
+            <label class="section-header">Padding</label>
+            <div class="padding-controls">
+                <div class="padding-row">
+                    <div class="padding-control">
+                        <label for="cellPaddingTop">Top</label>
+                        <input type="number" id="cellPaddingTop" min="0" max="50" value="${cell.padding?.top || 0}" step="1">
+                        <span class="unit">px</span>
+                    </div>
+                    <div class="padding-control">
+                        <label for="cellPaddingBottom">Bottom</label>
+                        <input type="number" id="cellPaddingBottom" min="0" max="50" value="${cell.padding?.bottom || 0}" step="1">
+                        <span class="unit">px</span>
+                    </div>
+                </div>
+                <div class="padding-row">
+                    <div class="padding-control">
+                        <label for="cellPaddingLeft">Left</label>
+                        <input type="number" id="cellPaddingLeft" min="0" max="50" value="${cell.padding?.left || 0}" step="1">
+                        <span class="unit">px</span>
+                    </div>
+                    <div class="padding-control">
+                        <label for="cellPaddingRight">Right</label>
+                        <input type="number" id="cellPaddingRight" min="0" max="50" value="${cell.padding?.right || 0}" step="1">
+                        <span class="unit">px</span>
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        // Fill Color with opacity
+        const fillGroup = document.createElement('div');
+        fillGroup.className = 'chatooly-control-group compact-row';
+        fillGroup.innerHTML = `
+            <div class="compact-control">
+                <label for="cellFillColor">Fill Color</label>
+                <input type="color" id="cellFillColor" value="${cell.fillColor || '#ffffff'}">
+            </div>
+            <div class="compact-control">
+                <label for="cellFillOpacity">Opacity</label>
+                <input type="range" id="cellFillOpacity" min="0" max="100" value="${(cell.fillOpacity || 100)}" step="1">
+                <span id="cellFillOpacityValue">${cell.fillOpacity || 100}%</span>
+            </div>
+        `;
+        
+        // Add event listeners
+        const paddingTop = paddingGroup.querySelector('#cellPaddingTop');
+        const paddingBottom = paddingGroup.querySelector('#cellPaddingBottom');
+        const paddingLeft = paddingGroup.querySelector('#cellPaddingLeft');
+        const paddingRight = paddingGroup.querySelector('#cellPaddingRight');
+        
+        [paddingTop, paddingBottom, paddingLeft, paddingRight].forEach(input => {
+            input.addEventListener('change', (e) => {
+                if (!cell.padding) cell.padding = { top: 0, bottom: 0, left: 0, right: 0 };
+                const side = e.target.id.replace('cellPadding', '').toLowerCase();
+                cell.padding[side] = parseInt(e.target.value);
+                this.app.render();
+            });
+        });
+        
+        const fillColor = fillGroup.querySelector('#cellFillColor');
+        const fillOpacity = fillGroup.querySelector('#cellFillOpacity');
+        const fillOpacityValue = fillGroup.querySelector('#cellFillOpacityValue');
+        
+        fillColor.addEventListener('change', (e) => {
+            cell.fillColor = e.target.value;
+            this.app.render();
+        });
+        
+        fillOpacity.addEventListener('input', (e) => {
+            const value = e.target.value;
+            fillOpacityValue.textContent = `${value}%`;
+            cell.fillOpacity = parseInt(value);
+            this.app.render();
+        });
+        
+        content.appendChild(paddingGroup);
+        content.appendChild(fillGroup);
+        card.appendChild(header);
+        card.appendChild(content);
+        container.appendChild(card);
+        
+        // Make card collapsible
+        header.addEventListener('click', () => {
+            card.classList.toggle('collapsed');
+        });
+    }
+
     createContentControls(cell, container) {
+        // Create Chatooly section card
+        const card = document.createElement('div');
+        card.className = 'chatooly-section-card';
+        
+        const header = document.createElement('div');
+        header.className = 'chatooly-section-header';
+        header.setAttribute('role', 'button');
+        header.setAttribute('tabindex', '0');
+        header.textContent = `Content (Cell ${cell.id})`;
+        
+        const content = document.createElement('div');
+        content.className = 'chatooly-section-content';
+        
         const section = document.createElement('div');
         section.className = 'control-section-simple';
         
@@ -1116,7 +1259,15 @@ class UIManager {
 
         section.appendChild(typeGroup);
         section.appendChild(contentControls);
-        container.appendChild(section);
+        content.appendChild(section);
+        card.appendChild(header);
+        card.appendChild(content);
+        container.appendChild(card);
+        
+        // Make card collapsible
+        header.addEventListener('click', () => {
+            card.classList.toggle('collapsed');
+        });
     }
 
     /**
@@ -1193,6 +1344,19 @@ class UIManager {
      * @param {HTMLElement} container - Container for controls
      */
     createAnimationControls(cell, container) {
+        // Create Chatooly section card
+        const card = document.createElement('div');
+        card.className = 'chatooly-section-card';
+        
+        const header = document.createElement('div');
+        header.className = 'chatooly-section-header';
+        header.setAttribute('role', 'button');
+        header.setAttribute('tabindex', '0');
+        header.textContent = `Animation (Cell ${cell.id})`;
+        
+        const content = document.createElement('div');
+        content.className = 'chatooly-section-content';
+        
         const section = document.createElement('div');
         section.className = 'control-section-simple';
         
@@ -1252,7 +1416,15 @@ class UIManager {
 
         section.appendChild(animGroup);
         section.appendChild(animControls);
-        container.appendChild(section);
+        content.appendChild(section);
+        card.appendChild(header);
+        card.appendChild(content);
+        container.appendChild(card);
+        
+        // Make card collapsible
+        header.addEventListener('click', () => {
+            card.classList.toggle('collapsed');
+        });
     }
 
     /**
@@ -1674,6 +1846,11 @@ class UIManager {
      */
     updateLineAlignmentControls() {
         const container = this.elements.lineAlignmentControls;
+
+        // Guard: Skip if no line alignment controls (e.g., in end-user mode)
+        if (!container) {
+            return;
+        }
 
         // Sync main text component first
         this.app.syncMainTextComponent();

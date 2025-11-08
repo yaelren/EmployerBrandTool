@@ -22,6 +22,185 @@ class ContentSlotRenderer {
     }
 
     /**
+     * NEW: Render user content ONLY (overlay approach)
+     * This is called AFTER app.render() to overlay user content in bounded regions
+     * @param {Array} contentSlots - Content slot definitions with boundingBox
+     * @param {Object} contentData - User-provided content { slotId: value }
+     */
+    renderUserContent(contentSlots, contentData) {
+        if (!contentSlots || contentSlots.length === 0) {
+            return;
+        }
+
+        console.log(`🎨 Overlaying user content for ${contentSlots.length} slots`);
+
+        // Get grid for finding cells
+        const grid = window.endUserApp?.app?.grid;
+        if (!grid) {
+            console.error('❌ Cannot overlay content: grid not available');
+            return;
+        }
+
+        contentSlots.forEach(slot => {
+            const userValue = contentData[slot.slotId];
+            if (!userValue) {
+                return; // No user data, designer default already visible
+            }
+
+            // Render user content in the bounded region
+            if (slot.type === 'text') {
+                this.renderTextOverlay(slot, userValue, grid);
+            } else if (slot.type === 'image') {
+                this.renderImageOverlay(slot, userValue, grid);
+            }
+        });
+
+        console.log('✅ User content overlaid');
+    }
+
+    /**
+     * Render text content in bounded region (overlay)
+     */
+    renderTextOverlay(slot, text) {
+        const { boundingBox, styling, constraints } = slot;
+        if (!boundingBox) {
+            console.warn(`⚠️ No bounding box for slot ${slot.slotId}`);
+            return;
+        }
+
+        // Save canvas state
+        this.ctx.save();
+
+        // Apply styling from designer
+        const fontFamily = styling?.fontFamily || '"Wix Madefor Display", Arial, sans-serif';
+        const color = styling?.color || '#000000';
+        const textAlign = styling?.textAlign || 'left';
+        const fontWeight = styling?.fontWeight || 'normal';
+        const fontStyle = styling?.fontStyle || 'normal';
+        const verticalAlign = constraints?.verticalAlign || 'top';
+        const lineHeight = constraints?.lineHeight || 1.2;
+
+        // Calculate optimal font size using binary search (use existing method)
+        const minFontSize = constraints?.minFontSize || 12;
+        const maxFontSize = constraints?.maxFontSize || styling?.fontSize || 72;
+        const fontSize = this.findOptimalFontSize(
+            text,
+            boundingBox,
+            { fontFamily, fontWeight, fontStyle, lineHeight, minFontSize, maxFontSize }
+        );
+
+        // Set font
+        this.ctx.font = `${fontStyle} ${fontWeight} ${fontSize}px ${fontFamily}`;
+        this.ctx.fillStyle = color;
+        this.ctx.textAlign = textAlign;
+
+        // Split text into lines
+        const lines = this.wrapText(text, boundingBox.width, this.ctx);
+        const totalHeight = lines.length * fontSize * lineHeight;
+
+        // Calculate starting Y based on vertical alignment
+        let startY = boundingBox.y;
+        if (verticalAlign === 'middle') {
+            startY = boundingBox.y + (boundingBox.height - totalHeight) / 2;
+        } else if (verticalAlign === 'bottom') {
+            startY = boundingBox.y + boundingBox.height - totalHeight;
+        }
+
+        // Calculate X based on horizontal alignment
+        let textX = boundingBox.x;
+        if (textAlign === 'center') {
+            textX = boundingBox.x + boundingBox.width / 2;
+        } else if (textAlign === 'right') {
+            textX = boundingBox.x + boundingBox.width;
+        }
+
+        // Render each line
+        lines.forEach((line, index) => {
+            const lineY = startY + (index + 0.8) * fontSize * lineHeight;
+
+            // Draw highlight background if enabled
+            if (styling?.highlight && styling?.highlightColor) {
+                const metrics = this.ctx.measureText(line);
+                const lineWidth = metrics.width;
+                const highlightHeight = fontSize * 1.2;
+
+                // Calculate highlight position based on text alignment
+                let highlightX = textX;
+                if (textAlign === 'center') {
+                    highlightX = textX - lineWidth / 2;
+                } else if (textAlign === 'right') {
+                    highlightX = textX - lineWidth;
+                }
+
+                this.ctx.fillStyle = styling.highlightColor;
+                this.ctx.fillRect(highlightX, lineY - fontSize * 0.8, lineWidth, highlightHeight);
+                this.ctx.fillStyle = color;  // Reset to text color
+            }
+
+            this.ctx.fillText(line, textX, lineY);
+        });
+
+        // Restore canvas state
+        this.ctx.restore();
+    }
+
+    /**
+     * Render image content in bounded region (overlay)
+     */
+    renderImageOverlay(slot, imageUrl) {
+        const { boundingBox, constraints } = slot;
+        if (!boundingBox) {
+            console.warn(`⚠️ No bounding box for slot ${slot.slotId}`);
+            return;
+        }
+
+        // Load and render image
+        const img = new Image();
+        img.onload = () => {
+            this.ctx.save();
+
+            // Apply image rendering mode (crop to fit bounded region)
+            const { x, y, width, height } = boundingBox;
+
+            // Calculate aspect ratios
+            const imgAspect = img.width / img.height;
+            const boxAspect = width / height;
+
+            let sx, sy, sWidth, sHeight;
+
+            if (imgAspect > boxAspect) {
+                // Image wider than box - crop sides
+                sHeight = img.height;
+                sWidth = img.height * boxAspect;
+                sx = (img.width - sWidth) / 2;
+                sy = 0;
+            } else {
+                // Image taller than box - crop top/bottom
+                sWidth = img.width;
+                sHeight = img.width / boxAspect;
+                sx = 0;
+                sy = (img.height - sHeight) / 2;
+            }
+
+            // Draw cropped image to bounded region
+            this.ctx.drawImage(
+                img,
+                sx, sy, sWidth, sHeight,  // Source crop
+                x, y, width, height       // Destination bounded region
+            );
+
+            this.ctx.restore();
+            console.log(`✅ Image overlaid for slot ${slot.slotId}`);
+        };
+
+        img.onerror = () => {
+            console.error(`❌ Failed to load image for slot ${slot.slotId}:`, imageUrl);
+        };
+
+        img.src = imageUrl;
+    }
+
+    /**
      * ✅ Phase 1D: Build content slot → cell mapping
      * Maps sourceContentId to slot for efficient lookup
      */
@@ -356,6 +535,8 @@ class ContentSlotRenderer {
         // Check multiple possible alignment property names
         const textAlign = styling.textAlign || constraints.alignment || constraints.horizontalAlign || 'left';
         const textTransform = styling.textTransform || null;
+        const highlight = styling.highlight || false;
+        const highlightColor = styling.highlightColor || '#ffff00';
 
         console.log('  ✅ Extracted styling:', {
             fontFamily,
@@ -364,7 +545,9 @@ class ContentSlotRenderer {
             fontStyle,
             color,
             textAlign,
-            textTransform
+            textTransform,
+            highlight,
+            highlightColor
         });
 
         // ✅ Layout constraints from slot.constraints
@@ -372,19 +555,41 @@ class ContentSlotRenderer {
         const minFontSize = constraints.minFontSize || 12;
         const maxFontSize = constraints.maxFontSize || Math.max(fontSize, 72);  // Use designer's size as max if larger
         const lineHeight = constraints.lineHeight || 1.2;
+        const fontSizeMode = constraints.fontSizeMode || 'auto-fit'; // 'auto-fit' or 'fixed'
 
-        // Try designer's font size first, only shrink if text doesn't fit
+        console.log('  🎯 Designer fontSize:', fontSize, 'px');
+        console.log('  📏 Bounding box:', { x, y, width, height });
+        console.log('  ⚙️ Font size mode:', fontSizeMode);
+        console.log('  📊 Min/Max font:', minFontSize, '/', maxFontSize, 'px');
+
+        // Font size calculation based on mode
         let optimalSize = fontSize;
-        if (!this.textFitsInBox(text, width, height, fontSize, fontFamily, fontWeight, fontStyle, lineHeight)) {
-            // Designer's size doesn't fit, find optimal size using binary search
-            optimalSize = this.findOptimalFontSize(
-                text,
-                { x, y, width, height },
-                { fontFamily, fontWeight, fontStyle, lineHeight, minFontSize, maxFontSize: fontSize }  // Don't go larger than designer's size
-            );
+
+        if (fontSizeMode === 'fixed') {
+            // Fixed mode: Always use designer's exact size, no scaling
+            console.log('  🔒 Fixed mode: Using exact designer size:', fontSize, 'px');
+            optimalSize = fontSize;
+        } else {
+            // Auto-fit mode: Try designer's size first, shrink if needed
+            console.log('  🔍 Auto-fit mode: Checking if text fits at designer size...');
+            const fitsAtDesignerSize = this.textFitsInBox(text, width, height, fontSize, fontFamily, fontWeight, fontStyle, lineHeight);
+            console.log('  ✅ Fits at designer size?', fitsAtDesignerSize);
+
+            if (!fitsAtDesignerSize) {
+                console.log('  ⚠️ Designer size too large, shrinking to fit...');
+                // Designer's size doesn't fit, find optimal size using binary search
+                optimalSize = this.findOptimalFontSize(
+                    text,
+                    { x, y, width, height },
+                    { fontFamily, fontWeight, fontStyle, lineHeight, minFontSize, maxFontSize }
+                );
+                console.log('  📉 Shrunk to:', optimalSize, 'px');
+            } else {
+                console.log('  ✅ Using designer size:', optimalSize, 'px');
+            }
         }
 
-        console.log('  📐 Calculated font size:', optimalSize, 'px');
+        console.log('  📐 FINAL font size:', optimalSize, 'px');
 
         // Apply text transform if specified (uppercase, lowercase, capitalize)
         let displayText = text;
@@ -435,6 +640,26 @@ class ContentSlotRenderer {
         // Render each line
         lines.forEach((line, index) => {
             const lineY = startY + (index + 0.8) * optimalSize * lineHeight;
+
+            // Draw highlight background if enabled
+            if (highlight) {
+                const metrics = this.ctx.measureText(line);
+                const lineWidth = metrics.width;
+                const lineHeight = optimalSize * 1.2;
+
+                // Calculate highlight position based on text alignment
+                let highlightX = textX;
+                if (textAlign === 'center') {
+                    highlightX = textX - lineWidth / 2;
+                } else if (textAlign === 'right') {
+                    highlightX = textX - lineWidth;
+                }
+
+                this.ctx.fillStyle = highlightColor;
+                this.ctx.fillRect(highlightX, lineY - optimalSize * 0.8, lineWidth, lineHeight);
+                this.ctx.fillStyle = color;  // Reset to text color
+            }
+
             this.ctx.fillText(line, textX, lineY);
         });
 

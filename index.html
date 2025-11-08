@@ -67,22 +67,20 @@
                 
                 <!-- Main Text Tab -->
                 <div id="mainTextTab" class="tab-content active">
-                    <!-- Minimum Spot Size Control (Compact) -->
-                    <div class="chatooly-control-group compact-row">
-                        <div class="compact-control">
-                            <label for="minSpotSize">Min Spot Size</label>
-                            <input type="number" id="minSpotSize" value="50" min="20" max="200">
-                            <span class="unit">px</span>
-                        </div>
-                    </div>
-                    
-                    <!-- Canvas & Background Controls (Collapsible) -->
-                    <div class="chatooly-control-group compact-padding-section">
-                        <div class="padding-header" onclick="toggleBackgroundControls()">
-                            <label>Canvas & Background</label>
-                            <span class="padding-toggle-icon">▼</span>
-                        </div>
-                        <div id="backgroundControls" class="padding-controls-collapsed">
+
+                    <!-- LAYOUT SETUP Card -->
+                    <div class="chatooly-section-card">
+                        <div class="chatooly-section-header" role="button" tabindex="0">Layout Setup</div>
+                        <div class="chatooly-section-content">
+                            <!-- Grid Density (renamed from Min Spot Size) -->
+                            <div class="chatooly-control-group compact-row">
+                                <div class="compact-control">
+                                    <label for="minSpotSize">Grid Density</label>
+                                    <input type="number" id="minSpotSize" value="50" min="20" max="200">
+                                    <span class="unit">px</span>
+                                </div>
+                            </div>
+
                             <!-- Canvas Padding Controls -->
                             <div class="chatooly-control-group">
                                 <label>Canvas Padding</label>
@@ -97,20 +95,46 @@
                                     <span id="paddingVerticalValue">20px</span>
                                 </div>
                             </div>
+
+                            <!-- Cell Gaps (renamed from Main Text Cell Margin) -->
+                            <div class="chatooly-control-group">
+                                <label class="section-header">Cell Gaps</label>
+                                <div class="padding-controls">
+                                    <div class="padding-row">
+                                        <div class="padding-control">
+                                            <label for="marginVertical">Top/Bottom</label>
+                                            <input type="number" id="marginVertical" min="0" max="50" value="0" step="1">
+                                            <span class="unit">px</span>
+                                        </div>
+                                        <div class="padding-control">
+                                            <label for="marginHorizontal">Left/Right</label>
+                                            <input type="number" id="marginHorizontal" min="0" max="50" value="0" step="1">
+                                            <span class="unit">px</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- BACKGROUND Card -->
+                    <div class="chatooly-section-card">
+                        <div class="chatooly-section-header" role="button" tabindex="0">Background</div>
+                        <div class="chatooly-section-content">
                             
-                            <!-- Background Color with inline color picker -->
+                            <!-- Background Color -->
                             <div class="chatooly-control-group compact-row">
                                 <div class="compact-control">
-                                    <label for="backgroundColor">Background Color</label>
+                                    <label for="backgroundColor">Color</label>
                                     <input type="color" id="backgroundColor" value="#ffffff">
                                 </div>
                             </div>
-                            
+
                             <!-- Background Media (Image/Video) from Media Manager only -->
                             <div class="chatooly-control-group">
-                                <label for="backgroundMedia">Background Media</label>
+                                <label for="backgroundMedia">Image Upload</label>
                                 <div class="background-media-controls">
-                                    <button type="button" id="browseBackgroundMedia" class="browse-media-btn">Browse</button>
+                                    <button type="button" id="browseBackgroundMedia" class="browse-media-btn">Background</button>
                                     <button type="button" id="clearBackgroundMedia" style="display: none;" class="delicate-x">×</button>
                                 </div>
 
@@ -125,109 +149,108 @@
                                         Loop
                                     </label>
                                 </div>
-                                
-                                <!-- Compact Image Space Controls -->
-                                <div class="compact-image-space">
-                                    <div class="space-toggles">
-                                        <label>
-                                            <input type="radio" name="backgroundSpace" value="canvas" checked>
-                                            Canvas
-                                        </label>
-                                        <label>
-                                            <input type="radio" name="backgroundSpace" value="padding">
-                                            Padding
-                                        </label>
-                                    </div>
-                                    <div class="fill-mode-control">
-                                        <label for="backgroundFillMode">Fill Mode:</label>
-                                        <select id="backgroundFillMode">
-                                            <option value="stretch">Stretch</option>
-                                            <option value="fit">Fit</option>
-                                            <option value="fill" selected>Fill (Crop)</option>
-                                        </select>
-                                    </div>
+                            </div>
+
+                            <!-- Fill Mode -->
+                            <div class="chatooly-control-group">
+                                <label for="backgroundFillMode">Fill Mode</label>
+                                <select id="backgroundFillMode">
+                                    <option value="stretch">Stretch</option>
+                                    <option value="fit">Fit</option>
+                                    <option value="fill" selected>Fill (Crop)</option>
+                                </select>
+                            </div>
+
+                            <!-- Enable Padding (convert radio to toggle concept) -->
+                            <div class="chatooly-control-group">
+                                <label>Enable Padding</label>
+                                <div class="space-toggles">
+                                    <label>
+                                        <input type="radio" name="backgroundSpace" value="canvas" checked>
+                                        Canvas
+                                    </label>
+                                    <label>
+                                        <input type="radio" name="backgroundSpace" value="padding">
+                                        Padding
+                                    </label>
                                 </div>
                             </div>
                         </div>
                     </div>
-                    
-                    <!-- Main Text Section (Collapsible) -->
-                    <div class="chatooly-control-group compact-padding-section">
-                        <div class="padding-header" onclick="toggleMainTextControls()">
-                            <label>Main Text</label>
-                            <span class="padding-toggle-icon expanded">▲</span>
-                        </div>
-                        <div id="mainTextControls" class="padding-controls-collapsed expanded">
-                            <!-- Main Text Input -->
+
+
+                    <!-- TYPOGRAPHY Card -->
+                    <div class="chatooly-section-card">
+                        <div class="chatooly-section-header" role="button" tabindex="0">Typography</div>
+                        <div class="chatooly-section-content">
+                            <!-- Text Preview -->
                             <div class="chatooly-control-group">
                                 <label for="mainText">Text Content</label>
                                 <textarea id="mainText" placeholder="Enter your text here..." rows="3">EMPLOYEE
 SPOTLIGHT
 2024</textarea>
                             </div>
-                            
-                            <!-- Font Family Row -->
+
+                            <!-- Font Family -->
                             <div class="chatooly-control-group compact-row">
                                 <div class="compact-control">
-                                    <label for="fontFamily">Font</label>
+                                    <label for="fontFamily">Font Family</label>
                                     <select id="fontFamily">
                                         <!-- Options will be populated by JavaScript -->
                                     </select>
                                 </div>
                             </div>
-                            
-                            <!-- Size and Line Spacing Row -->
+
+                            <!-- Font Size and Line Spacing -->
                             <div class="chatooly-control-group compact-row">
                                 <div class="compact-control">
-                                    <label for="fontSize">Size</label>
+                                    <label for="fontSize">Font Size</label>
                                     <input type="number" id="fontSize" min="20" max="200" value="100" step="1">
                                     <span class="unit">px</span>
                                 </div>
                                 <div class="compact-control">
-                                    <label for="lineSpacing">Space Between Lines</label>
+                                    <label for="lineSpacing">Line Spacing</label>
                                     <input type="number" id="lineSpacing" min="0" max="50" value="0" step="1">
                                     <span class="unit">px</span>
                                 </div>
                             </div>
-                            
-                            <!-- Color and Styling Row -->
+
+                            <!-- Styles (B/I/U/H) -->
+                            <div class="chatooly-control-group">
+                                <label>Styles</label>
+                                <div class="main-text-styling">
+                                    <button type="button" class="main-style-btn" id="mainTextBold" title="Bold">B</button>
+                                    <button type="button" class="main-style-btn" id="mainTextItalic" title="Italic">I</button>
+                                    <button type="button" class="main-style-btn" id="mainTextUnderline" title="Underline">U</button>
+                                    <button type="button" class="main-style-btn" id="mainTextHighlight" title="Highlight">H</button>
+                                    <input type="color" id="mainTextHighlightColor" value="#ffff00" title="Highlight Color" style="display: none;">
+                                </div>
+                            </div>
+
+                            <!-- Text Color -->
                             <div class="chatooly-control-group compact-row">
                                 <div class="compact-control">
                                     <label for="textColor">Color</label>
                                     <input type="color" id="textColor" value="#000000">
                                 </div>
-                                <div class="compact-control">
-                                    <label>Styling</label>
-                                    <div class="main-text-styling">
-                                        <button type="button" class="main-style-btn" id="mainTextBold" title="Bold">B</button>
-                                        <button type="button" class="main-style-btn" id="mainTextItalic" title="Italic">I</button>
-                                        <button type="button" class="main-style-btn" id="mainTextUnderline" title="Underline">U</button>
-                                        <button type="button" class="main-style-btn" id="mainTextHighlight" title="Highlight">H</button>
-                                        <input type="color" id="mainTextHighlightColor" value="#ffff00" title="Highlight Color" style="display: none;">
-                                    </div>
-                                </div>
                             </div>
-                            
-                            <!-- Main Text Cell Padding -->
+
+                            <!-- Fill with global background color (moved from bottom) -->
                             <div class="chatooly-control-group">
-                                <label class="section-header">Main Text Cell Margin</label>
-                                <div class="padding-controls">
-                                    <div class="padding-row">
-                                        <div class="padding-control">
-                                            <label for="marginVertical">Top/Bottom Margin</label>
-                                            <input type="number" id="marginVertical" min="0" max="50" value="0" step="1">
-                                            <span class="unit">px</span>
-                                        </div>
-                                        <div class="padding-control">
-                                            <label for="marginHorizontal">Left/Right Margin</label>
-                                            <input type="number" id="marginHorizontal" min="0" max="50" value="0" step="1">
-                                            <span class="unit">px</span>
-                                        </div>
-                                    </div>
+                                <label>
+                                    <input type="checkbox" id="mainTextFillWithBackgroundColor">
+                                    Fill with global background color
+                                </label>
+                            </div>
+
+                            <!-- Per-Line Alignment Controls -->
+                            <div class="chatooly-control-group">
+                                <div id="lineAlignmentControls">
+                                    <!-- Dynamically populated based on text lines -->
                                 </div>
                             </div>
-                            
-                            <!-- Text Positioning Controls -->
+
+                            <!-- Entire Text Alignment (3x3 grid) -->
                             <div class="chatooly-control-group text-positioning-section">
                                 <label>Entire Text Alignment</label>
                                 <div class="positioning-grid">
@@ -240,22 +263,6 @@ SPOTLIGHT
                                     <button type="button" class="pos-btn" data-vertical="bottom" data-horizontal="left">↙</button>
                                     <button type="button" class="pos-btn" data-vertical="bottom" data-horizontal="center">↓</button>
                                     <button type="button" class="pos-btn" data-vertical="bottom" data-horizontal="right">↘</button>
-                                </div>
-                            </div>
-                            
-                            <!-- Main Text Background Controls -->
-                            <div class="chatooly-control-group">
-                                <label>Text Background:</label>
-                                <label>
-                                    <input type="checkbox" id="mainTextFillWithBackgroundColor">
-                                    Fill with global background color
-                                </label>
-                            </div>
-                            
-                            <!-- Per-Line Alignment Controls -->
-                            <div class="chatooly-control-group">
-                                <div id="lineAlignmentControls">
-                                    <!-- Dynamically populated based on text lines -->
                                 </div>
                             </div>
                         </div>

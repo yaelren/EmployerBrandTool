@@ -16,56 +16,34 @@
     console.log('🚀 Initializing End-User Interface...');
 
     try {
-        // ========== Step 1: Initialize Canvas ==========
-        // Note: Canvas must be id="chatooly-canvas" for Chatooly CDN compatibility
-        const canvas = document.getElementById('chatooly-canvas');
-        if (!canvas) {
-            throw new Error('Canvas element not found');
+        // ========== Step 1: Initialize Full EmployerBrandTool App ==========
+        console.log('🚀 Initializing Full EmployerBrandTool Instance...');
+
+        // Create full app instance (same as designer mode)
+        const app = new EmployerBrandToolPOC();
+        await app.initialize();
+        console.log('✅ Full EmployerBrandTool initialized');
+
+        // Hide designer-specific UI elements (keep canvas visible)
+        if (app.uiManager) {
+            // Hide sidebar tabs we don't need
+            const sidebarTabs = document.querySelectorAll('.sidebar-tab');
+            sidebarTabs.forEach(tab => {
+                tab.style.display = 'none';
+            });
+
+            // Hide any designer-specific panels
+            const designerPanels = document.querySelectorAll('.sidebar-panel');
+            designerPanels.forEach(panel => {
+                panel.style.display = 'none';
+            });
+
+            console.log('✅ Designer UI elements hidden');
         }
 
-        // Set canvas size (1080 x 1920 portrait format)
-        const canvasWidth = 1080;
-        const canvasHeight = 1920;
-        canvas.width = canvasWidth;
-        canvas.height = canvasHeight;
-
-        const ctx = canvas.getContext('2d');
-        console.log(`✅ Canvas initialized: ${canvasWidth}x${canvasHeight}`);
-
-        // ========== Step 2: Initialize Core Systems ==========
-
-        // Canvas Manager
-        const canvasManager = new CanvasManager(canvas, ctx, canvasWidth, canvasHeight);
-        console.log('✅ CanvasManager initialized');
-
-        // Background Manager
-        const backgroundManager = new BackgroundManager(canvasManager);
-        canvasManager.backgroundManager = backgroundManager;
-        console.log('✅ BackgroundManager initialized');
-
-        // Layer Manager
-        const layerManager = new LayerManager(canvasManager);
-        canvasManager.layerManager = layerManager;
-        console.log('✅ LayerManager initialized');
-
-        // Grid Builder
-        const gridBuilder = new GridBuilder(canvasManager);
-        canvasManager.gridBuilder = gridBuilder;
-        console.log('✅ GridBuilder initialized');
-
-        // Font Manager
-        const fontManager = new FontManager();
-        // Note: Custom fonts will be loaded after Wix initialization
-        console.log('✅ FontManager initialized');
-
-        // Content Slot Manager
-        const contentSlotManager = new ContentSlotManager();
-        console.log('✅ ContentSlotManager initialized');
-
-        // ========== Step 3: Initialize Wix CMS ==========
+        // ========== Step 2: Initialize Wix CMS ==========
 
         let wixAPI = null;
-        let presetPageManager = null;
 
         try {
             console.log('🔄 Initializing Wix Cloud Backend...');
@@ -79,25 +57,14 @@
 
             console.log('✅ Wix Cloud Backend initialized');
 
-            // Initialize PresetPageManager (needs minimal app-like object)
-            const minimalApp = {
-                canvasManager,
-                backgroundManager,
-                layerManager,
-                gridBuilder,
-                fontManager,
-                contentSlotManager,
-                render: () => canvasManager.render()
-            };
-
-            presetPageManager = new PresetPageManager(minimalApp);
-            await presetPageManager.initializeWix(wixAPI);
+            // Initialize PresetPageManager with full app
+            await app.presetPageManager.initializeWix(wixAPI);
 
             console.log('✅ PresetPageManager initialized with Wix');
 
             // Load custom fonts from Wix (optional)
             try {
-                await fontManager.loadCustomFontsFromStorage();
+                await app.uiManager.fontManager.loadCustomFontsFromStorage();
                 console.log('✅ Custom fonts loaded');
             } catch (error) {
                 console.warn('⚠️ Could not load custom fonts:', error);
@@ -117,38 +84,33 @@
             throw new Error('Wix CMS is required for end-user interface');
         }
 
-        // ========== Step 4: Initialize End-User Components ==========
+        // ========== Step 3: Initialize End-User Components ==========
 
         // Form Generator
         const formContainer = document.getElementById('pageSectionsContainer');
         const formGenerator = new FormGenerator(formContainer);
         console.log('✅ FormGenerator initialized');
 
-        // Content Slot Renderer
-        const contentSlotRenderer = new ContentSlotRenderer(canvasManager, presetPageManager);
+        // Content Slot Renderer (simplified - only for overlay)
+        const contentSlotRenderer = new ContentSlotRenderer(app.canvasManager, app.presetPageManager);
         console.log('✅ ContentSlotRenderer initialized');
 
-        // End User Controller (main coordinator)
-        const endUserController = new EndUserController(canvasManager, presetPageManager, wixAPI);
+        // End User Controller (main coordinator) - now accepts full app
+        const endUserController = new EndUserController(app, wixAPI);
         endUserController.setComponents(formGenerator, contentSlotRenderer);
         console.log('✅ EndUserController initialized');
 
-        // ========== Step 5: Initial Render ==========
+        // ========== Step 4: Initial Render ==========
 
-        // Render empty canvas with empty render data
-        canvasManager.render({
-            textLines: [],
-            textConfig: {},
-            spots: []
-        });
+        // Render empty canvas
+        app.render();
 
         // Make controller available globally for debugging
         window.endUserApp = {
-            canvasManager,
-            presetPageManager,
+            app,  // Full app instance
+            endUserController,
             formGenerator,
             contentSlotRenderer,
-            endUserController,
             wixAPI
         };
 

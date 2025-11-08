@@ -118,14 +118,20 @@ class EmployerBrandToolPOC {
                 this.canvasManager.canvas.width,
                 this.canvasManager.canvas.height
             );
-            this.mainTextComponent.text = this.uiManager.elements.mainText.value;
-            this.mainTextComponent.color = this.uiManager.elements.textColor.value;
 
-            // Set initial text
-            this.textEngine.setText(this.uiManager.elements.mainText.value);
+            // 🎯 FIX: Only set initial text if UI elements exist (not in end-user mode)
+            if (this.uiManager.elements.mainText && this.uiManager.elements.textColor) {
+                this.mainTextComponent.text = this.uiManager.elements.mainText.value;
+                this.mainTextComponent.color = this.uiManager.elements.textColor.value;
 
-            // Update line alignment controls for initial text
-            this.uiManager.updateLineAlignmentControls();
+                // Set initial text
+                this.textEngine.setText(this.uiManager.elements.mainText.value);
+
+                // Update line alignment controls for initial text
+                this.uiManager.updateLineAlignmentControls();
+            } else {
+                console.log('⚠️ UI elements not available - skipping initial text setup');
+            }
 
             // Auto-detection is now permanently enabled
             this.autoDetectSpots = true;
@@ -247,7 +253,13 @@ class EmployerBrandToolPOC {
             console.warn('UIManager not ready, skipping text change');
             return;
         }
-        
+
+        // 🎯 FIX: Guard against missing UI elements (e.g., in end-user mode)
+        if (!this.uiManager.elements.mainText) {
+            console.log('⚠️ Main text element not available - skipping onTextChanged');
+            return;
+        }
+
         const text = this.uiManager.elements.mainText.value;
         this.mainTextComponent.text = text;
 
@@ -1141,9 +1153,20 @@ class EmployerBrandToolPOC {
             return;
         }
 
+        // 🎯 FIX: Guard against missing UI elements (e.g., in end-user mode)
+        if (!this.uiManager.elements.mainText ||
+            !this.uiManager.elements.textColor ||
+            !this.uiManager.elements.paddingHorizontal ||
+            !this.uiManager.elements.paddingVertical ||
+            !this.uiManager.elements.fontSize ||
+            !this.uiManager.elements.lineSpacing) {
+            console.log('⚠️ UI elements not available - skipping syncMainTextComponent');
+            return;
+        }
+
         // Update text content
         this.mainTextComponent.text = this.uiManager.elements.mainText.value;
-        
+
         // Update container size and position
         this.mainTextComponent.setContainer(
             0, 0,
@@ -1550,11 +1573,28 @@ document.addEventListener('DOMContentLoaded', () => {
         // Add to global scope for debugging
         window.app = window.employerBrandTool;
 
+        // Initialize collapsible card functionality
+        initializeCollapsibleCards();
+
     } catch (error) {
         console.error('❌ Failed to initialize application:', error);
         alert('Failed to initialize application. Please refresh and try again.');
     }
 });
+
+/**
+ * Initialize collapsible functionality for Chatooly section cards
+ */
+function initializeCollapsibleCards() {
+    document.querySelectorAll('.chatooly-section-header').forEach(header => {
+        header.addEventListener('click', function() {
+            const card = this.closest('.chatooly-section-card');
+            if (card) {
+                card.classList.toggle('collapsed');
+            }
+        });
+    });
+}
 
 // Required by Chatooly for high-res export
 window.renderHighResolution = function(targetCanvas, scale) {

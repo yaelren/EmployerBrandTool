@@ -1,3 +1,7 @@
+/* Using Chatooly CDN CSS - no custom card overrides needed */
+/* The .chatooly-section-card, .chatooly-section-header, .chatooly-section-content classes */
+/* are already defined in https://yaelren.github.io/chatooly-cdn/css/unified.min.css */
+
 /* Video Controls */
 .video-controls {
     margin-top: 10px;

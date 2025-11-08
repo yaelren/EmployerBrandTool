@@ -489,8 +489,10 @@ class SavePagePanel {
             lockIcon.classList.toggle('unlocked', isEditable);
             console.log('✅ Lock icon updated to:', lockIcon.innerHTML);
         } else {
-            console.error('❌ Lock icon not found in overlay for:', elementId);
-            console.log('Available lock icons:', Array.from(this.overlay.querySelectorAll('[data-element-id]')).map(el => el.dataset.elementId));
+            // 🎯 FIX: If lock icon doesn't exist, re-render all icons instead of erroring
+            console.warn(`⚠️ Lock icon not found for ${elementId}, re-rendering all lock icons...`);
+            this.clearCellLockIcons();
+            this.renderCellLockIcons();
         }
     }
 
@@ -545,10 +547,10 @@ class SavePagePanel {
      */
     getAllContentBounds() {
         const bounds = [];
-        
+
         const grid = this.app.grid;
         if (!grid || !grid.layerManager) return bounds;
-        
+
         // Main text cells
         const mainTextLayer = grid.layerManager.getLayer('main-text');
         if (mainTextLayer && mainTextLayer.getCellCount() > 0) {
@@ -556,7 +558,8 @@ class SavePagePanel {
             mainTextCells.forEach((cell) => {
                 if (cell && cell.text && cell.text.trim()) {
                     try {
-                        const bbox = this.contentSlotManager.captureBoundingBox(cell);
+                        // 🎯 FIX: Use getDisplayBoundingBox for overlay visualization (not scaled)
+                        const bbox = this.contentSlotManager.getDisplayBoundingBox(cell);
                         bounds.push({
                             cell: cell,
                             bounds: bbox,
@@ -568,20 +571,21 @@ class SavePagePanel {
                 }
             });
         }
-        
+
         // All content cells
         const allLayers = grid.layerManager.getAllLayers();
         allLayers.forEach(layer => {
             if (layer.id === 'main-text') return;
-            
+
             const layerCells = layer.getCells();
             layerCells.forEach(cell => {
                 if (cell.contentType === 'empty') return;
                 if (cell.contentType === 'text' && (!cell.content || !cell.content.text || !cell.content.text.trim())) return;
                 if (cell.contentType === 'media' && (!cell.content || !cell.content.media)) return;
-                
+
                 try {
-                    const bbox = this.contentSlotManager.captureBoundingBox(cell);
+                    // 🎯 FIX: Use getDisplayBoundingBox for overlay visualization (not scaled)
+                    const bbox = this.contentSlotManager.getDisplayBoundingBox(cell);
                     bounds.push({
                         cell: cell,
                         bounds: bbox,
@@ -592,7 +596,7 @@ class SavePagePanel {
                 }
             });
         });
-        
+
         return bounds;
     }
 
