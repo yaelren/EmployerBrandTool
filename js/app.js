@@ -179,22 +179,33 @@ class EmployerBrandToolPOC {
      */
     initializeChatoolyCanvas() {
         const setCanvasSize = () => {
+            console.log('🎯 EmployerBrandTool: Setting canvas size to 1080x1350');
+
             if (window.Chatooly && window.Chatooly.canvasResizer) {
+                console.log('   → Chatooly.canvasResizer available');
+                console.log('   → Current canvas size:', this.canvasManager.canvas.width, 'x', this.canvasManager.canvas.height);
+
                 window.Chatooly.canvasResizer.setExportSize(1080, 1350);
                 window.Chatooly.canvasResizer.applyExportSize();
+
+                console.log('   → After setExportSize:', this.canvasManager.canvas.width, 'x', this.canvasManager.canvas.height);
 
                 // Update our tracking
                 this.previousCanvasSize = {
                     width: this.canvasManager.canvas.width,
                     height: this.canvasManager.canvas.height
                 };
+            } else {
+                console.warn('   → Chatooly.canvasResizer NOT available!');
             }
         };
 
         // Try to set size immediately if CDN is ready
         if (window.Chatooly && window.Chatooly.canvasResizer) {
+            console.log('✅ Chatooly already loaded, setting size immediately');
             setCanvasSize();
         } else {
+            console.log('⏳ Waiting for chatooly:ready event...');
             // Wait for Chatooly to be ready
             window.addEventListener('chatooly:ready', setCanvasSize);
         }
