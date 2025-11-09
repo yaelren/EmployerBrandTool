@@ -96,15 +96,13 @@ class ContentSlotManager {
         const scaleX = actualWidth / displayWidth;
         const scaleY = actualHeight / displayHeight;
 
-        // Get canvas padding (cells are positioned relative to padding area, not canvas edges)
-        const padding = this.app.canvasManager.backgroundManager.padding || { top: 0, bottom: 0, left: 0, right: 0 };
-
-        // Scale the TIGHT bounds to actual canvas size AND account for padding
-        // Cell coordinates are relative to the padding-adjusted content area
-        // So we need to add padding first (to get canvas-relative coords), then scale
+        // ✅ FIX: Cell coordinates are ALREADY in content-area space (padding-relative)
+        // The grid positions cells relative to the content area, NOT the canvas edges
+        // DO NOT add padding here - it causes double-padding when rendering in end-user mode
+        // Simply scale from display resolution to export resolution
         const scaledBounds = {
-            x: (tightBounds.x + padding.left) * scaleX,
-            y: (tightBounds.y + padding.top) * scaleY,
+            x: tightBounds.x * scaleX,
+            y: tightBounds.y * scaleY,
             width: tightBounds.width * scaleX,
             height: tightBounds.height * scaleY
         };
