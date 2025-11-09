@@ -403,13 +403,13 @@ class SavePagePanel {
             
             // Check if cell is editable (registered as content slot)
             const isEditable = this.isSlotRegistered(cell);
-            
-            console.log(`🔍 Lock icon for cell ${cellId}:`, {
-                elementId,
-                cellType: cell.type,
-                isEditable,
-                emoji: isEditable ? '🔓' : '🔒'
-            });
+
+            // console.log(`🔍 Lock icon for cell ${cellId}:`, {
+            //     elementId,
+            //     cellType: cell.type,
+            //     isEditable,
+            //     emoji: isEditable ? '🔓' : '🔒'
+            // });
             
             // Create lock icon element
             const lockIcon = document.createElement('div');
@@ -457,7 +457,7 @@ class SavePagePanel {
             }
         });
         
-        console.log(`🔒 Rendered ${renderedCount} lock icons based on content slot bounds`);
+        // console.log(`🔒 Rendered ${renderedCount} lock icons based on content slot bounds`);
     }
 
     /**
@@ -474,7 +474,7 @@ class SavePagePanel {
      * Update a single lock icon
      */
     updateLockIcon(elementId, isEditable) {
-        console.log('🔍 updateLockIcon called:', { elementId, isEditable, overlayExists: !!this.overlay });
+        // console.log('🔍 updateLockIcon called:', { elementId, isEditable, overlayExists: !!this.overlay });
 
         if (!this.overlay) {
             console.error('❌ No overlay found!');
@@ -482,12 +482,12 @@ class SavePagePanel {
         }
 
         const lockIcon = this.overlay.querySelector(`[data-element-id="${elementId}"]`);
-        console.log('🔍 Lock icon found:', lockIcon ? 'YES' : 'NO', 'for elementId:', elementId);
+        // console.log('🔍 Lock icon found:', lockIcon ? 'YES' : 'NO', 'for elementId:', elementId);
 
         if (lockIcon) {
             lockIcon.innerHTML = isEditable ? '🔓' : '🔒';
             lockIcon.classList.toggle('unlocked', isEditable);
-            console.log('✅ Lock icon updated to:', lockIcon.innerHTML);
+            // console.log('✅ Lock icon updated to:', lockIcon.innerHTML);
         } else {
             // 🎯 FIX: If lock icon doesn't exist, re-render all icons instead of erroring
             console.warn(`⚠️ Lock icon not found for ${elementId}, re-rendering all lock icons...`);
@@ -502,28 +502,28 @@ class SavePagePanel {
     refreshOverlayLockIcons() {
         if (!this.overlay) return;
 
-        console.log('🔄 refreshOverlayLockIcons called');
-        
+        // console.log('🔄 refreshOverlayLockIcons called');
+
         // 🎯 UPDATED: Check against content slot manager's registered slots
         const allLockIcons = this.overlay.querySelectorAll('[data-element-id]');
-        console.log(`📊 Found ${allLockIcons.length} lock icons to refresh`);
+        // console.log(`📊 Found ${allLockIcons.length} lock icons to refresh`);
         allLockIcons.forEach(lockIcon => {
             const elementId = lockIcon.dataset.elementId;
             const cellId = lockIcon.dataset.cellId;
-            
+
             // Find the cell to check if it's registered
             const cell = this._findCellByElementId(elementId);
             if (!cell) return;
-            
+
             // Check if this cell is registered as a content slot
             const isRegistered = this.isSlotRegistered(cell);
-            
-            console.log(`  🔄 Refreshing icon for ${elementId}:`, {
-                isRegistered,
-                emoji: isRegistered ? '🔓' : '🔒',
-                hadUnlockedClass: lockIcon.classList.contains('unlocked')
-            });
-            
+
+            // console.log(`  🔄 Refreshing icon for ${elementId}:`, {
+            //     isRegistered,
+            //     emoji: isRegistered ? '🔓' : '🔒',
+            //     hadUnlockedClass: lockIcon.classList.contains('unlocked')
+            // });
+
             // Update icon
             lockIcon.innerHTML = isRegistered ? '🔓' : '🔒';
             lockIcon.classList.toggle('unlocked', isRegistered);
@@ -607,25 +607,25 @@ class SavePagePanel {
      */
     isSlotRegistered(cell) {
         const slots = this.contentSlotManager.getAllSlots();
-        const isRegistered = slots.some(slot => 
-            slot.sourceContentId === cell.contentId || 
+        const isRegistered = slots.some(slot =>
+            slot.sourceContentId === cell.contentId ||
             slot.sourceElement === cell.id ||
             (cell.type === 'main-text' && slot.sourceElement === 'main-text')
         );
-        
-        console.log('🔍 isSlotRegistered check:', {
-            cellId: cell.id,
-            cellContentId: cell.contentId,
-            cellType: cell.type,
-            isRegistered,
-            totalSlots: slots.length,
-            matchingSlots: slots.filter(s => 
-                s.sourceContentId === cell.contentId || 
-                s.sourceElement === cell.id ||
-                (cell.type === 'main-text' && s.sourceElement === 'main-text')
-            ).map(s => s.slotId)
-        });
-        
+
+        // console.log('🔍 isSlotRegistered check:', {
+        //     cellId: cell.id,
+        //     cellContentId: cell.contentId,
+        //     cellType: cell.type,
+        //     isRegistered,
+        //     totalSlots: slots.length,
+        //     matchingSlots: slots.filter(s =>
+        //         s.sourceContentId === cell.contentId ||
+        //         s.sourceElement === cell.id ||
+        //         (cell.type === 'main-text' && s.sourceElement === 'main-text')
+        //     ).map(s => s.slotId)
+        // });
+
         return isRegistered;
     }
 
@@ -644,19 +644,29 @@ class SavePagePanel {
             return allCells.find(c => c.type === 'main-text');
         } else if (elementId.startsWith('textCell-')) {
             const cellIdStr = elementId.replace('textCell-', '');
-            const cellId = parseInt(cellIdStr);
-            return grid.getCellById(cellId);
+            // Cell IDs can be strings like "main-text-1-0" OR numbers like 3
+            // Try string first, then try as number if not found
+            let cell = grid.getCellById(cellIdStr);
+            if (!cell && !isNaN(cellIdStr)) {
+                cell = grid.getCellById(parseInt(cellIdStr));
+            }
+            return cell;
         } else if (elementId.startsWith('contentCell-')) {
             const cellIdStr = elementId.replace('contentCell-', '');
-            const cellId = parseInt(cellIdStr);
-            return grid.getCellById(cellId);
+            // Cell IDs can be strings like "content-0-0" OR numbers like 5
+            // Try string first, then try as number if not found
+            let cell = grid.getCellById(cellIdStr);
+            if (!cell && !isNaN(cellIdStr)) {
+                cell = grid.getCellById(parseInt(cellIdStr));
+            }
+            return cell;
         }
 
         return null;
     }
 
     toggleCellLock(elementId, cellId, cellType) {
-        console.log('🔒 toggleCellLock called:', { elementId, cellId, cellType });
+        // console.log('🔒 toggleCellLock called:', { elementId, cellId, cellType });
 
         // Get the cell
         const cell = this._findCellByElementId(elementId);
@@ -667,7 +677,7 @@ class SavePagePanel {
 
         // Check if cell is already registered as content slot
         const alreadyConfigured = this.isSlotRegistered(cell);
-        console.log('🔍 Already configured?', alreadyConfigured);
+        // console.log('🔍 Already configured?', alreadyConfigured);
 
         if (alreadyConfigured) {
             console.log('✏️ Cell already unlocked, opening editor for existing slot');
@@ -693,6 +703,26 @@ class SavePagePanel {
             console.log('✨ Cell is locked, creating slot and unlocking immediately');
             // Create a new slot with defaults
             const newSlot = this._createDefaultSlot(cell, elementId);
+
+            // ✅ NEW: Mark cell as editable (unified architecture)
+            cell.editable = true;
+            cell.slotId = newSlot.slotId;
+            cell.slotConfig = {
+                fieldLabel: newSlot.fieldLabel,
+                fieldDescription: newSlot.fieldDescription || '',
+                required: newSlot.required || true,
+                boundingBox: newSlot.boundingBox,
+                constraints: newSlot.constraints || {},
+                styling: newSlot.styling || {},
+                defaultContent: this.app.presetPageManager.contentSlotManager.extractContent(cell, newSlot.type)
+            };
+
+            console.log('✅ Cell marked as editable:', {
+                cellId: cell.id,
+                slotId: cell.slotId,
+                type: newSlot.type,
+                boundingBox: cell.slotConfig.boundingBox
+            });
 
             // ✅ IMMEDIATELY add to configuredSlots
             this.configuredSlots.push(newSlot);
@@ -740,7 +770,7 @@ class SavePagePanel {
             slotId: `${uniqueId}-slot`,
             sourceElement: cell.id,
             sourceContentId: cell.contentId || `${cellType}-${cell.row}-${cell.col}`,
-            type: isText ? 'text' : 'image',
+            type: isText ? 'text' : 'media', // Use 'media' to support all types (image, video, GIF)
             boundingBox: this.app.presetPageManager.contentSlotManager.captureBoundingBox(cell),
             fieldName: fieldName,
             fieldLabel: fieldLabel,
@@ -755,7 +785,7 @@ class SavePagePanel {
             } : {
                 fitMode: 'cover',
                 maxFileSize: 10485760,
-                allowedFormats: ['jpg', 'png', 'webp', 'gif']
+                allowedFormats: ['jpg', 'png', 'webp', 'gif', 'mp4', 'webm'] // Support all media types
             },
             styling: isText ? {
                 fontFamily: cell.textComponent?.fontFamily || cell.content?.fontFamily || '"Wix Madefor Display", Arial, sans-serif',
@@ -1120,7 +1150,7 @@ class SavePagePanel {
     }
 
     /**
-     * Build form for image slot
+     * Build form for media slot (supports image, video, GIF)
      */
     _buildImageSlotForm(slot) {
         const inputStyle = 'background: transparent; border: 1px solid #d1d5db; padding: 8px; border-radius: 4px; width: 100%; box-sizing: border-box;';
@@ -1138,12 +1168,13 @@ class SavePagePanel {
                 <label style="display: block; margin-bottom: 4px; font-size: 13px; color: #374151;">Description</label>
                 <textarea id="inline-field-description" placeholder="Help text for end-users" style="${inputStyle} min-height: 60px; resize: vertical;">${slot.fieldDescription || ''}</textarea>
             </div>
-            <div class="inline-form-group" style="margin-bottom: 12px;">
+            <div class="inline-form-group" style="margin-bottom: 8px;">
                 <label style="display: block; margin-bottom: 4px; font-size: 13px; color: #374151;">Fit Mode</label>
                 <select id="inline-fit-mode" style="${inputStyle}">
                     <option value="cover" ${slot.constraints?.fitMode === 'cover' ? 'selected' : ''}>Cover (crop to fill)</option>
                     <option value="free" ${slot.constraints?.fitMode === 'free' ? 'selected' : ''}>Free (scale proportionally)</option>
                 </select>
+                <small style="display: block; margin-top: 4px; font-size: 11px; color: #6b7280;">📁 Supports: Images (JPG, PNG, WebP, GIF), Videos (MP4, WebM)</small>
             </div>
         `;
     }
@@ -1197,9 +1228,9 @@ class SavePagePanel {
     }
 
     _saveInlineEditorChangesInternal(refreshUI = true) {
-        console.log('💾 _saveInlineEditorChangesInternal called');
-        console.log('📍 currentEditingSlotIndex:', this.currentEditingSlotIndex);
-        console.log('📦 newSlotData exists:', !!this.newSlotData);
+        // console.log('💾 _saveInlineEditorChangesInternal called');
+        // console.log('📍 currentEditingSlotIndex:', this.currentEditingSlotIndex);
+        // console.log('📦 newSlotData exists:', !!this.newSlotData);
 
         // Get form values
         const fieldLabel = this.container.querySelector('#inline-field-label')?.value;
@@ -1217,7 +1248,7 @@ class SavePagePanel {
         // Check if creating new slot or editing existing
         // Use newSlotData as primary indicator of new slot creation
         if (this.newSlotData && this.currentEditingSlotIndex === -1) {
-            console.log('🆕 Entering NEW SLOT CREATION branch');
+            // console.log('🆕 Entering NEW SLOT CREATION branch');
             // NEW SLOT CREATION
             if (!this.newSlotData) {
                 console.error('No newSlotData available for new slot');
@@ -1248,20 +1279,20 @@ class SavePagePanel {
             }
 
             // Add to content slot manager
-            console.log('📝 Adding slot to ContentSlotManager:', slot.slotId);
+            // console.log('📝 Adding slot to ContentSlotManager:', slot.slotId);
             this.app.presetPageManager.contentSlotManager.addSlot(slot);
 
-            // Verify it was added
-            const allSlots = this.app.presetPageManager.contentSlotManager.getAllSlots();
-            const verifySlot = allSlots.find(s => s.slotId === slot.slotId);
-            console.log('✅ Slot added to ContentSlotManager:', verifySlot ? 'YES' : 'NO');
-            console.log('📊 Total slots in ContentSlotManager:', allSlots.length);
-            console.log('📋 All slot IDs:', allSlots.map(s => s.slotId));
+            // Verify it was added (debug only)
+            // const allSlots = this.app.presetPageManager.contentSlotManager.getAllSlots();
+            // const verifySlot = allSlots.find(s => s.slotId === slot.slotId);
+            // console.log('✅ Slot added to ContentSlotManager:', verifySlot ? 'YES' : 'NO');
+            // console.log('📊 Total slots in ContentSlotManager:', allSlots.length);
+            // console.log('📋 All slot IDs:', allSlots.map(s => s.slotId));
 
             // NOTE: Slot already added to configuredSlots in showInlineEditorForNewSlot (line 610)
             // So we DON'T push it again here, just find its index
             const slotIndex = this.configuredSlots.findIndex(s => s.slotId === slot.slotId);
-            console.log('📍 Slot found at index:', slotIndex);
+            // console.log('📍 Slot found at index:', slotIndex);
 
             // Track as configured
             this.configuredCellIds.add(cellId);
@@ -1270,12 +1301,12 @@ class SavePagePanel {
             }
 
             // Update lock icon to unlocked
-            console.log('🔓 About to update lock icon for:', elementId);
+            // console.log('🔓 About to update lock icon for:', elementId);
             this.updateLockIcon(elementId, true);
 
             // Force refresh overlay to ensure icon updates
             if (this.overlay && this.overlay.parentElement) {
-                console.log('🔄 Refreshing all overlay lock icons');
+                // console.log('🔄 Refreshing all overlay lock icons');
                 this.refreshOverlayLockIcons();
             }
 
@@ -1288,10 +1319,10 @@ class SavePagePanel {
             // ALWAYS refresh UI for new slots (even during auto-save)
             this.updateEditableFieldsList();
 
-            console.log('✅ New slot created:', slot.slotId, 'elementId:', elementId);
+            // console.log('✅ New slot created:', slot.slotId, 'elementId:', elementId);
         } else {
-            console.log('✏️ Entering EDITING EXISTING SLOT branch');
-            console.log('📍 currentEditingSlotIndex value:', this.currentEditingSlotIndex);
+            // console.log('✏️ Entering EDITING EXISTING SLOT branch');
+            // console.log('📍 currentEditingSlotIndex value:', this.currentEditingSlotIndex);
 
             // EDITING EXISTING SLOT
             if (this.currentEditingSlotIndex === null) return;
@@ -1302,7 +1333,7 @@ class SavePagePanel {
                 return;
             }
 
-            console.log('✏️ Updating existing slot:', slot.slotId);
+            // console.log('✏️ Updating existing slot:', slot.slotId);
 
             // Update slot
             slot.fieldName = fieldName;
@@ -1328,7 +1359,7 @@ class SavePagePanel {
             // Update in content slot manager
             this.app.presetPageManager.contentSlotManager.updateSlot(slot.slotId, slot);
 
-            console.log('✅ Slot updated:', slot.slotId);
+            // console.log('✅ Slot updated:', slot.slotId);
         }
 
         // Refresh UI if requested
@@ -1555,7 +1586,7 @@ class SavePagePanel {
         const cellId = parseInt(match[1]);
         const cell = this.app.grid.getCellById(cellId);
 
-        console.log('🔍 Looking up cell:', { elementId, cellId, cell });
+        // console.log('🔍 Looking up cell:', { elementId, cellId, cell });
 
         if (!cell) {
             return { text: '(not found)', isText: false };

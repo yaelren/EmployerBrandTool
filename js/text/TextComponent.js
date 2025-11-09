@@ -254,11 +254,11 @@ class TextComponent {
         const isReasonablyShort = fullTextWidth <= availableWidth * 2;
         const isSingleLogicalLine = !hasNewlines && hasSpaces && isReasonablyShort;
 
-        console.log(`🔍 Single logical line detection:`);
-        console.log(`   hasSpaces: ${hasSpaces}, hasNewlines: ${hasNewlines}`);
-        console.log(`   fullTextWidth: ${fullTextWidth}, availableWidth: ${availableWidth}`);
-        console.log(`   isReasonablyShort: ${isReasonablyShort} (fullTextWidth <= availableWidth * 2)`);
-        console.log(`   isSingleLogicalLine: ${isSingleLogicalLine}`);
+        // console.log(`🔍 Single logical line detection:`);
+        // console.log(`   hasSpaces: ${hasSpaces}, hasNewlines: ${hasNewlines}`);
+        // console.log(`   fullTextWidth: ${fullTextWidth}, availableWidth: ${availableWidth}`);
+        // console.log(`   isReasonablyShort: ${isReasonablyShort} (fullTextWidth <= availableWidth * 2)`);
+        // console.log(`   isSingleLogicalLine: ${isSingleLogicalLine}`);
 
         // Calculate total text height using typography-aware heights
         let totalHeight = 0;
@@ -282,14 +282,14 @@ class TextComponent {
             }
         });
 
-        console.log(`🔍 getTextBounds() called:`);
-        console.log(`   Text: "${this.text}" (length: ${this.text.length})`);
-        console.log(`   Has spaces: ${this.text.includes(' ')}, Has newlines: ${this.text.includes('\n')}`);
-        console.log(`   alignToTextBox: ${this.alignToTextBox} (${this.alignToTextBox ? 'CONTENT CELL' : 'MAIN TEXT'})`);
-        console.log(`   positionH: ${this.positionH}, positionV: ${this.positionV}`);
-        console.log(`   alignH: ${this.alignH}, alignV: ${this.alignV}`);
-        console.log(`   maxLineWidth: ${maxLineWidth}`);
-        console.log(`   position.x: ${position.x}`);
+        // console.log(`🔍 getTextBounds() called:`);
+        // console.log(`   Text: "${this.text}" (length: ${this.text.length})`);
+        // console.log(`   Has spaces: ${this.text.includes(' ')}, Has newlines: ${this.text.includes('\n')}`);
+        // console.log(`   alignToTextBox: ${this.alignToTextBox} (${this.alignToTextBox ? 'CONTENT CELL' : 'MAIN TEXT'})`);
+        // console.log(`   positionH: ${this.positionH}, positionV: ${this.positionV}`);
+        // console.log(`   alignH: ${this.alignH}, alignV: ${this.alignV}`);
+        // console.log(`   maxLineWidth: ${maxLineWidth}`);
+        // console.log(`   position.x: ${position.x}`);
 
         // Create bounds for each line
         const textBounds = [];
@@ -380,14 +380,14 @@ class TextComponent {
             }
 
             // Debug logging for first line
-            if (index === 0) {
-                console.log(`📐 Line bounds calculation (line 0):`);
-                console.log(`   mode: ${this.alignToTextBox ? 'CONTENT CELL' : 'MAIN TEXT'}`);
-                console.log(`   positionH: ${this.positionH}, alignH: ${lineAlign}`);
-                console.log(`   contentX: ${contentX}, availableWidth: ${availableWidth}`);
-                console.log(`   lineX: ${lineX}, boundX: ${boundX}`);
-                console.log(`   tightWidth: ${tightWidth}`);
-            }
+            // if (index === 0) {
+            //     console.log(`📐 Line bounds calculation (line 0):`);
+            //     console.log(`   mode: ${this.alignToTextBox ? 'CONTENT CELL' : 'MAIN TEXT'}`);
+            //     console.log(`   positionH: ${this.positionH}, alignH: ${lineAlign}`);
+            //     console.log(`   contentX: ${contentX}, availableWidth: ${availableWidth}`);
+            //     console.log(`   lineX: ${lineX}, boundX: ${boundX}`);
+            //     console.log(`   tightWidth: ${tightWidth}`);
+            // }
 
             // Calculate typography-aligned bounds
             let boundsY = lineY;
@@ -463,9 +463,9 @@ class TextComponent {
             let textBlockWidth = fullTextWidth;
             const firstLineAlign = this.alignH || 'center';
 
-            console.log(`📍 Single logical line fix:`);
-            console.log(`   positionH: ${this.positionH}, alignH: ${firstLineAlign}`);
-            console.log(`   position.x: ${position.x}, fullTextWidth: ${fullTextWidth}`);
+            // console.log(`📍 Single logical line fix:`);
+            // console.log(`   positionH: ${this.positionH}, alignH: ${firstLineAlign}`);
+            // console.log(`   position.x: ${position.x}, fullTextWidth: ${fullTextWidth}`);
 
             // Step 1: Calculate lineX (anchor point) based on positionH
             let lineX;
@@ -527,7 +527,7 @@ class TextComponent {
                     break;
             }
 
-            console.log(`   lineX: ${lineX}, correctedX: ${correctedX}`);
+            // console.log(`   lineX: ${lineX}, correctedX: ${correctedX}`);
 
             // Calculate Y position centered vertically around the wrapped text's center
             const correctedY = verticalCenter - (singleLineHeight / 2);

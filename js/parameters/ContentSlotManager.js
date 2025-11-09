@@ -47,9 +47,9 @@ class ContentSlotManager {
             tightBounds = this._copyBounds(cell.bounds);
         }
 
-        console.log('📐 Display bounding box for cell:', cell.id);
-        console.log('  Cell bounds:', cell.bounds);
-        console.log('  Tight content bounds:', tightBounds);
+        // console.log('📐 Display bounding box for cell:', cell.id);
+        // console.log('  Cell bounds:', cell.bounds);
+        // console.log('  Tight content bounds:', tightBounds);
 
         return tightBounds;
     }
@@ -109,16 +109,16 @@ class ContentSlotManager {
             height: tightBounds.height * scaleY
         };
 
-        // Debug logging
-        console.log('📐 Capturing bounding box for cell:', cell.id);
-        console.log('  Display canvas:', displayWidth, 'x', displayHeight);
-        console.log('  Actual canvas:', actualWidth, 'x', actualHeight);
-        console.log('  Scale factors:', scaleX.toFixed(2), 'x', scaleY.toFixed(2));
-        console.log('  Canvas padding:', padding);
-        console.log('  Cell bounds (display):', cell.bounds);
-        console.log('  Tight content bounds (display):', tightBounds);
-        console.log('  Tight content bounds (scaled + padding):', scaledBounds);
-        console.log('  Cell fontSize:', cell.fontSize || cell.textComponent?.fontSize);
+        // Debug logging (disabled for performance - enable during debugging)
+        // console.log('📐 Capturing bounding box for cell:', cell.id);
+        // console.log('  Display canvas:', displayWidth, 'x', displayHeight);
+        // console.log('  Actual canvas:', actualWidth, 'x', actualHeight);
+        // console.log('  Scale factors:', scaleX.toFixed(2), 'x', scaleY.toFixed(2));
+        // console.log('  Canvas padding:', padding);
+        // console.log('  Cell bounds (display):', cell.bounds);
+        // console.log('  Tight content bounds (display):', tightBounds);
+        // console.log('  Tight content bounds (scaled + padding):', scaledBounds);
+        // console.log('  Cell fontSize:', cell.fontSize || cell.textComponent?.fontSize);
 
         return scaledBounds;
     }
@@ -538,7 +538,7 @@ class ContentSlotManager {
     /**
      * Determine slot type from cell type
      * @param {GridCell} cell - Grid cell
-     * @returns {string} 'text' | 'image'
+     * @returns {string} 'text' | 'image' | 'video' | 'media'
      * @private
      */
     _determineSlotType(cell) {
@@ -553,13 +553,19 @@ class ContentSlotManager {
                 if (cell.content.type === 'text' || cell.content.text !== undefined) {
                     return 'text';
                 }
-                // Check for image content
-                if (cell.content.mediaType === 'image' || cell.content.type === 'media') {
-                    return 'image';
+                // Check for video content
+                if (cell.content.media instanceof HTMLVideoElement ||
+                    cell.content.mediaType === 'video' ||
+                    (cell.content.mediaUrl && (cell.content.mediaUrl.includes('.mp4') || cell.content.mediaUrl.includes('.webm')))) {
+                    return 'media'; // Use 'media' to support all types (image, video, GIF)
+                }
+                // Check for image/media content (includes GIF)
+                if (cell.content.mediaType === 'image' || cell.content.type === 'media' || cell.content.media) {
+                    return 'media'; // Use 'media' to support all types
                 }
             }
-            // Empty content cells default to image
-            return 'image';
+            // Empty content cells default to media (supports image, video, GIF)
+            return 'media';
         }
 
         throw new Error(`Unsupported cell type for content slot: ${cell.type}`);
@@ -569,15 +575,15 @@ class ContentSlotManager {
      * Build constraints object based on slot type
      *
      * @param {GridCell} cell - Grid cell
-     * @param {string} slotType - 'text' | 'image'
+     * @param {string} slotType - 'text' | 'image' | 'media'
      * @param {Object} customConstraints - Designer-provided constraints (optional)
-     * @returns {TextSlotConstraints|ImageSlotConstraints}
+     * @returns {TextSlotConstraints|ImageSlotConstraints|MediaSlotConstraints}
      */
     buildConstraints(cell, slotType, customConstraints = {}) {
         if (slotType === 'text') {
             return this._buildTextConstraints(cell, customConstraints);
-        } else if (slotType === 'image') {
-            return this._buildImageConstraints(cell, customConstraints);
+        } else if (slotType === 'image' || slotType === 'media') {
+            return this._buildMediaConstraints(cell, customConstraints);
         }
 
         throw new Error(`Unsupported slot type: ${slotType}`);
@@ -638,19 +644,19 @@ class ContentSlotManager {
     }
 
     /**
-     * Build image slot constraints
+     * Build media slot constraints (supports image, video, GIF)
      * @param {GridCell} cell - Grid cell (ContentCell)
      * @param {Object} custom - Custom constraints from designer
-     * @returns {ImageSlotConstraints}
+     * @returns {MediaSlotConstraints}
      * @private
      */
-    _buildImageConstraints(cell, custom = {}) {
+    _buildMediaConstraints(cell, custom = {}) {
         // Use defaults from ContentSlotTypes
         const defaults = window.DEFAULT_IMAGE_CONSTRAINTS || {
             fitMode: 'cover',
             focalPoint: 'center',
             maxFileSize: 10485760, // 10MB
-            allowedFormats: ['jpg', 'png', 'webp', 'gif']
+            allowedFormats: ['jpg', 'png', 'webp', 'gif', 'mp4', 'webm'] // Support all media types
         };
 
         return {
@@ -665,14 +671,14 @@ class ContentSlotManager {
      * Extract locked styling from cell
      *
      * @param {GridCell} cell - Grid cell
-     * @param {string} slotType - 'text' | 'image'
+     * @param {string} slotType - 'text' | 'image' | 'media'
      * @returns {TextSlotStyling|Object}
      */
     extractStyling(cell, slotType) {
         if (slotType === 'text') {
             return this._extractTextStyling(cell);
-        } else if (slotType === 'image') {
-            return {}; // No styling for images (constraints handle fit mode)
+        } else if (slotType === 'image' || slotType === 'media') {
+            return {}; // No styling for media (constraints handle fit mode)
         }
 
         return {};
@@ -715,14 +721,14 @@ class ContentSlotManager {
      * Extract default content from cell
      *
      * @param {GridCell} cell - Grid cell
-     * @param {string} slotType - 'text' | 'image'
-     * @returns {string} Default content (text string or image URL)
+     * @param {string} slotType - 'text' | 'image' | 'media'
+     * @returns {string} Default content (text string or media URL)
      */
     extractContent(cell, slotType) {
         if (slotType === 'text') {
             return this._extractTextContent(cell);
-        } else if (slotType === 'image') {
-            return this._extractImageContent(cell);
+        } else if (slotType === 'image' || slotType === 'media') {
+            return this._extractMediaContent(cell);
         }
 
         return '';
@@ -749,12 +755,12 @@ class ContentSlotManager {
     }
 
     /**
-     * Extract image URL from cell
+     * Extract media URL from cell (supports image, video, GIF)
      * @param {GridCell} cell - Grid cell
-     * @returns {string} Image URL
+     * @returns {string} Media URL
      * @private
      */
-    _extractImageContent(cell) {
+    _extractMediaContent(cell) {
         if (cell.content) {
             // Check for mediaUrl (ContentCell property)
             if (cell.content.mediaUrl) {
@@ -766,9 +772,12 @@ class ContentSlotManager {
                 return cell.content.imageURL;
             }
 
-            // Check for media element src
-            if (cell.content.media && cell.content.media instanceof HTMLImageElement) {
-                return cell.content.media.src;
+            // Check for media element src (supports both image and video)
+            if (cell.content.media) {
+                if (cell.content.media instanceof HTMLImageElement ||
+                    cell.content.media instanceof HTMLVideoElement) {
+                    return cell.content.media.src;
+                }
             }
         }
 
@@ -792,8 +801,8 @@ class ContentSlotManager {
         }
 
         // Type validation
-        if (slot.type !== 'text' && slot.type !== 'image') {
-            throw new Error(`Invalid slot type: ${slot.type}. Must be 'text' or 'image'`);
+        if (slot.type !== 'text' && slot.type !== 'image' && slot.type !== 'media') {
+            throw new Error(`Invalid slot type: ${slot.type}. Must be 'text', 'image', or 'media'`);
         }
 
         // Bounding box validation
