@@ -54,8 +54,10 @@ class EndUserController {
             mainContainer: document.getElementById('mainContainer')
         };
 
-        // ✅ Phase 1A: Load saved content data from localStorage
-        this.loadContentDataFromLocalStorage();
+        // ✅ RESET ON PAGE LOAD: Clear localStorage to always start fresh
+        // This ensures hard page refresh resets to designer defaults
+        localStorage.removeItem(this.localStorageKey);
+        console.log('🔄 Page loaded - cleared previous session data');
 
         this.initializeEventListeners();
 
@@ -64,35 +66,26 @@ class EndUserController {
     }
 
     /**
-     * ✅ Phase 1A: Load content data from localStorage
+     * ⚠️ DEPRECATED: Auto-save disabled for hard reset behavior
+     * Content data is NOT saved to localStorage to ensure fresh start on reload
      */
     loadContentDataFromLocalStorage() {
-        try {
-            const saved = localStorage.getItem(this.localStorageKey);
-            if (saved) {
-                this.contentData = JSON.parse(saved);
-                console.log('✅ Loaded saved content data from localStorage');
-            }
-        } catch (error) {
-            console.warn('⚠️ Failed to load from localStorage:', error);
-        }
+        // Intentionally disabled - page reload should reset to designer defaults
+        console.log('ℹ️ Auto-load disabled - starting with clean state');
     }
 
     /**
-     * ✅ Phase 1A: Save content data to localStorage
+     * ⚠️ DEPRECATED: Auto-save disabled for hard reset behavior
+     * Content data is NOT saved to localStorage to ensure fresh start on reload
      */
     saveContentDataToLocalStorage() {
-        try {
-            localStorage.setItem(this.localStorageKey, JSON.stringify(this.contentData));
-            console.log('💾 Auto-saved to localStorage');
-        } catch (error) {
-            console.error('❌ Failed to save to localStorage:', error);
-        }
+        // Intentionally disabled - page reload should reset to designer defaults
+        // console.log('ℹ️ Auto-save disabled - changes will be lost on page reload');
     }
 
     /**
-     * ✅ Phase 1B: Create debounced render function
-     * Uses hide-then-overlay approach for correct rendering
+     * ✅ NEW: Debounced render function
+     * Applies user content to cells and re-renders grid
      */
     debouncedRender() {
         // Clear existing timer
@@ -102,16 +95,20 @@ class EndUserController {
 
         // Set new timer (300ms delay)
         this.renderDebounceTimer = setTimeout(() => {
-            const pageData = this.loadedPages[this.currentPageIndex];
-            if (pageData) {
-                // Hide cells with filled content slots
-                this.hideFilledContentSlots(pageData.contentSlots);
+            if (this.app.grid) {
+                // Apply user content to all editable cells
+                const allCells = this.app.grid.getAllCells();
+                const editableCells = allCells.filter(cell => cell.editable);
 
-                // Render designer layout (creates "holes" where user content will go)
+                editableCells.forEach(cell => {
+                    const userData = this.contentData[cell.slotId];
+                    if (userData) {
+                        this.applyUserContentToCell(cell, userData);
+                    }
+                });
+
+                // Render grid normally
                 this.app.render();
-
-                // Overlay user content in bounded regions
-                this.contentSlotRenderer.renderUserContent(pageData.contentSlots, this.contentData);
 
                 console.log('🎨 Canvas re-rendered (debounced)');
             }
@@ -348,13 +345,53 @@ class EndUserController {
                         pageData.presetName = this.currentPresetData.presetName || 'Untitled Preset';
 
                         // ✅ Phase 1A: NAMESPACE slotIds by page number
+                        // Namespace legacy contentSlots
                         if (pageData.contentSlots && Array.isArray(pageData.contentSlots)) {
                             pageData.contentSlots = pageData.contentSlots.map(slot => ({
                                 ...slot,
                                 originalSlotId: slot.slotId,  // Keep original for reference
                                 slotId: `page${i}-${slot.slotId}`  // Add page prefix
                             }));
-                            console.log(`✅ Namespaced ${pageData.contentSlots.length} slots for page ${i}`);
+                            console.log(`✅ Namespaced ${pageData.contentSlots.length} legacy slots for page ${i}`);
+                        }
+
+                        // ✅ NEW: Namespace cell slotIds in grid data
+                        if (pageData.grid?.snapshot?.layout?.cells) {
+                            // 🔍 DEBUG: Log cells BEFORE namespacing
+                            const cellsBeforeNamespace = pageData.grid.snapshot.layout.cells.filter(c => c.editable);
+                            console.log(`🔍 DEBUG: Before namespacing, found ${cellsBeforeNamespace.length} editable cells:`,
+                                cellsBeforeNamespace.map(c => ({
+                                    id: c.id,
+                                    editable: c.editable,
+                                    slotId: c.slotId,
+                                    hasSlotConfig: !!c.slotConfig
+                                }))
+                            );
+
+                            pageData.grid.snapshot.layout.cells = pageData.grid.snapshot.layout.cells.map(cell => {
+                                if (cell.editable && cell.slotId) {
+                                    return {
+                                        ...cell,
+                                        originalSlotId: cell.slotId,  // Keep original for reference
+                                        slotId: `page${i}-${cell.slotId}`  // Add page prefix
+                                    };
+                                }
+                                return cell;
+                            });
+
+                            // 🔍 DEBUG: Log cells AFTER namespacing
+                            const cellsAfterNamespace = pageData.grid.snapshot.layout.cells.filter(c => c.editable);
+                            console.log(`🔍 DEBUG: After namespacing, found ${cellsAfterNamespace.length} editable cells:`,
+                                cellsAfterNamespace.map(c => ({
+                                    id: c.id,
+                                    editable: c.editable,
+                                    slotId: c.slotId,
+                                    hasSlotConfig: !!c.slotConfig
+                                }))
+                            );
+
+                            const namespacedCount = pageData.grid.snapshot.layout.cells.filter(c => c.editable).length;
+                            console.log(`✅ Namespaced ${namespacedCount} editable cell slotIds for page ${i}`);
                         }
 
                         this.loadedPages.push(pageData);
@@ -387,60 +424,271 @@ class EndUserController {
 
     /**
      * Render the current page (canvas + form)
-     * Uses hide-then-overlay approach for correct rendering
+     * ✅ NEW APPROACH: Direct cell rendering with user data
      */
     async renderCurrentPage() {
-        const pageData = this.loadedPages[this.currentPageIndex];
-
-        if (!pageData) {
-            console.error('❌ No page data at index:', this.currentPageIndex);
+        if (!this.currentPresetId) {
+            console.error('❌ No preset loaded');
             return;
         }
 
-        console.log(`🎨 Rendering page ${this.currentPageIndex + 1}/${this.loadedPages.length}`);
-        console.log(`📦 Page has ${pageData.contentSlots?.length || 0} content slots`);
+        const pageNumber = this.currentPageIndex + 1; // Convert 0-based to 1-based
+
+        console.log(`🎨 Rendering page ${pageNumber}/${this.loadedPages.length}`);
 
         // Update page indicator
         this.updatePageNavigation();
 
-        // ========== HIDE-THEN-OVERLAY APPROACH ==========
+        // ========== UNIFIED CELL-BASED APPROACH ==========
 
-        // Step 1: Load page into app (same as designer mode)
-        await this.app.presetManager.deserializeState(pageData);
+        // Step 1: Load page using PresetPageManager (same as index.html)
+        // This loads the page directly without namespacing - cells will have editable properties!
+        const pageData = await this.app.presetPageManager.loadPage(this.currentPresetId, pageNumber);
         console.log('✅ Page data loaded into app');
 
-        // Step 2: Hide cells that have editable content slots with user data
-        this.hideFilledContentSlots(pageData.contentSlots);
+        // Step 2: Get editable cells and namespace their slotIds AFTER deserialization
+        const allCells = this.app.grid.getAllCells();
+        const editableCells = allCells.filter(cell => cell.editable);
+        console.log(`📝 Found ${editableCells.length} editable cells BEFORE namespacing`);
 
-        // Step 3: Render designer layout (creates "holes" where user content will go)
+        // ✅ Namespace slotIds in live cell objects (to avoid collisions between pages)
+        editableCells.forEach(cell => {
+            if (cell.slotId) {
+                const originalSlotId = cell.slotId;
+                cell.slotId = `page${pageNumber}-${originalSlotId}`;
+                console.log(`🔄 Namespaced cell ${cell.id}: ${originalSlotId} → ${cell.slotId}`);
+            }
+        });
+
+        console.log(`✅ Namespaced ${editableCells.length} editable cell slotIds`);
+
+        editableCells.forEach(cell => {
+            const userData = this.contentData[cell.slotId];
+            if (userData) {
+                this.applyUserContentToCell(cell, userData);
+                console.log(`✅ Applied user data to cell ${cell.id} (${cell.slotId})`);
+            }
+        });
+
+        // Step 3: Render grid normally (respects layers, no overlay needed!)
         this.app.render();
-        console.log('✅ Designer layout rendered');
-
-        // Step 4: Overlay user content in bounded regions (fills the holes)
-        this.contentSlotRenderer.renderUserContent(pageData.contentSlots, this.contentData);
-        console.log('✅ User content overlaid');
+        console.log('✅ Grid rendered with user content');
 
         // ========== FORM GENERATION ==========
 
-        // Generate form for this page's content slots
-        const pageSlotsData = {
-            pageName: pageData.pageName,
-            slots: pageData.contentSlots || []
-        };
-        this.formGenerator.generateForm(pageSlotsData, (slotId, value) => {
-            this.handleContentUpdate(slotId, value);
-        });
+        // Generate form from editable cells
+        this.generateFormForEditableCells(editableCells);
 
-        // ✅ Phase 1C: PRE-POPULATE form with saved data
-        this.prePopulateForm(pageData.contentSlots);
+        // Pre-populate form with saved data
+        this.prePopulateFormFromCells(editableCells);
 
         console.log('✅ Page rendered');
     }
 
     /**
-     * Hide cells that have content slots with user data
+     * ✅ NEW: Apply user content directly to cell
+     * Updates cell properties with user-provided content
+     * @param {GridCell} cell - Cell to update
+     * @param {string} userData - User-provided content (text or media URL)
+     */
+    applyUserContentToCell(cell, userData) {
+        // Determine cell type and apply content appropriately
+        // ✅ Check cell.type (not instanceof which doesn't work)
+        if (cell.type === 'main-text') {
+            // Main text cell - update text
+            cell.setText(userData);
+        } else if (cell.type === 'content') {
+            // Content cell - check content type
+            if (cell.contentType === 'text' || (cell.content && cell.content.text !== undefined)) {
+                // Text content - update text property
+                if (!cell.content) {
+                    cell.setContentType('text');
+                }
+                cell.content.text = userData;
+            } else if (cell.contentType === 'media' || (cell.content && cell.content.media !== undefined)) {
+                // Media content - load image or video
+                if (!cell.content) {
+                    cell.setContentType('media');
+                }
+
+                // ✅ PRESERVE existing cell content properties (fillMode, scale, padding, position)
+                // These come from the original designer cell and control how media fills/crops
+                const existingFillMode = cell.content.fillMode;
+                const existingScale = cell.content.scale;
+                const existingPadding = cell.content.padding;
+                const existingPositionH = cell.content.positionH;
+                const existingPositionV = cell.content.positionV;
+
+                // Apply fitMode from slotConfig if available (overrides existing)
+                // Mapping: 'cover' -> 'fill', 'free' -> 'fit'
+                let fillMode = existingFillMode || 'fill'; // Default to fill (crop to fit)
+                if (cell.slotConfig?.constraints?.fitMode) {
+                    fillMode = cell.slotConfig.constraints.fitMode === 'cover' ? 'fill' : 'fit';
+                }
+
+                // Update media URL
+                cell.content.mediaUrl = userData;
+
+                // Detect media type from URL (both data URLs and regular URLs)
+                const isVideo = userData && (
+                    userData.includes('data:video/') || 
+                    userData.includes('.mp4') || 
+                    userData.includes('.webm')
+                );
+
+                if (isVideo) {
+                    // Load video
+                    const video = document.createElement('video');
+                    video.src = userData;
+                    video.preload = 'metadata';
+                    video.crossOrigin = 'anonymous';
+                    video.autoplay = true;
+                    video.loop = true;
+                    video.muted = true;
+                    video.controls = false;
+
+                    video.addEventListener('loadedmetadata', () => {
+                        cell.content.media = video;
+                        cell.content.mediaType = 'video';
+                        // ✅ Restore/apply content properties
+                        cell.content.fillMode = fillMode;
+                        cell.content.scale = existingScale !== undefined ? existingScale : 1.0;
+                        cell.content.padding = existingPadding !== undefined ? existingPadding : 0; // No padding for fill/crop
+                        cell.content.positionH = existingPositionH || 'center';
+                        cell.content.positionV = existingPositionV || 'middle';
+                        
+                        // Play video
+                        video.play().catch(err => {
+                            console.warn('⚠️ Autoplay prevented, video will play when visible:', err);
+                        });
+                        
+                        this.app.render();
+                    });
+
+                    video.addEventListener('error', (e) => {
+                        console.error('❌ Failed to load video:', userData, e);
+                    });
+                } else {
+                    // Load image (including GIF)
+                    const img = new Image();
+                    img.crossOrigin = 'anonymous';
+
+                    img.onload = () => {
+                        cell.content.media = img;
+                        cell.content.mediaType = 'image';
+                        // ✅ Restore/apply content properties
+                        cell.content.fillMode = fillMode;
+                        cell.content.scale = existingScale !== undefined ? existingScale : 1.0;
+                        cell.content.padding = existingPadding !== undefined ? existingPadding : 0; // No padding for fill/crop
+                        cell.content.positionH = existingPositionH || 'center';
+                        cell.content.positionV = existingPositionV || 'middle';
+                        this.app.render();
+                    };
+
+                    img.onerror = (e) => {
+                        console.error('❌ Failed to load image:', userData, e);
+                    };
+
+                    img.src = userData;
+                }
+            }
+        }
+    }
+
+    /**
+     * ✅ NEW: Generate form from editable cells
+     * Converts cell-based editable slots to form fields
+     * @param {Array} editableCells - Array of cells with editable=true
+     */
+    generateFormForEditableCells(editableCells) {
+        // Convert cells to slot format expected by FormGenerator
+        const slots = editableCells.map(cell => {
+            // Determine slot type from cell
+            let slotType = 'text';
+            // ✅ Check cell.type (not instanceof which doesn't work)
+            if (cell.type === 'content') {
+                if (cell.contentType === 'media' || (cell.content && cell.content.media !== undefined)) {
+                    slotType = 'image';
+                }
+            }
+
+            return {
+                slotId: cell.slotId,
+                type: slotType,
+                fieldLabel: cell.slotConfig?.fieldLabel || `Cell ${cell.id}`,
+                fieldDescription: cell.slotConfig?.fieldDescription || '',
+                placeholder: cell.slotConfig?.placeholder || `Enter ${slotType}...`,
+                hint: cell.slotConfig?.hint || '',
+                constraints: cell.slotConfig?.constraints || {}
+            };
+        });
+
+        const pageSlotsData = {
+            pageName: this.loadedPages[this.currentPageIndex]?.pageName || 'Page',
+            slots: slots
+        };
+
+        this.formGenerator.generateForm(pageSlotsData, (slotId, value) => {
+            this.handleContentUpdate(slotId, value);
+        });
+    }
+
+    /**
+     * ✅ NEW: Pre-populate form from editable cells
+     * @param {Array} editableCells - Array of cells with editable=true
+     */
+    prePopulateFormFromCells(editableCells) {
+        const valuesToSet = {};
+
+        editableCells.forEach(cell => {
+            const slotId = cell.slotId;
+
+            // Priority 1: Use saved user data from localStorage/contentData
+            if (this.contentData[slotId] !== undefined && this.contentData[slotId] !== null && this.contentData[slotId] !== '') {
+                valuesToSet[slotId] = this.contentData[slotId];
+                console.log(`📝 Pre-populating ${slotId} with saved data`);
+            }
+            // Priority 2: Use actual cell content from preset
+            else {
+                let cellContent = null;
+                
+                // For text cells (MainTextCell)
+                if (cell.type === 'main-text' && cell.text) {
+                    cellContent = cell.text;
+                }
+                // For content cells with text content
+                else if (cell.type === 'content' && cell.contentType === 'text' && cell.content?.text) {
+                    cellContent = cell.content.text;
+                }
+                // For content cells with media content
+                else if (cell.type === 'content' && cell.contentType === 'media' && cell.content?.imageURL) {
+                    cellContent = cell.content.imageURL;
+                }
+                
+                if (cellContent) {
+                    valuesToSet[slotId] = cellContent;
+                    console.log(`📝 Pre-populating ${slotId} with cell content`);
+                }
+                // Priority 3: Fallback to slotConfig.defaultContent if no cell content
+                else if (cell.slotConfig?.defaultContent) {
+                    valuesToSet[slotId] = cell.slotConfig.defaultContent;
+                    console.log(`📝 Pre-populating ${slotId} with default content`);
+                }
+            }
+        });
+
+        // Apply values to form
+        if (Object.keys(valuesToSet).length > 0) {
+            this.formGenerator.setValues(valuesToSet);
+            console.log(`✅ Pre-populated ${Object.keys(valuesToSet).length} field(s)`);
+        }
+    }
+
+    /**
+     * LEGACY: Hide cells that have content slots with user data
      * This creates "holes" in the designer layout where user content will be overlaid
      * @param {Array} contentSlots - Array of content slot definitions
+     * @deprecated Use applyUserContentToCell() instead
      */
     hideFilledContentSlots(contentSlots) {
         if (!contentSlots || !this.app.grid) {
@@ -521,18 +769,15 @@ class EndUserController {
 
     /**
      * Handle content update from form
-     * ✅ Phase 1A & 1B: Auto-save + Debounced rendering
+     * Stores content in memory and re-renders canvas (NOT saved to localStorage)
      */
     handleContentUpdate(slotId, value) {
         console.log(`📝 Content update: ${slotId}`, value);
 
-        // Store content data
+        // Store content data in memory (will be lost on page reload)
         this.contentData[slotId] = value;
 
-        // ✅ Phase 1A: AUTO-SAVE to localStorage
-        this.saveContentDataToLocalStorage();
-
-        // ✅ Phase 1B: Re-render canvas with DEBOUNCE (300ms)
+        // Re-render canvas with DEBOUNCE (300ms)
         this.debouncedRender();
     }
 
@@ -614,6 +859,7 @@ class EndUserController {
 
     /**
      * Export all pages as PNG images
+     * ✅ NEW: Uses cell-based rendering
      */
     async exportAllPages() {
         try {
@@ -626,21 +872,24 @@ class EndUserController {
             for (let i = 0; i < this.loadedPages.length; i++) {
                 console.log(`📥 Exporting page ${i + 1}/${this.loadedPages.length}...`);
 
-                // Render page using hide-then-overlay approach
                 this.currentPageIndex = i;
                 const pageData = this.loadedPages[i];
 
                 // Load page into app
                 await this.app.presetManager.deserializeState(pageData);
 
-                // Hide filled content slots
-                this.hideFilledContentSlots(pageData.contentSlots);
+                // Apply user content to editable cells
+                const allCells = this.app.grid.getAllCells();
+                const editableCells = allCells.filter(cell => cell.editable);
+                editableCells.forEach(cell => {
+                    const userData = this.contentData[cell.slotId];
+                    if (userData) {
+                        this.applyUserContentToCell(cell, userData);
+                    }
+                });
 
-                // Render designer layout
+                // Render grid normally
                 this.app.render();
-
-                // Overlay user content
-                this.contentSlotRenderer.renderUserContent(pageData.contentSlots, this.contentData);
 
                 // Wait for render to complete
                 await new Promise(resolve => setTimeout(resolve, 500));
@@ -690,29 +939,32 @@ class EndUserController {
     }
 
     /**
-     * Clear all saved content data (for debugging)
+     * Clear all saved content data and reset to designer defaults
+     * This performs a hard reset:
+     * - Clears all user-provided content
+     * - Clears localStorage
+     * - Resets form to designer preset values
+     * - Reloads canvas with original preset data
      */
-    clearContentData() {
+    async clearContentData() {
+        // Clear content data
         this.contentData = {};
         localStorage.removeItem(this.localStorageKey);
         console.log('🗑️ Cleared all content data and localStorage');
 
-        // Clear all form inputs
-        const textInputs = document.querySelectorAll('.slot-input-text');
-        textInputs.forEach(input => {
-            input.value = '';
-        });
-
-        const textareas = document.querySelectorAll('.slot-input-textarea');
-        textareas.forEach(textarea => {
-            textarea.value = '';
-        });
-
-        console.log('🗑️ Cleared all form inputs');
-
-        // Re-render current page
+        // Re-render current page to restore designer defaults
+        // This will automatically populate form with defaultContent from cells
         if (this.loadedPages.length > 0) {
-            this.debouncedRender();
+            await this.renderCurrentPage();
+            console.log('✅ Reset to designer preset defaults');
         }
+    }
+
+    /**
+     * Hard reset on page reload
+     * Call this on initialization to clear any saved state and start fresh
+     */
+    async resetToPresetDefaults() {
+        await this.clearContentData();
     }
 }

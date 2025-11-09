@@ -452,32 +452,79 @@ class ContentSlotConfigPanel {
 
         // Get configuration
         const config = this._getConfiguration();
+        
+        // 🔍 DEBUG: Log what we're reading from the form
+        console.log('🔍 DEBUG _getConfiguration result:', {
+            fieldLabel: config.fieldLabel,
+            fieldDescription: config.fieldDescription,
+            fieldName: config.fieldName,
+            constraints: config.constraints
+        });
 
         try {
-            // Create content slot
-            const slot = this.contentSlotManager.createSlotFromCell(this.currentCell, config);
+            // ✅ NEW APPROACH: Store editable slot data directly in cell
 
-            // Add to manager
-            this.contentSlotManager.addSlot(slot);
+            // Determine slot type
+            const slotType = this.contentSlotManager._determineSlotType(this.currentCell);
 
-            console.log('✅ Content slot created:', slot);
+            // Generate unique slot ID
+            const slotId = `${this.currentCell.id || this.currentCell.contentId}-slot`;
 
-            // Call save callback with slot BEFORE hiding (hide() clears callbacks!)
-            console.log('🔍 Checking callback:', typeof this.onSaveCallback);
+            // Mark cell as editable
+            this.currentCell.editable = true;
+            this.currentCell.slotId = slotId;
+
+            // Build slot configuration and store in cell
+            console.log('🔍 DEBUG: Setting slotConfig with fieldLabel:', config.fieldLabel);
+            console.log('🔍 DEBUG: Cell object:', this.currentCell);
+            console.log('🔍 DEBUG: Cell ID:', this.currentCell.id);
+            console.log('🔍 DEBUG: Cell slotId:', this.currentCell.slotId);
+            this.currentCell.slotConfig = {
+                // Form metadata
+                fieldLabel: config.fieldLabel,
+                fieldDescription: config.fieldDescription || '',
+                required: config.required !== undefined ? config.required : false,
+
+                // TIGHT bounding box (calculated from actual content, in export coordinates)
+                boundingBox: this.contentSlotManager.captureBoundingBox(this.currentCell),
+
+                // Type-specific constraints
+                constraints: this.contentSlotManager.buildConstraints(this.currentCell, slotType, config.constraints),
+
+                // Locked styling
+                styling: this.contentSlotManager.extractStyling(this.currentCell, slotType),
+
+                // Default content
+                defaultContent: this.contentSlotManager.extractContent(this.currentCell, slotType)
+            };
+
+            console.log('✅ Cell marked as editable:', {
+                cellId: this.currentCell.id,
+                slotId: slotId,
+                type: slotType,
+                boundingBox: this.currentCell.slotConfig.boundingBox,
+                fieldLabel: this.currentCell.slotConfig.fieldLabel,  // 🔍 Confirm what was set
+                fieldDescription: this.currentCell.slotConfig.fieldDescription  // 🔍 Confirm what was set
+            });
+
+            // BACKWARDS COMPATIBILITY: Also create legacy content slot for existing code
+            // TODO: Remove this once all code is migrated to use cell.slotConfig
+            const legacySlot = this.contentSlotManager.createSlotFromCell(this.currentCell, config);
+            this.contentSlotManager.addSlot(legacySlot);
+
+            // Call save callback with legacy slot BEFORE hiding (hide() clears callbacks!)
             if (this.onSaveCallback) {
                 console.log('📞 Calling onSaveCallback...');
-                this.onSaveCallback(slot);
+                this.onSaveCallback(legacySlot);
                 console.log('✅ onSaveCallback completed');
-            } else {
-                console.warn('⚠️ No onSaveCallback registered!');
             }
 
             // Hide panel (this clears callbacks)
             this.hide();
 
         } catch (error) {
-            console.error('❌ Failed to create content slot:', error);
-            alert(`Failed to create content slot: ${error.message}`);
+            console.error('❌ Failed to configure editable cell:', error);
+            alert(`Failed to configure editable cell: ${error.message}`);
         }
     }
 }

@@ -169,6 +169,7 @@ class BackgroundManager {
     clearBackgroundImage() {
         this.backgroundImage = null;
         this.backgroundImageDataURL = null;
+        this.backgroundImageURL = null;  // ✅ Also clear the URL to prevent it from being saved
     }
     
     /**
