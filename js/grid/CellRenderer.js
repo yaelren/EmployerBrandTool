@@ -40,18 +40,17 @@ class CellRenderer {
 
     /**
      * ✅ NEW: Get rendering bounds for cell
-     * Returns tight boundingBox for editable cells with user content, otherwise cell.bounds
+     * Returns tight boundingBox for editable cells, otherwise cell.bounds
      * @param {GridCell} cell - Cell to get bounds for
      * @param {HTMLCanvasElement} canvas - Canvas element
-     * @param {boolean} hasUserContent - Whether cell has user-provided content
+     * @param {boolean} isEditableCell - Whether this is an editable cell
      * @returns {Object} Bounds to use for rendering {x, y, width, height}
      */
-    static getRenderBounds(cell, canvas, hasUserContent = false) {
-        // For editable cells with user content, use tight boundingBox if available
-        if (cell.editable && cell.slotConfig?.boundingBox && hasUserContent) {
+    static getRenderBounds(cell, canvas, isEditableCell = false) {
+        // For editable cells, use tight boundingBox if available
+        if (isEditableCell) {
             const tightBounds = this.scaleExportToDisplay(cell.slotConfig.boundingBox, canvas);
             if (tightBounds) {
-                console.log(`📏 Using tight bounds for editable cell ${cell.id}:`, tightBounds);
                 return tightBounds;
             }
         }
@@ -95,22 +94,54 @@ class CellRenderer {
      */
     static renderTextCell(ctx, cell, options) {
 
-        // ✅ NEW: Determine if cell has user content (for editable cells)
-        const hasUserContent = cell.editable && cell.text &&
-            cell.text !== cell.slotConfig?.defaultContent;
+        // ✅ NEW: Check if this is an editable cell that should use tight bounds
+        const isEditableCell = cell.editable && cell.slotConfig?.boundingBox;
 
-        // ✅ NEW: Get rendering bounds (tight bounds for editable cells with user content)
-        const renderBounds = this.getRenderBounds(cell, ctx.canvas, hasUserContent);
+        // ✅ NEW: Get rendering bounds (tight bounds for editable cells)
+        const renderBounds = this.getRenderBounds(cell, ctx.canvas, isEditableCell);
 
-        ctx.font = cell.getFontString();
+        // ✅ FIX: For editable cells, calculate optimal single-line font size
+        if (isEditableCell) {
+            // Get constraints from slotConfig
+            const constraints = cell.slotConfig.constraints || {};
+            const minFontSize = constraints.minFontSize || 8;
+            const maxFontSize = constraints.maxFontSize || 120;
+
+            // Calculate optimal font size for single-line text within bounds
+            let optimalFontSize = minFontSize;
+            const availableWidth = renderBounds.width;
+
+            // Binary search for optimal font size
+            let testFontSize = maxFontSize;
+            while (testFontSize >= minFontSize) {
+                ctx.font = `${testFontSize}px ${cell.textComponent.fontFamily}`;
+                const metrics = ctx.measureText(cell.text);
+
+                if (metrics.width <= availableWidth) {
+                    optimalFontSize = testFontSize;
+                    break;
+                }
+
+                testFontSize -= 2; // Step down by 2px
+            }
+
+            // Update the cell's font size and set context font
+            cell.textComponent.fontSize = optimalFontSize;
+            ctx.font = `${optimalFontSize}px ${cell.textComponent.fontFamily}`;
+        } else {
+            // Non-editable cells: use normal font
+            ctx.font = cell.getFontString();
+        }
+
+        // Common rendering code for all cells
         ctx.fillStyle = cell.textComponent.color;
         const alignment = cell.getAlignment();
         ctx.textAlign = alignment;
         ctx.textBaseline = 'alphabetic'; // Use baseline alignment like main branch
 
-        // ✅ UPDATED: Calculate text position using renderBounds (may be tight bounds)
+        // Single line text rendering (for non-editable cells)
         const positioning = TextPositioning.getTextPositioning(
-            renderBounds,  // Changed from cell.bounds
+            renderBounds,
             cell.textComponent,
             cell.text,
             alignment,
@@ -490,12 +521,31 @@ class CellRenderer {
     static syncTextComponent(cell) {
         if (!cell.textComponent) return;
 
-        // Set container bounds
+        // ✅ FIX: For editable cells with user content, use tight boundingBox from slotConfig
+        const hasUserContent = cell.editable && cell.content.text &&
+            cell.content.text !== cell.slotConfig?.defaultContent;
+
+        let containerBounds = cell.bounds;
+
+        if (hasUserContent && cell.slotConfig?.boundingBox) {
+            // Get canvas from window context (available during rendering)
+            const canvas = document.getElementById('chatooly-canvas');
+            if (canvas) {
+                // Scale tight bounds from export to display coordinates
+                const tightBounds = this.scaleExportToDisplay(cell.slotConfig.boundingBox, canvas);
+                if (tightBounds) {
+                    containerBounds = tightBounds;
+                    console.log(`📏 Using tight bounds for editable cell ${cell.id}:`, tightBounds);
+                }
+            }
+        }
+
+        // Set container bounds (tight bounds for editable cells, regular bounds otherwise)
         cell.textComponent.setContainer(
-            cell.bounds.x,
-            cell.bounds.y,
-            cell.bounds.width,
-            cell.bounds.height
+            containerBounds.x,
+            containerBounds.y,
+            containerBounds.width,
+            containerBounds.height
         );
 
         // Set text content
@@ -518,6 +568,17 @@ class CellRenderer {
         // Set padding
         const padding = cell.content.padding || 1;
         cell.textComponent.setPadding(padding);
+
+        // ✅ FIX: For editable cells, respect min/max font constraints from slotConfig
+        if (hasUserContent && cell.slotConfig?.constraints) {
+            const constraints = cell.slotConfig.constraints;
+
+            // Store min/max constraints in textComponent for auto-sizing
+            cell.textComponent.minFontSize = constraints.minFontSize || 8;
+            cell.textComponent.maxFontSize = constraints.maxFontSize || 120;
+
+            console.log(`🎯 Applied font constraints for cell ${cell.id}: min=${cell.textComponent.minFontSize}, max=${cell.textComponent.maxFontSize}`);
+        }
 
         // Set font size
         cell.textComponent.fontSize = cell.content.fontSize || 'auto';

@@ -767,22 +767,25 @@ class TextComponent {
         const availableWidth = this.getAvailableWidth();
         // For font size calculation, always use full container height, not typography-aware height
         const availableHeight = this.containerHeight - this.paddingTop - this.paddingBottom;
-        
+
         if (availableWidth <= 0 || availableHeight <= 0) {
             this._cachedFontSize = 12;
             return this._cachedFontSize;
         }
-        
-        let testFontSize = Math.min(availableHeight, 120);
-        const minFontSize = 8;
+
+        // ✅ FIX: Respect min/max font size constraints (for editable cells)
+        const minFontSize = this.minFontSize || 8;
+        const maxFontSize = this.maxFontSize || 120;
+
+        let testFontSize = Math.min(availableHeight, maxFontSize);
         const step = 2;
-        
+
         while (testFontSize >= minFontSize) {
             ctx.font = this.getFontString(testFontSize);
             const lines = this.wrapTextToLines(ctx, this.text, availableWidth, testFontSize);
-            
+
             const totalHeight = lines.length * testFontSize + (lines.length - 1) * this.lineSpacing;
-            
+
             if (totalHeight <= availableHeight) {
                 // Check if all lines fit width
                 let allFit = true;
@@ -793,17 +796,17 @@ class TextComponent {
                         break;
                     }
                 }
-                
+
                 if (allFit) {
                     this._cachedFontSize = testFontSize;
                     this._cachedLines = lines;
                     return testFontSize;
                 }
             }
-            
+
             testFontSize -= step;
         }
-        
+
         this._cachedFontSize = minFontSize;
         return minFontSize;
     }
