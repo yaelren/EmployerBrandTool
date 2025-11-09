@@ -1232,9 +1232,24 @@ class SavePagePanel {
         // console.log('📍 currentEditingSlotIndex:', this.currentEditingSlotIndex);
         // console.log('📦 newSlotData exists:', !!this.newSlotData);
 
-        // Get form values
-        const fieldLabel = this.container.querySelector('#inline-field-label')?.value;
-        const fieldDescription = this.container.querySelector('#inline-field-description')?.value;
+        // Get form values from the CURRENTLY EDITING slot's content section
+        // 🔧 FIX: Read from specific slot's content section, not first match in container
+        let contentSection = null;
+        if (this.currentEditingSlotIndex !== null && this.currentEditingSlotIndex !== -1) {
+            contentSection = this.container.querySelector(`.inline-slot-item:nth-child(${this.currentEditingSlotIndex + 1}) .inline-content-section`);
+        } else if (this.currentEditingSlotIndex === -1 && this.newSlotData) {
+            // For new slots, read from the last inline content section
+            const allSections = this.container.querySelectorAll('.inline-content-section');
+            contentSection = allSections[allSections.length - 1];
+        }
+        
+        // Fallback to container-level query if we can't find specific section
+        if (!contentSection) {
+            contentSection = this.container;
+        }
+        
+        const fieldLabel = contentSection.querySelector('#inline-field-label')?.value;
+        const fieldDescription = contentSection.querySelector('#inline-field-description')?.value;
         
         // Auto-generate fieldName from fieldLabel
         const fieldName = this._generateFieldId(fieldLabel);
@@ -1265,15 +1280,15 @@ class SavePagePanel {
 
             // Update type-specific constraints
             if (slot.type === 'text') {
-                const maxChars = this.container.querySelector('#inline-max-chars')?.value;
-                const minFont = this.container.querySelector('#inline-min-font')?.value;
-                const maxFont = this.container.querySelector('#inline-max-font')?.value;
+                const maxChars = contentSection.querySelector('#inline-max-chars')?.value;
+                const minFont = contentSection.querySelector('#inline-min-font')?.value;
+                const maxFont = contentSection.querySelector('#inline-max-font')?.value;
                 if (!slot.constraints) slot.constraints = {};
                 slot.constraints.maxCharacters = parseInt(maxChars) || 100;
                 slot.constraints.minFontSize = parseInt(minFont) || 50;
                 slot.constraints.maxFontSize = parseInt(maxFont) || 100;
             } else if (slot.type === 'image' || slot.type === 'media') {
-                const fitMode = this.container.querySelector('#inline-fit-mode')?.value;
+                const fitMode = contentSection.querySelector('#inline-fit-mode')?.value;
                 if (!slot.constraints) slot.constraints = {};
                 slot.constraints.fitMode = fitMode || 'cover';
             }
@@ -1343,15 +1358,15 @@ class SavePagePanel {
 
             // Update type-specific constraints
             if (slot.type === 'text') {
-                const maxChars = this.container.querySelector('#inline-max-chars')?.value;
-                const minFont = this.container.querySelector('#inline-min-font')?.value;
-                const maxFont = this.container.querySelector('#inline-max-font')?.value;
+                const maxChars = contentSection.querySelector('#inline-max-chars')?.value;
+                const minFont = contentSection.querySelector('#inline-min-font')?.value;
+                const maxFont = contentSection.querySelector('#inline-max-font')?.value;
                 if (!slot.constraints) slot.constraints = {};
                 slot.constraints.maxCharacters = parseInt(maxChars) || 100;
                 slot.constraints.minFontSize = parseInt(minFont) || 50;
                 slot.constraints.maxFontSize = parseInt(maxFont) || 100;
             } else if (slot.type === 'image' || slot.type === 'media') {
-                const fitMode = this.container.querySelector('#inline-fit-mode')?.value;
+                const fitMode = contentSection.querySelector('#inline-fit-mode')?.value;
                 if (!slot.constraints) slot.constraints = {};
                 slot.constraints.fitMode = fitMode || 'cover';
             }
