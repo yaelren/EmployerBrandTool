@@ -576,13 +576,13 @@ class UIManager {
             });
         }
 
-        // Background space (canvas vs padding)
-        const spaceRadios = document.querySelectorAll('input[name="backgroundSpace"]');
-        spaceRadios.forEach(radio => {
-            radio.addEventListener('change', () => {
+        // Background space (canvas vs padding) - Toggle switch
+        const paddingToggle = document.getElementById('backgroundPaddingToggle');
+        if (paddingToggle) {
+            paddingToggle.addEventListener('change', () => {
                 this.updateBackgroundMode();
             });
-        });
+        }
 
         // Background fill mode
         if (this.elements.backgroundFillMode) {
@@ -590,6 +590,9 @@ class UIManager {
                 this.updateBackgroundMode();
             });
         }
+
+        // Initialize background mode on page load
+        this.updateBackgroundMode();
 
         // Font size changes
         this.elements.fontSize.addEventListener('input', () => {
@@ -2243,8 +2246,9 @@ class UIManager {
      * Update background mode based on space and fill mode selections
      */
     updateBackgroundMode() {
-        const spaceRadios = document.querySelectorAll('input[name="backgroundSpace"]');
-        const selectedSpace = Array.from(spaceRadios).find(radio => radio.checked)?.value || 'canvas';
+        // Get space mode from toggle (checked = padding, unchecked = canvas)
+        const paddingToggle = document.getElementById('backgroundPaddingToggle');
+        const selectedSpace = (paddingToggle && paddingToggle.checked) ? 'padding' : 'canvas';
         const fillMode = this.elements.backgroundFillMode?.value || 'stretch';
         
         // Combine space and fill mode into single mode string
