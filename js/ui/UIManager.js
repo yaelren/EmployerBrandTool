@@ -579,7 +579,10 @@ class UIManager {
         // Background space (canvas vs padding) - Toggle switch
         const paddingToggle = document.getElementById('backgroundPaddingToggle');
         if (paddingToggle) {
-            paddingToggle.addEventListener('change', () => {
+            paddingToggle.addEventListener('click', () => {
+                // Toggle aria-pressed state
+                const isPressed = paddingToggle.getAttribute('aria-pressed') === 'true';
+                paddingToggle.setAttribute('aria-pressed', !isPressed);
                 this.updateBackgroundMode();
             });
         }
@@ -2246,9 +2249,9 @@ class UIManager {
      * Update background mode based on space and fill mode selections
      */
     updateBackgroundMode() {
-        // Get space mode from toggle (checked = padding, unchecked = canvas)
+        // Get space mode from toggle (aria-pressed="true" = padding, aria-pressed="false" = canvas)
         const paddingToggle = document.getElementById('backgroundPaddingToggle');
-        const selectedSpace = (paddingToggle && paddingToggle.checked) ? 'padding' : 'canvas';
+        const selectedSpace = (paddingToggle && paddingToggle.getAttribute('aria-pressed') === 'true') ? 'padding' : 'canvas';
         const fillMode = this.elements.backgroundFillMode?.value || 'stretch';
         
         // Combine space and fill mode into single mode string

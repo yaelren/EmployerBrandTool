@@ -19,10 +19,36 @@ class GridCell {
         this.animation = null;          // CellAnimation instance or null
         this.currentOffset = { x: 0, y: 0 }; // Visual rendering offset (non-destructive)
 
-        // Layer system (NEW)
+        // Layer system
         this.layerId = 'behind-main-text'; // Default layer assignment
         this.layerOrder = 0; // Order within layer (for future use)
         this.layerManager = null; // Reference to LayerManager (injected later)
+
+        // Editable slot properties (for end-user interface)
+        // When designer marks this cell as editable, these properties are populated
+        this.editable = false;               // Is this cell editable by end-users?
+        this.slotId = null;                  // Unique slot ID (e.g., "page1-title")
+        this.slotConfig = null;              // Slot configuration object (see below)
+
+        /**
+         * slotConfig structure (populated when cell is marked editable):
+         * {
+         *     fieldLabel: string,          // Form field label (e.g., "Hero Headline")
+         *     fieldDescription: string,    // Form field description
+         *     required: boolean,           // Whether field is required
+         *
+         *     boundingBox: {               // TIGHT content bounds in EXPORT coordinates
+         *         x: number,               // (NOT cell.bounds - calculated from actual content)
+         *         y: number,
+         *         width: number,
+         *         height: number
+         *     },
+         *
+         *     constraints: {},             // TextSlotConstraints or ImageSlotConstraints
+         *     styling: {},                 // Locked styling properties
+         *     defaultContent: string       // Default text or image URL
+         * }
+         */
     }
 
     /**
@@ -178,7 +204,12 @@ class GridCell {
                 intensity: this.animation.intensity,
                 speed: this.animation.speed,
                 isPlaying: this.animation.isPlaying
-            } : null
+            } : null,
+
+            // Editable slot properties
+            editable: this.editable,
+            slotId: this.slotId,
+            slotConfig: this.slotConfig
         };
     }
 
@@ -193,7 +224,7 @@ class GridCell {
         cell.type = data.type;
         cell.bounds = data.bounds;
         cell.originalBounds = data.originalBounds;
-        
+
         // Restore layer information
         cell.layerId = data.layerId || 'behind-main-text';
         cell.layerOrder = data.layerOrder || 0;
@@ -209,6 +240,11 @@ class GridCell {
                 cell.animation.play();
             }
         }
+
+        // Restore editable slot properties
+        cell.editable = data.editable || false;
+        cell.slotId = data.slotId || null;
+        cell.slotConfig = data.slotConfig || null;
 
         return cell;
     }
