@@ -3630,6 +3630,23 @@ select option {
 
 .background-upload-group .chatooly-upload-area {
     height: 80px;
+    position: relative;
+}
+
+.background-media-thumbnail {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: 8px;
+    z-index: 1;
+}
+
+.chatooly-upload-area.has-media .chatooly-upload-icon,
+.chatooly-upload-area.has-media .chatooly-upload-text {
+    display: none;
 }
 
 /* Select group */

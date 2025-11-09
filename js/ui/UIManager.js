@@ -2346,6 +2346,7 @@ class UIManager {
                 this.app.canvasManager.setBackgroundGif(selectedFile.fileUrl, () => {
                     this.elements.clearBackgroundMedia.style.display = 'inline-block';
                     this.elements.backgroundVideoControls.style.display = 'none';
+                    this.updateBackgroundThumbnail(selectedFile.fileUrl);
                     this.app.render();
 
                     // Start animation loop for GIF frame updates
@@ -2361,6 +2362,7 @@ class UIManager {
                     this.app.canvasManager.setBackgroundImage(img);
                     this.elements.clearBackgroundMedia.style.display = 'inline-block';
                     this.elements.backgroundVideoControls.style.display = 'none';
+                    this.updateBackgroundThumbnail(selectedFile.fileUrl);
                     this.app.render();
                     console.log('✅ Background image set from Media Manager');
                 };
@@ -2388,6 +2390,7 @@ class UIManager {
                     this.app.setBackgroundVideo(video);
                     this.elements.clearBackgroundMedia.style.display = 'inline-block';
                     this.elements.backgroundVideoControls.style.display = 'flex';
+                    this.updateBackgroundThumbnail(selectedFile.fileUrl, true);
 
                     // Try to start playback if autoplay is enabled
                     if (this.elements.backgroundVideoAutoplay.checked) {
@@ -2418,12 +2421,38 @@ class UIManager {
     }
 
     /**
+     * Update background media thumbnail display
+     */
+    updateBackgroundThumbnail(url, isVideo = false) {
+        const thumbnail = document.getElementById('backgroundMediaThumbnail');
+        const uploadArea = document.getElementById('browseBackgroundMedia');
+
+        if (url && thumbnail && uploadArea) {
+            // For videos, we'll show the first frame or a video icon
+            // For now, just show the video URL as a thumbnail (browsers will show first frame)
+            thumbnail.src = url;
+            thumbnail.style.display = 'block';
+            uploadArea.classList.add('has-media');
+        }
+    }
+
+    /**
      * Clear background media (image or video)
      */
     clearBackgroundMedia() {
         this.app.canvasManager.clearBackgroundMedia();
         this.elements.clearBackgroundMedia.style.display = 'none';
         this.elements.backgroundVideoControls.style.display = 'none';
+
+        // Clear thumbnail
+        const thumbnail = document.getElementById('backgroundMediaThumbnail');
+        const uploadArea = document.getElementById('browseBackgroundMedia');
+        if (thumbnail && uploadArea) {
+            thumbnail.style.display = 'none';
+            thumbnail.src = '';
+            uploadArea.classList.remove('has-media');
+        }
+
         this.app.render();
     }
 
