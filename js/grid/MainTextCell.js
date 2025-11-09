@@ -206,7 +206,12 @@ class MainTextCell extends GridCell {
                 cell.animation.play();
             }
         }
-        
+
+        // ✅ Restore editable slot properties (unified architecture)
+        cell.editable = data.editable || false;
+        cell.slotId = data.slotId || null;
+        cell.slotConfig = data.slotConfig || null;
+
         return cell;
     }
 }

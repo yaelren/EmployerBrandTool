@@ -69,6 +69,20 @@ class PresetPageManager {
         // This preserves ALL properties that make presets work correctly
         const canvasState = this.presetManager.serializeState('temp');
 
+        // 🔍 DEBUG: Log editable cells before saving
+        if (canvasState.grid?.snapshot?.layout?.cells) {
+            const editableCells = canvasState.grid.snapshot.layout.cells.filter(c => c.editable);
+            console.log(`🔍 DEBUG captureCurrentPage: Found ${editableCells.length} editable cells out of ${canvasState.grid.snapshot.layout.cells.length} total cells`);
+            if (editableCells.length > 0) {
+                console.log('📝 Editable cells:', editableCells.map(c => ({
+                    id: c.id,
+                    slotId: c.slotId,
+                    hasSlotConfig: !!c.slotConfig,
+                    hasBoundingBox: !!c.slotConfig?.boundingBox
+                })));
+            }
+        }
+
         // Build complete page structure by adding multi-page metadata to existing state
         // IMPORTANT: Use canvasState directly to preserve all properties
         const pageData = {
