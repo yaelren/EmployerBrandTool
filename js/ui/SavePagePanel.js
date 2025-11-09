@@ -1359,6 +1359,29 @@ class SavePagePanel {
             // Update in content slot manager
             this.app.presetPageManager.contentSlotManager.updateSlot(slot.slotId, slot);
 
+            // 🔧 FIX: Also update the cell's slotConfig so it gets saved correctly
+            const cell = this._findCellBySlot(slot);
+            if (cell && cell.slotConfig) {
+                cell.slotConfig.fieldLabel = fieldLabel;
+                cell.slotConfig.fieldDescription = fieldDescription;
+                cell.slotConfig.required = true;
+                
+                // Update type-specific constraints in cell.slotConfig
+                if (slot.type === 'text') {
+                    if (!cell.slotConfig.constraints) cell.slotConfig.constraints = {};
+                    cell.slotConfig.constraints.maxCharacters = slot.constraints.maxCharacters;
+                    cell.slotConfig.constraints.minFontSize = slot.constraints.minFontSize;
+                    cell.slotConfig.constraints.maxFontSize = slot.constraints.maxFontSize;
+                } else if (slot.type === 'image' || slot.type === 'media') {
+                    if (!cell.slotConfig.constraints) cell.slotConfig.constraints = {};
+                    cell.slotConfig.constraints.fitMode = slot.constraints.fitMode;
+                }
+                
+                console.log('✅ Updated cell.slotConfig with fieldLabel:', cell.slotConfig.fieldLabel);
+            } else {
+                console.warn('⚠️ Could not find cell for slot:', slot.slotId);
+            }
+
             // console.log('✅ Slot updated:', slot.slotId);
         }
 
@@ -1366,6 +1389,23 @@ class SavePagePanel {
         if (refreshUI) {
             this.updateEditableFieldsList();
         }
+    }
+
+    /**
+     * Find the cell that corresponds to a slot
+     * @param {Object} slot - The slot to find the cell for
+     * @returns {Object|null} - The cell or null if not found
+     */
+    _findCellBySlot(slot) {
+        const grid = this.app.grid;
+        if (!grid) return null;
+        
+        // Find by sourceElement or sourceContentId or slotId
+        return grid.getAllCells().find(cell => 
+            cell.id === slot.sourceElement || 
+            cell.contentId === slot.sourceContentId ||
+            cell.slotId === slot.slotId
+        );
     }
 
     /**

@@ -82,7 +82,8 @@ class FormGenerator {
                 return this.buildTextFieldHTML(slot, fieldId, requiredIndicator);
 
             case 'image':
-                return this.buildImageFieldHTML(slot, fieldId, requiredIndicator);
+            case 'media':
+                return this.buildMediaFieldHTML(slot, fieldId, requiredIndicator);
 
             default:
                 console.warn(`⚠️ Unknown slot type: ${slot.type}`);
@@ -107,6 +108,7 @@ class FormGenerator {
                         ${slot.fieldLabel}
                         ${requiredIndicator}
                     </label>
+                    ${slot.fieldDescription ? `<p class="form-description">${slot.fieldDescription}</p>` : ''}
                     <textarea
                         id="${fieldId}"
                         class="form-textarea"
@@ -128,6 +130,7 @@ class FormGenerator {
                         ${slot.fieldLabel}
                         ${requiredIndicator}
                     </label>
+                    ${slot.fieldDescription ? `<p class="form-description">${slot.fieldDescription}</p>` : ''}
                     <input
                         type="text"
                         id="${fieldId}"
@@ -146,11 +149,11 @@ class FormGenerator {
     }
 
     /**
-     * Build image upload field
+     * Build media upload field (images, videos, GIFs)
      */
-    buildImageFieldHTML(slot, fieldId, requiredIndicator) {
-        const hint = slot.hint || 'Upload an image (JPG, PNG)';
-        const accept = 'image/jpeg,image/png,image/jpg';
+    buildMediaFieldHTML(slot, fieldId, requiredIndicator) {
+        const hint = slot.hint || 'Upload media (JPG, PNG, GIF, MP4, WebM)';
+        const accept = 'image/jpeg,image/png,image/jpg,image/gif,image/webp,video/mp4,video/webm';
 
         return `
             <div class="form-group">
@@ -158,6 +161,7 @@ class FormGenerator {
                     ${slot.fieldLabel}
                     ${requiredIndicator}
                 </label>
+                ${slot.fieldDescription ? `<p class="form-description">${slot.fieldDescription}</p>` : ''}
                 <input
                     type="file"
                     id="${fieldId}"
@@ -175,7 +179,7 @@ class FormGenerator {
                 </button>
                 <span class="form-hint">${hint}</span>
                 <div class="file-preview" id="${fieldId}-preview" style="display: none;">
-                    <img src="" alt="Preview" />
+                    <div class="preview-container" id="${fieldId}-preview-container"></div>
                     <button type="button" class="file-remove" data-field-id="${fieldId}">×</button>
                 </div>
             </div>
@@ -210,8 +214,8 @@ class FormGenerator {
 
             if (slot.type === 'text') {
                 this.attachTextFieldListeners(element, fieldId, slot);
-            } else if (slot.type === 'image') {
-                this.attachImageFieldListeners(element, fieldId, slot);
+            } else if (slot.type === 'image' || slot.type === 'media') {
+                this.attachMediaFieldListeners(element, fieldId, slot);
             }
         });
     }
@@ -262,9 +266,9 @@ class FormGenerator {
     }
 
     /**
-     * Attach listeners for image fields
+     * Attach listeners for media fields (images, videos, GIFs)
      */
-    attachImageFieldListeners(element, fieldId, slot) {
+    attachMediaFieldListeners(element, fieldId, slot) {
         const previewId = `${fieldId}-preview`;
         const preview = document.getElementById(previewId);
 
@@ -275,8 +279,8 @@ class FormGenerator {
             if (!file) return;
 
             // Validate file type
-            if (!file.type.startsWith('image/')) {
-                alert('Please upload an image file (JPG, PNG)');
+            if (!file.type.startsWith('image/') && !file.type.startsWith('video/')) {
+                alert('Please upload a media file (JPG, PNG, GIF, WebP, MP4, WebM)');
                 e.target.value = '';
                 return;
             }
@@ -292,11 +296,36 @@ class FormGenerator {
             // Show preview
             const reader = new FileReader();
             reader.onload = (event) => {
-                const img = preview.querySelector('img');
-                img.src = event.target.result;
+                const previewContainer = document.getElementById(`${fieldId}-preview-container`);
+                const isVideo = file.type.startsWith('video/');
+                
+                // Clear previous preview
+                previewContainer.innerHTML = '';
+                
+                if (isVideo) {
+                    // Create video element
+                    const video = document.createElement('video');
+                    video.src = event.target.result;
+                    video.controls = false;
+                    video.autoplay = true;
+                    video.loop = true;
+                    video.muted = true;
+                    video.style.maxWidth = '100%';
+                    video.style.maxHeight = '200px';
+                    previewContainer.appendChild(video);
+                } else {
+                    // Create image element
+                    const img = document.createElement('img');
+                    img.src = event.target.result;
+                    img.alt = 'Preview';
+                    img.style.maxWidth = '100%';
+                    img.style.maxHeight = '200px';
+                    previewContainer.appendChild(img);
+                }
+                
                 preview.style.display = 'block';
 
-                // Trigger callback with image data URL
+                // Trigger callback with media data URL
                 if (this.onChangeCallback) {
                     this.onChangeCallback(slot.slotId, event.target.result);
                 }
@@ -331,11 +360,11 @@ class FormGenerator {
             const slotId = input.dataset.slotId;
 
             if (input.type === 'file') {
-                // For file inputs, get the preview image src
-                const previewId = `${input.id}-preview`;
-                const preview = document.getElementById(previewId);
-                const img = preview?.querySelector('img');
-                values[slotId] = img?.src || null;
+                // For file inputs, get the preview media src (image or video)
+                const previewContainer = document.getElementById(`${input.id}-preview-container`);
+                const img = previewContainer?.querySelector('img');
+                const video = previewContainer?.querySelector('video');
+                values[slotId] = img?.src || video?.src || null;
             } else {
                 values[slotId] = input.value;
             }
@@ -355,13 +384,40 @@ class FormGenerator {
             if (!input) return;
 
             if (input.type === 'file') {
-                // For file inputs, set preview image
+                // For file inputs, set preview (image or video)
                 if (value) {
                     const previewId = `${input.id}-preview`;
                     const preview = document.getElementById(previewId);
-                    const img = preview?.querySelector('img');
-                    if (img) {
-                        img.src = value;
+                    const previewContainer = document.getElementById(`${input.id}-preview-container`);
+                    
+                    if (previewContainer) {
+                        // Detect media type from data URL
+                        const isVideo = value.includes('data:video/') || value.includes('.mp4') || value.includes('.webm');
+                        
+                        // Clear previous preview
+                        previewContainer.innerHTML = '';
+                        
+                        if (isVideo) {
+                            // Create video element
+                            const video = document.createElement('video');
+                            video.src = value;
+                            video.controls = false;
+                            video.autoplay = true;
+                            video.loop = true;
+                            video.muted = true;
+                            video.style.maxWidth = '100%';
+                            video.style.maxHeight = '200px';
+                            previewContainer.appendChild(video);
+                        } else {
+                            // Create image element
+                            const img = document.createElement('img');
+                            img.src = value;
+                            img.alt = 'Preview';
+                            img.style.maxWidth = '100%';
+                            img.style.maxHeight = '200px';
+                            previewContainer.appendChild(img);
+                        }
+                        
                         preview.style.display = 'block';
                     }
                 }
