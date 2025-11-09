@@ -304,8 +304,8 @@ class GridDetector {
         }
 
         const allCells = gridResult.matrix.flat().filter(cell => cell !== null);
-        const textCells = allCells.filter(cell => cell instanceof MainTextCell);
-        const contentCells = allCells.filter(cell => cell instanceof ContentCell);
+        const textCells = allCells.filter(cell => cell.type === 'main-text');
+        const contentCells = allCells.filter(cell => cell.type === 'content');
 
         const totalCanvasArea = canvas.width * canvas.height;
         const totalTextArea = textCells.reduce((sum, cell) =>

@@ -8,6 +8,59 @@
 
 class CellRenderer {
     /**
+     * ✅ NEW: Scale bounding box from export coordinates to display coordinates
+     * Used for tight bounds constraints on editable cells
+     * @param {Object} exportBounds - Bounding box in export coordinates {x, y, width, height}
+     * @param {HTMLCanvasElement} canvas - Canvas element
+     * @returns {Object} Bounding box in display coordinates
+     */
+    static scaleExportToDisplay(exportBounds, canvas) {
+        if (!exportBounds || !canvas) return null;
+
+        // Get canvas dimensions
+        const displayWidth = canvas.width;
+        const displayHeight = canvas.height;
+
+        // Get export resolution from Chatooly
+        const exportWidth = window.Chatooly?.canvasResizer?.exportWidth || displayWidth;
+        const exportHeight = window.Chatooly?.canvasResizer?.exportHeight || displayHeight;
+
+        // Calculate scale factors (export → display)
+        const scaleX = displayWidth / exportWidth;
+        const scaleY = displayHeight / exportHeight;
+
+        // Scale bounds
+        return {
+            x: exportBounds.x * scaleX,
+            y: exportBounds.y * scaleY,
+            width: exportBounds.width * scaleX,
+            height: exportBounds.height * scaleY
+        };
+    }
+
+    /**
+     * ✅ NEW: Get rendering bounds for cell
+     * Returns tight boundingBox for editable cells with user content, otherwise cell.bounds
+     * @param {GridCell} cell - Cell to get bounds for
+     * @param {HTMLCanvasElement} canvas - Canvas element
+     * @param {boolean} hasUserContent - Whether cell has user-provided content
+     * @returns {Object} Bounds to use for rendering {x, y, width, height}
+     */
+    static getRenderBounds(cell, canvas, hasUserContent = false) {
+        // For editable cells with user content, use tight boundingBox if available
+        if (cell.editable && cell.slotConfig?.boundingBox && hasUserContent) {
+            const tightBounds = this.scaleExportToDisplay(cell.slotConfig.boundingBox, canvas);
+            if (tightBounds) {
+                console.log(`📏 Using tight bounds for editable cell ${cell.id}:`, tightBounds);
+                return tightBounds;
+            }
+        }
+
+        // Default: use cell.bounds (grid cell bounds)
+        return cell.bounds;
+    }
+
+    /**
      * Render any cell type (main entry point)
      * @param {CanvasRenderingContext2D} ctx - Canvas rendering context
      * @param {GridCell} cell - Cell to render
@@ -25,9 +78,9 @@ class CellRenderer {
             return;
         }
 
-        if (cell instanceof MainTextCell) {
+        if (cell.type === 'main-text') {
             this.renderTextCell(ctx, cell, options);
-        } else if (cell instanceof ContentCell) {
+        } else if (cell.type === 'content') {
             this.renderContentCell(ctx, cell, options);
         }
     }
@@ -41,26 +94,33 @@ class CellRenderer {
      * @param {Object} options
      */
     static renderTextCell(ctx, cell, options) {
-        
+
+        // ✅ NEW: Determine if cell has user content (for editable cells)
+        const hasUserContent = cell.editable && cell.text &&
+            cell.text !== cell.slotConfig?.defaultContent;
+
+        // ✅ NEW: Get rendering bounds (tight bounds for editable cells with user content)
+        const renderBounds = this.getRenderBounds(cell, ctx.canvas, hasUserContent);
+
         ctx.font = cell.getFontString();
         ctx.fillStyle = cell.textComponent.color;
         const alignment = cell.getAlignment();
         ctx.textAlign = alignment;
         ctx.textBaseline = 'alphabetic'; // Use baseline alignment like main branch
 
-        // Calculate text position using TextPositioning utility
+        // ✅ UPDATED: Calculate text position using renderBounds (may be tight bounds)
         const positioning = TextPositioning.getTextPositioning(
-            cell.bounds, 
-            cell.textComponent, 
-            cell.text, 
-            alignment, 
+            renderBounds,  // Changed from cell.bounds
+            cell.textComponent,
+            cell.text,
+            alignment,
             cell.textComponent.fontSize
         );
 
         // Draw highlight if enabled
         if (cell.textComponent.highlight) {
             ctx.fillStyle = cell.textComponent.highlightColor;
-            ctx.fillRect(cell.bounds.x, cell.bounds.y, cell.bounds.width, cell.bounds.height);
+            ctx.fillRect(renderBounds.x, renderBounds.y, renderBounds.width, renderBounds.height);
             ctx.fillStyle = cell.textComponent.color;
         }
 
@@ -70,7 +130,7 @@ class CellRenderer {
         // Draw underline if enabled
         if (cell.textComponent.underline) {
             const textWidth = ctx.measureText(cell.text).width;
-            
+
             const underlineX = TextPositioning.calculateUnderlineX(positioning.textX, alignment, textWidth);
 
             ctx.strokeStyle = cell.textComponent.color;
@@ -160,12 +220,20 @@ class CellRenderer {
             return;
         }
 
+        // ✅ NEW: Determine if cell has user content (for editable cells)
+        const hasUserContent = cell.editable && 
+            cell.content.mediaUrl && 
+            cell.content.mediaUrl !== cell.slotConfig?.defaultContent;
+
+        // ✅ NEW: Get rendering bounds (tight bounds for editable cells with user content)
+        const renderBounds = this.getRenderBounds(cell, ctx.canvas, hasUserContent);
+
         // Calculate content area with padding
         const padding = cell.content.padding || 0;
-        const contentX = cell.bounds.x + padding;
-        const contentY = cell.bounds.y + padding;
-        const contentWidth = cell.bounds.width - (padding * 2);
-        const contentHeight = cell.bounds.height - (padding * 2);
+        const contentX = renderBounds.x + padding;
+        const contentY = renderBounds.y + padding;
+        const contentWidth = renderBounds.width - (padding * 2);
+        const contentHeight = renderBounds.height - (padding * 2);
 
         if (contentWidth <= 0 || contentHeight <= 0) return;
 

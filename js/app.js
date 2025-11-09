@@ -1033,12 +1033,12 @@ class EmployerBrandToolPOC {
                 ctx.textBaseline = 'middle';
                 ctx.fillText(cell.id.toString(), center.x, center.y);
             }
-        } else if (cell instanceof ContentCell) {
+        } else if (cell.type === 'content') {
             // Render cell background first (if needed)
             if (cell.renderBackground) {
                 cell.renderBackground(ctx, this.canvasManager.backgroundManager);
             }
-            
+
             const renderOptions = {
                 showOutlines: debugOptions.showSpotOutlines,
                 showNumbers: debugOptions.showSpotNumbers,

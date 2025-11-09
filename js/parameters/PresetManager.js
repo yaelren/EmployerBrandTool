@@ -207,6 +207,19 @@ class PresetManager {
             return { rows: 0, cols: 0, minCellSize: 50, snapshot: null };
         }
 
+        // 🔍 DEBUG: Check editable cells in grid before serialization
+        const allCells = this.app.grid.getAllCells();
+        const editableCells = allCells.filter(c => c.editable);
+        console.log(`🔍 DEBUG serializeGridState: Grid has ${editableCells.length} editable cells out of ${allCells.length} total`);
+        if (editableCells.length > 0) {
+            console.log('📝 Editable cells in grid:', editableCells.map(c => ({
+                id: c.id,
+                contentId: c.contentId,
+                slotId: c.slotId,
+                hasSlotConfig: !!c.slotConfig
+            })));
+        }
+
         // Use existing Grid.serialize() method
         const gridSnapshot = this.app.grid.serialize();
 
@@ -439,9 +452,15 @@ class PresetManager {
                            ' w=' + b.width.toFixed(2) + ' h=' + b.height.toFixed(2));
             }
 
-            // Rebuild grid from scratch (uses fresh textEngine data)
+            // ✅ FIXED: Only rebuild grid if it wasn't deserialized from snapshot
+            // If grid was deserialized, it already has all cell properties (including editable)
+            // Rebuilding destroys editable cell properties!
+            const wasDeserialized = stateData.grid?.snapshot?.layout?.cells;
             console.log('🔄 LOAD: Building grid from textEngine...');
-            if (this.app.grid) {
+            console.log('   → Grid was deserialized from snapshot:', !!wasDeserialized);
+
+            if (this.app.grid && !wasDeserialized) {
+                console.log('   → Rebuilding grid from text bounds');
                 this.app.grid.buildFromExisting();
                 const allCells = this.app.grid.getAllCells();
                 console.log('   ✅ Grid built, cells:', allCells.length);
@@ -921,8 +940,20 @@ class PresetManager {
      * @private
      */
     restoreLayerState(layerData) {
-        // Layer assignments are handled during cell restoration
-        // This method is here for future layer-specific settings
+        // After grid deserialization, cells need to be assigned to layers
+        // Get all cells from the grid
+        const allCells = this.app.grid.getAllCells();
+
+        // Assign each cell to its appropriate layer
+        allCells.forEach(cell => {
+            // Get the default layer for this cell type
+            const layerId = this.app.layerManager.getDefaultLayerForCellType(cell.type);
+
+            // Assign cell to layer
+            this.app.layerManager.assignCellToLayer(cell, layerId);
+        });
+
+        console.log(`   → Assigned ${allCells.length} cells to layers`);
     }
 
     /**
