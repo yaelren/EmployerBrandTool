@@ -1233,18 +1233,23 @@ class SavePagePanel {
         // console.log('📦 newSlotData exists:', !!this.newSlotData);
 
         // Get form values from the CURRENTLY EDITING slot's content section
-        // 🔧 FIX: Read from specific slot's content section, not first match in container
+        // 🔧 FIX: Read from specific slot's content section using data-slot-index attribute
         let contentSection = null;
         if (this.currentEditingSlotIndex !== null && this.currentEditingSlotIndex !== -1) {
-            contentSection = this.container.querySelector(`.inline-slot-item:nth-child(${this.currentEditingSlotIndex + 1}) .inline-content-section`);
+            // Use data-slot-index attribute to find the correct item
+            const slotItem = this.container.querySelector(`.configured-slot-item[data-slot-index="${this.currentEditingSlotIndex}"]`);
+            if (slotItem) {
+                contentSection = slotItem.querySelector('.slot-edit-content');
+            }
         } else if (this.currentEditingSlotIndex === -1 && this.newSlotData) {
-            // For new slots, read from the last inline content section
-            const allSections = this.container.querySelectorAll('.inline-content-section');
+            // For new slots, read from the last slot-edit-content section
+            const allSections = this.container.querySelectorAll('.slot-edit-content');
             contentSection = allSections[allSections.length - 1];
         }
         
         // Fallback to container-level query if we can't find specific section
         if (!contentSection) {
+            console.warn('⚠️ Could not find specific content section, falling back to container query');
             contentSection = this.container;
         }
         
